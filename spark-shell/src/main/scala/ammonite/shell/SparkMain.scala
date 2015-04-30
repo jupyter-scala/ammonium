@@ -13,8 +13,6 @@ object SparkMain {
       handleResult = { (buf, r0) => val r = SparkIvyPPrintInterpreter.importsTransform(r0); main.frontEnd.update(buf, r); r },
       stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
-      jarDeps = Classpath.jarDeps,
-      dirDeps = Classpath.dirDeps,
       useClassWrapper = true,
       classWrapperInstance = Some(SparkIvyPPrintInterpreter.instanceSymbol)
     )
