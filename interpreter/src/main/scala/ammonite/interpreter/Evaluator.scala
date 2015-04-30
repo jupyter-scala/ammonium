@@ -185,9 +185,8 @@ object Evaluator{
         case Ex(_: InvEx, _: InitEx, Exit) if !useClassWrapper  => Res.Exit
         case Ex(_: ThreadDeath)                 => interrupted()
         case Ex(_: InvEx, _: ThreadDeath)       => interrupted()
-        case Ex(_: InitEx, userEx@_*)           if  useClassWrapper  => Res.Failure(userEx, stop = "<clinit>") // FIXME We're stopping at a method which is not ours
-        case Ex(_: InvEx, _: InitEx, userEx@_*) if !useClassWrapper  => Res.Failure(userEx, stop = "$main")
-        case Ex(userEx@_*)                      => Res.Failure(userEx, stop = "evaluatorRunPrinter")
+        case Ex(_: InvEx, _: InitEx, userEx@_*) => Res.Failure(userEx, stopMethod = "$main", stopClass = s"$wrapperName$$$$user")
+        case Ex(userEx@_*)                      => Res.Failure(userEx, stopMethod = "evaluatorRunPrinter")
       }
     } yield {
       // Exhaust the printer iterator now, before exiting the `Catching`

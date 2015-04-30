@@ -5,7 +5,7 @@ import utest._
 
 import scala.collection.{immutable => imm}
 
-class FailureTests(check0: => Checker) extends TestSuite{
+class FailureTests(check0: => Checker, lightException: Boolean = false) extends TestSuite{
   val tests = TestSuite{
     val check = check0
     'compileFailure {
@@ -40,7 +40,7 @@ class FailureTests(check0: => Checker) extends TestSuite{
         x.contains("java.lang.Exception: lol") &&
         x.contains("java.lang.Exception: hoho") &&
         // and none of the stuff we don't want
-        x.lines.length == 6 &&
+        x.lines.length == (if (lightException) 3 else 6) &&
         !x.contains("Something unexpected went wrong =(")
       )
     }

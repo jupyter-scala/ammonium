@@ -32,12 +32,12 @@ object Res{
   }
   case class Failure(s: String) extends Failing
   object Failure{
-    def apply(exceptions: Seq[Throwable], stop: String = null): Failure = {
+    def apply(exceptions: Seq[Throwable], stopMethod: String = null, stopClass: String = null): Failure = {
       val traces = exceptions.map(exception =>
         exception.toString + "\n" +
         exception
           .getStackTrace
-          .takeWhile(x => !(x.getMethodName == stop))
+          .takeWhile(x => x.getMethodName != stopMethod && x.getClassName != stopClass)
           .map("\t" + _)
           .mkString("\n")
       )
