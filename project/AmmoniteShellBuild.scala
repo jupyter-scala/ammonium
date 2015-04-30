@@ -118,11 +118,11 @@ object AmmoniteShellBuild extends Build {
       )
     )
 
-  lazy val sparkShell = Project(id = "spark-shell", base = file("spark-shell"))
-    .dependsOn(shell)
-    .settings(sharedSettings ++ testSettings: _*)
+  lazy val spark = Project(id = "spark", base = file("spark"))
+    .dependsOn(bridge)
+    .settings(sharedSettings: _*)
     .settings(
-      name := "ammonite-spark-shell",
+      name := "ammonite-spark",
       libraryDependencies ++= Seq(
         "org.apache.spark" %% "spark-core" % "1.3.0",
         "org.http4s" %% "http4s-core" % "0.7.0-SNAPSHOT",
@@ -135,8 +135,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(bridge, interpreter, pprintShapeless, shell, sparkShell)
-    .dependsOn(bridge, interpreter, pprintShapeless, shell, sparkShell)
+    .aggregate(bridge, interpreter, pprintShapeless, shell, spark)
+    .dependsOn(bridge, interpreter, pprintShapeless, shell, spark)
     .settings(
       publish := {},
       publishLocal := {},

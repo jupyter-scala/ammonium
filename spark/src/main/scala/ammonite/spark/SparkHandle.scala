@@ -1,4 +1,4 @@
-package ammonite.shell
+package ammonite.spark
 
 import java.io.IOException
 import java.net._
