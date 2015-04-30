@@ -106,15 +106,13 @@ lazy val ops = project
     name := "ammonite-ops"
   )
 
-lazy val tools = project
-  .dependsOn(ops, pprint)
-  .settings(sharedSettings:_*)
-  .settings(
-    name := "ammonite-tools"
-  )
-
 lazy val repl = project
-  .dependsOn(ops, tools, pprint)
+  .dependsOn(ops, pprint)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.lihaoyi" %% "ammonite-tools" % "0.2.7"
+    )
+  )
   .settings(sharedSettings:_*)
   .settings(
     test in assembly := {},
@@ -143,4 +141,4 @@ lazy val readme = ScalatexReadme(
 )
 
 
-lazy val root = project.in(file(".")).aggregate(pprint,  ops, tools, repl)
+lazy val root = project.in(file(".")).aggregate(pprint,  ops, repl)
