@@ -1,8 +1,7 @@
 package ammonite.interpreter
 
-import java.io.{FileOutputStream, File}
+import java.io.File
 import java.net.{URLClassLoader, URL}
-import java.util.UUID
 
 trait Classes {
   def currentClassLoader: ClassLoader
@@ -39,30 +38,9 @@ class DefaultClassesImpl(
       def add(url: URL) = addURL(url)
     }
 
-  lazy val tmpClassDir = {
-    val d = new File(new File(System.getProperty("java.io.tmpdir")), s"ammonite-${UUID.randomUUID()}")
-    d.mkdirs()
-    d.deleteOnExit()
-    d
-  }
-
   def newClassLoader() = {
     classLoader = new URLClassLoader(Array(), classLoader){
       def add(url: URL) = addURL(url)
-
-      override def getResource(name: String) =
-        Some(name).filter(_.endsWith(".class")).map(_.stripSuffix(".class")).flatMap(fromClassMaps) match {
-          case Some(bytes) =>
-            val f = new File(tmpClassDir, name)
-            if (!f.exists()) {
-              val w = new FileOutputStream(f)
-              w.write(bytes)
-              w.close()
-            }
-            f.toURI.toURL
-          case None =>
-            super.getResource(name)
-        }
 
       override def loadClass(name: String, resolve: Boolean) =
         fromClassMaps(name) match {
@@ -97,7 +75,7 @@ class DefaultClassesImpl(
   def fromClassMaps(name: String): Option[Array[Byte]] =
     classMaps.view.map(_(name)).collectFirst{case Some(b) => b}
 
-  def currentClassLoader = classLoader
+  def currentClassLoader: ClassLoader = classLoader
   def jars = startJars ++ extraJars
   def dirs = startDirs
 
