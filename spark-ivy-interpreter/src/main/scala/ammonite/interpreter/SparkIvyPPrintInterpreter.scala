@@ -12,7 +12,7 @@ object SparkIvyPPrintInterpreter {
     colors0: ColorSet = ColorSet.BlackWhite
   ): BridgeConfig[Preprocessor.Output, Iterator[String]] =
     BridgeConfig(
-      "object ReplBridge extends ammonite.interpreter.bridge.ReplAPIHolder{}",
+      "object ReplBridge extends ammonite.interpreter.sparkbridge.ReplAPIHolder{}",
       "ReplBridge",
       {
         _ =>
@@ -33,8 +33,25 @@ object SparkIvyPPrintInterpreter {
 
   def preprocessor = IvyPPrintInterpreter.preprocessor
 
+  val bootstrapSymbol = "$bootstrap"
+
+  def bootstrapImport(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
+    r .map { ev =>
+      ev.copy(imports = ev.imports.map(d => d.copy(prefix = d.prefix + "." + bootstrapSymbol)))
+    }
+
   val wrap: (Preprocessor.Output, String, String) => String =
     (p, previousImportBlock, wrapperName) =>
-      ???
+      s"""$previousImportBlock
+
+            object $wrapperName {
+              val $bootstrapSymbol = new $wrapperName
+            }
+
+            class $wrapperName extends Serializable {
+              ${p.code}
+              def $$main() = {${p.printer.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")}}
+            }
+         """
 
 }

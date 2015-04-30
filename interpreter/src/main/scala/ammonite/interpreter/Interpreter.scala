@@ -21,7 +21,7 @@ case class BridgeConfig[A,B](
 class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
                        preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, Int) => Res[A],
                        wrap: (A, String, String) => String,
-                       handleResult: => (String, Res[Evaluated[_]]) => Unit = (_, _) => (),
+                       handleResult: => (String, Res[Evaluated[_]]) => Res[Evaluated[_]] = (_, r) => r,
                        stdout: String => Unit = print,
                        initialImports: Seq[(String, ImportData)] = Nil,
                        initialHistory: Seq[String] = Nil,
@@ -51,8 +51,8 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     } finally Thread.currentThread().setContextClassLoader(oldClassloader)
   } yield out
 
-  def handleOutput(res: Res[Evaluated[_]]) = {
-    handleResult(buffered, res)
+  def handleOutput(res0: Res[Evaluated[_]]) = {
+    val res = handleResult(buffered, res0)
 
     res match{
       case Res.Skip => true
