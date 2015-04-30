@@ -77,26 +77,6 @@ object AmmoniteShellBuild extends Build {
       )
     )
 
-  lazy val pprintShapeless = Project(id = "pprint-shapeless", base = file("pprint-shapeless"))
-    .settings(sharedSettings: _*)
-    .settings(
-      name := "ammonite-pprint-shapeless",
-      libraryDependencies ++= Seq(
-        "com.lihaoyi" %% "ammonite-pprint" % "0.2.7"
-      ),
-      libraryDependencies ++= {
-        if (scalaVersion.value startsWith "2.10.")
-          Seq(
-            "com.chuusai" %  "shapeless_2.10.4" % "2.1.0",
-            compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full)
-          )
-        else
-          Seq(
-            "com.chuusai" %% "shapeless" % "2.1.0"
-          )
-      }
-    )
-
   lazy val shellApi = Project(id = "shell-api", base = file("shell-api"))
     .settings(sharedSettings: _*)
     .settings(
@@ -108,11 +88,14 @@ object AmmoniteShellBuild extends Build {
     )
 
   lazy val shell = Project(id = "shell", base = file("shell"))
-    .dependsOn(shellApi, interpreter, pprintShapeless)
+    .dependsOn(shellApi, interpreter)
     .settings(sharedSettings ++ testSettings: _*)
     .settings(
       name := "ammonite-shell",
       libraryDependencies ++= Seq(
+        // Snapshot version of pprint, for the fix for https://github.com/lihaoyi/Ammonite/issues/47
+        // (No snapshots are published by lihaoyi)
+        "com.github.alexarchambault.tmp" %% "ammonite-pprint" % "0.2.8-SNAPSHOT",
         "org.apache.ivy" % "ivy" % "2.4.0",
         "jline" % "jline" % "2.12"
       )
@@ -135,8 +118,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(interpreter, pprintShapeless, shellApi, shell, spark)
-    .dependsOn(interpreter, pprintShapeless, shellApi, shell, spark)
+    .aggregate(interpreter, shellApi, shell, spark)
+    .dependsOn(interpreter, shellApi, shell, spark)
     .settings(
       publish := {},
       publishLocal := {},

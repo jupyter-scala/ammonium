@@ -35,8 +35,7 @@ object IvyPPrintInterpreter {
             }
       },
       Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.shell.bridge.IvyConstructor")).toSeq ++
-        (if (useClassWrapper) Evaluator.namesFor[ammonite.pprint.Shapeless].map(n => n -> ImportData(n, n, "", "ammonite.pprint.Shapeless")).toSeq else Seq())
+        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.shell.bridge.IvyConstructor")).toSeq
     )
 
   val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, Int) => Res[Preprocessor.Output] =
