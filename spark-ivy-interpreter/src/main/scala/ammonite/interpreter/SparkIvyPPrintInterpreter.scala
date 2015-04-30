@@ -27,8 +27,12 @@ object SparkIvyPPrintInterpreter {
               replApi
             )
       },
-      Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
+    {
+      val r = Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
         Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.bridge.IvyConstructor")).toSeq
+      Console.err println s"$r"
+      r
+    }
     )
 
   def preprocessor = IvyPPrintInterpreter.preprocessor
@@ -37,16 +41,15 @@ object SparkIvyPPrintInterpreter {
 
   def bootstrapImport(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
     r .map { ev =>
-      ev.copy(imports = ev.imports.map(d => d.copy(prefix = d.prefix + "." + bootstrapSymbol)))
+      // ev.copy(imports = ev.imports.map(d => d.copy(prefix = d.prefix + "." + bootstrapSymbol)))
+      ev
     }
 
   val wrap: (Preprocessor.Output, String, String) => String =
     (p, previousImportBlock, wrapperName) =>
       s"""$previousImportBlock
 
-            object $wrapperName {
-              val $bootstrapSymbol = new $wrapperName
-            }
+            object $wrapperName extends $wrapperName
 
             class $wrapperName extends Serializable {
               ${p.code}
