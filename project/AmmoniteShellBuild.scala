@@ -93,8 +93,8 @@ object AmmoniteShellBuild extends Build {
     )
 
   lazy val spark = Project(id = "spark", base = file("spark"))
-    .dependsOn(shellApi)
-    .settings(sharedSettings: _*)
+    .dependsOn(shellApi, shell % "test->test")
+    .settings(sharedSettings ++ testSettings: _*)
     .settings(
       name := "ammonite-spark",
       libraryDependencies ++= Seq(
@@ -107,7 +107,7 @@ object AmmoniteShellBuild extends Build {
     )
 
   lazy val shell = Project(id = "shell", base = file("shell"))
-    .dependsOn(shellApi, interpreter, spark)
+    .dependsOn(shellApi, interpreter)
     .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
     .settings(
       name := "ammonite-shell",
