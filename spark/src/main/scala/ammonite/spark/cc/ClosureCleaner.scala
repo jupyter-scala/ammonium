@@ -56,11 +56,11 @@ object ClosureCleaner extends Logging {
   def getOuterClasses(obj: AnyRef): List[Class[_]] = {
     for (f <- obj.getClass.getDeclaredFields if f.getName == "$outer") {
       f.setAccessible(true)
-      if (isClosure(f.getType)) {
+//      if (isClosure(f.getType)) {
         return f.getType :: getOuterClasses(f.get(obj))
-      } else {
-        return f.getType :: Nil // Stop at the first $outer that is not a closure
-      }
+//      } else {
+//        return f.getType :: Nil // Stop at the first $outer that is not a closure
+//      }
     }
     Nil
   }
@@ -69,11 +69,11 @@ object ClosureCleaner extends Logging {
   def getOuterObjects(obj: AnyRef): List[AnyRef] = {
     for (f <- obj.getClass.getDeclaredFields if f.getName == "$outer") {
       f.setAccessible(true)
-      if (isClosure(f.getType)) {
+//      if (isClosure(f.getType)) {
         return f.get(obj) :: getOuterObjects(f.get(obj))
-      } else {
-        return f.get(obj) :: Nil // Stop at the first $outer that is not a closure
-      }
+//      } else {
+//        return f.get(obj) :: Nil // Stop at the first $outer that is not a closure
+//      }
     }
     Nil
   }
@@ -102,7 +102,7 @@ object ClosureCleaner extends Logging {
     }
   }
 
-  def clean(func: AnyRef, checkSerializable: Boolean = true) {
+  def clean(func: AnyRef, checkSerializable: Boolean = true): Map[Class[_], Set[String]] = {
     // TODO: cache outerClasses / innerClasses / accessedFields
     val outerClasses = getOuterClasses(func)
     val innerClasses = getInnerClasses(func)
@@ -143,7 +143,7 @@ object ClosureCleaner extends Logging {
         val field = cls.getDeclaredField(fieldName)
         field.setAccessible(true)
         val value = field.get(obj)
-        // logInfo("1: Setting " + fieldName + " on " + cls + " to " + value);
+        Console.err.println("1: Setting " + fieldName + " on " + cls + " to " + value);
         field.set(outer, value)
       }
     }
@@ -158,6 +158,8 @@ object ClosureCleaner extends Logging {
     if (checkSerializable) {
       ensureSerializable(func)
     }
+
+    accessedFields
   }
 
   def ensureSerializable(func: AnyRef) {
@@ -229,7 +231,9 @@ class FieldAccessFinder(output: Map[Class[_], Set[String]]) extends ClassVisitor
                                    desc: String) {
         // Check for calls a getter method for a variable in an interpreter wrapper object.
         // This means that the corresponding field will be accessed, so we should save it.
+        Console.err println s"Visiting method $name on $owner ($op, $desc)"
         if (op == INVOKEVIRTUAL && owner.endsWith("$iwC") && !name.endsWith("$outer")) {
+          Console.err println s"Visiting method $name on $owner ($op, $desc)"
           for (cl <- output.keys if cl.getName == owner.replace('/', '.')) {
             output(cl) += name
           }

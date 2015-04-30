@@ -136,12 +136,12 @@ object Evaluator{
         (prefix0, allImports) <- previousImports.values.toList.groupBy(_.prefix)
         imports <- transpose(allImports.groupBy(_.fromName).values.toList).reverse
       } yield {
-        val withVal = false // prefix0.startsWith("line") && prefix0.endsWith("INSTANCE.$iw.$iw")
+        val withVal = prefix0.startsWith("line") && prefix0.endsWith("INSTANCE.$iw.$iw")
         val (prepend, prefix) =
           if (withVal) {
             valCount += 1
             val valName = "$ref" + valCount
-            (s"lazy val $valName = $prefix0\n", valName)
+            (s"val $valName = $prefix0\n", valName)
           } else
             ("", prefix0)
 
@@ -171,7 +171,7 @@ object Evaluator{
     type InitEx = ExceptionInInitializerError
 
     def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false, classWrapperBoostrap: Option[String] = None) = for {
-      wrapperName <- Res.Success("line" + currentLine + "$iw")
+      wrapperName <- Res.Success("line" + currentLine + "$anonfun$$iwC")
       wrappedLine = {
         val l = wrap(input, previousImportBlock, wrapperName)
         if (show)
