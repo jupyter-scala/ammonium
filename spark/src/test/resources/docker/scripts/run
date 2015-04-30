@@ -14,14 +14,21 @@ if [ ! -d "$PROJDIR" ]; then
   exit 255
 fi
 
-docker ps | grep -q "\<master\>" || docker run -d -p 8080 -h master --name master test_spark/master
+if [ "$SPARK_VERSION" = "" ]; then
+  echo "SPARK_VERSION not set" 1>&2
+  exit 255
+fi
+
+DOCKER_SPARK_HOME="/opt/spark-$SPARK_VERSION"
+
+docker ps | grep -q "\<master\>" || docker run -d -p 8080 -h master --name master -e "SPARK_HOME=$DOCKER_SPARK_HOME" test_spark/master
 sleep 5
 
 for i in $(seq 1 3); do
-  docker ps | grep -q "\<slave$i\>" || docker run -d -p 8080 -h "slave$i" --name "slave$i" --link master:master test_spark/slave
+  docker ps | grep -q "\<slave$i\>" || docker run -d -p 8080 -h "slave$i" --name "slave$i" -e "SPARK_HOME=$DOCKER_SPARK_HOME" --link master:master test_spark/slave
 done
 
-docker run -d -h "sbt" --name "sbt" --link master:master $(for i in $(seq 1 3); do echo " --link slave${i}:slave$i"; done) -v "$(cd "$PROJDIR"; pwd):/project" test_spark/sbt
+docker run -d -h "sbt" --name "sbt" --link master:master $(for i in $(seq 1 3); do echo " --link slave${i}:slave$i"; done) -e "SPARK_HOME=$DOCKER_SPARK_HOME" -v "$(cd "$PROJDIR"; pwd):/project" test_spark/sbt
 sleep 5
 
 HOSTS="$(docker exec -it sbt cat /etc/hosts | grep -E '\<master\>|\<slave[1-3]\>|\<sbt\>')"
