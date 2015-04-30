@@ -14,7 +14,8 @@ object SparkMain {
       stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
       jarDeps = Classpath.jarDeps,
-      dirDeps = Classpath.dirDeps
+      dirDeps = Classpath.dirDeps,
+      useClassWrapper = true
     )
 
   def sparkIvyBridgeConfig(main: Main): BridgeConfig[Preprocessor.Output, Iterator[String]] =

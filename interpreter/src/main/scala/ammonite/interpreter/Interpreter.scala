@@ -26,7 +26,8 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
                        initialImports: Seq[(String, ImportData)] = Nil,
                        initialHistory: Seq[String] = Nil,
                        jarDeps: Seq[File] = Classpath.jarDeps,
-                       dirDeps: Seq[File] = Classpath.dirDeps){ interp =>
+                       dirDeps: Seq[File] = Classpath.dirDeps,
+                       useClassWrapper: Boolean = false){ interp =>
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
   var extraJars = Seq[java.io.File]()
@@ -36,8 +37,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
 
   def processLine[C](line: String,
                      saveHistory: (String => Unit, String) => Unit,
-                     printer: B => C,
-                     useClassWrapper: Boolean = false) = for{
+                     printer: B => C) = for{
     _ <- Catching { case Ex(x@_*) =>
       val Res.Failure(trace) = Res.Failure(x)
       Res.Failure(trace + "\nSomething unexpected went wrong =(")
