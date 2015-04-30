@@ -7,7 +7,7 @@ import ammonite.interpreter._
 object SparkMain {
   def sparkIvyInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
-      bridgeConfig = main.bridgeConfig,
+      bridgeConfig = SparkIvyPPrintInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet),
       SparkIvyPPrintInterpreter.preprocessor,
       SparkIvyPPrintInterpreter.wrap,
       handleResult = { (buf, r0) => val r = SparkIvyPPrintInterpreter.importsTransform(r0); main.frontEnd.update(buf, r); r },
@@ -17,9 +17,7 @@ object SparkMain {
       classWrapperInstance = Some(SparkIvyPPrintInterpreter.instanceSymbol)
     )
 
-  def sparkIvyBridgeConfig(main: Main): BridgeConfig[Preprocessor.Output, Iterator[String]] =
-    SparkIvyPPrintInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet)
 
   def main(args: Array[String]) =
-    Main(sparkIvyBridgeConfig, sparkIvyInterpreter)
+    Main(sparkIvyInterpreter)
 }

@@ -11,7 +11,6 @@ import scala.util.Try
 
 class Main(input: InputStream,
            val output: OutputStream,
-           createBridgeConfig: Main => BridgeConfig[Preprocessor.Output, Iterator[String]],
            createInterpreter: Main => Interpreter[Preprocessor.Output, Iterator[String]],
            val colorSet: ColorSet = ColorSet.Default,
            val pprintConfig: pprint.Config = pprint.Config.Colors.PPrintConfig,
@@ -30,7 +29,6 @@ class Main(input: InputStream,
     initialHistory
   )
 
-  val bridgeConfig = createBridgeConfig(this)
   val interp = createInterpreter(this)
 
   def action() = for{
@@ -56,7 +54,7 @@ class Main(input: InputStream,
 object Main{
   def ivyInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
-      bridgeConfig = main.bridgeConfig,
+      bridgeConfig = IvyPPrintInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet),
       IvyPPrintInterpreter.preprocessor,
       IvyPPrintInterpreter.wrap,
       handleResult = { (buf, r) => main.frontEnd.update(buf, r); r },
@@ -64,11 +62,8 @@ object Main{
       initialHistory = main.initialHistory
     )
 
-  def ivyBridgeConfig(main: Main): BridgeConfig[Preprocessor.Output, Iterator[String]] =
-    IvyPPrintInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet)
 
   def apply(
-    bridgeConfig: Main => BridgeConfig[Preprocessor.Output, Iterator[String]],
     interpreter: Main => Interpreter[Preprocessor.Output, Iterator[String]]
   ): Unit = {
     println("Loading Ammonite Shell...")
@@ -77,7 +72,6 @@ object Main{
     val delimiter = "\n\n\n"
     val shell = new Main(
       System.in, System.out,
-      bridgeConfig,
       interpreter,
       initialHistory = try{
         io.Source.fromFile(saveFile).mkString.split(delimiter)
@@ -94,5 +88,5 @@ object Main{
   }
 
   def main(args: Array[String]) =
-    apply(ivyBridgeConfig, ivyInterpreter)
+    apply(ivyInterpreter)
 }
