@@ -2,7 +2,7 @@ import sbt._, Keys._
 import sbtrelease.ReleasePlugin.{ ReleaseKeys, releaseSettings }
 import com.typesafe.sbt.SbtPgp.autoImport.PgpKeys
 
-object AmmoniteReplBuild extends Build {
+object AmmoniteShellBuild extends Build {
 
   private lazy val sharedSettings = Seq[Setting[_]](
     organization := "com.github.alexarchambault",
@@ -80,11 +80,11 @@ object AmmoniteReplBuild extends Build {
       )
     )
 
-  lazy val repl = Project(id = "repl", base = file("repl"))
+  lazy val shell = Project(id = "shell", base = file("shell"))
     .dependsOn(interpreter)
     .settings(sharedSettings: _*)
     .settings(
-      name := "ammonite-repl",
+      name := "ammonite-shell",
       libraryDependencies ++= Seq(
         "jline" % "jline" % "2.12",
         "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided"
@@ -92,7 +92,7 @@ object AmmoniteReplBuild extends Build {
     )
 
 
-  lazy val root = Project(id = "ammonite-repl", base = file("."))
-    .aggregate(compiler, interpreter, repl)
+  lazy val root = Project(id = "ammonite-shell", base = file("."))
+    .aggregate(compiler, interpreter, shell)
 
 }

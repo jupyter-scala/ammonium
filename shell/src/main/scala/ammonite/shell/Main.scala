@@ -1,5 +1,4 @@
-package ammonite.repl
-package console
+package ammonite.shell
 
 import java.io.{PrintStream, OutputStream, InputStream}
 import ammonite.compiler._
@@ -29,7 +28,7 @@ class Main(input: InputStream,
     initialHistory
   )
 
-  val interp: IvyPPrintInterpreter = IvyPPrintInterpreter(
+  def newInterpreter(): IvyPPrintInterpreter = IvyPPrintInterpreter(
     frontEnd.update,
     shellPrompt,
     pprintConfig.copy(maxWidth = frontEnd.width),
@@ -37,6 +36,8 @@ class Main(input: InputStream,
     stdout = new PrintStream(output).println,
     initialHistory = initialHistory
   )
+
+  val interp = newInterpreter()
 
   def action() = for{
     // Condition to short circuit early if `interp` hasn't finished evaluating
@@ -61,7 +62,7 @@ class Main(input: InputStream,
 object Main{
   val defaultPredef = """"""
   def main(args: Array[String]) = {
-    println("Loading Ammonite Repl...")
+    println("Loading Ammonite Shell...")
     import ammonite.ops._
     val saveFile = home/".amm"
     val delimiter = "\n\n\n"
