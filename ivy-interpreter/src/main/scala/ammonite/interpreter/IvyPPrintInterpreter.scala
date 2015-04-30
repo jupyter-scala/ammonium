@@ -13,7 +13,7 @@ object IvyPPrintInterpreter {
     colors0: ColorSet = ColorSet.BlackWhite
   ): BridgeConfig[Preprocessor.Output, Iterator[String]] =
     BridgeConfig(
-      "object ReplBridge extends ammonite.interpreter.ReplAPIHolder{}",
+      "object ReplBridge extends ammonite.interpreter.bridge.ReplAPIHolder{}",
       "ReplBridge",
       {
         _ =>
@@ -21,7 +21,7 @@ object IvyPPrintInterpreter {
 
           (intp, cls, stdout) =>
             if (replApi == null)
-              replApi = new DefaultReplAPI[Iterator[String]](intp, _.foreach(stdout), colors0, shellPrompt0, pprintConfig0)
+              replApi = new ReplAPIImpl[Iterator[String]](intp, _.foreach(stdout), colors0, shellPrompt0, pprintConfig0)
 
             ReplAPI.initReplBridge(
               cls.asInstanceOf[Class[ReplAPIHolder]],
@@ -29,7 +29,7 @@ object IvyPPrintInterpreter {
             )
       },
       Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.IvyConstructor")).toSeq
+        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.bridge.IvyConstructor")).toSeq
     )
 
   val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, Int) => Res[Preprocessor.Output] =

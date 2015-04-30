@@ -1,7 +1,7 @@
 package ammonite.interpreter
 
 import acyclic.file
-import ammonite.interpreter.bridge.{ ColorSet, DefaultReplAPI, IvyConstructor }
+import ammonite.interpreter.bridge.{ ColorSet, ReplAPIImpl, IvyConstructor }
 import ammonite.interpreter.sparkbridge._
 import ammonite.pprint
 
@@ -20,7 +20,7 @@ object SparkIvyPPrintInterpreter {
 
           (intp, cls, stdout) =>
             if (replApi == null)
-              replApi = new DefaultReplAPI[Iterator[String]](intp, _.foreach(stdout), colors0, shellPrompt0, pprintConfig0) with ReplAPISparkImpl
+              replApi = new ReplAPIImpl[Iterator[String]](intp, _.foreach(stdout), colors0, shellPrompt0, pprintConfig0) with ReplAPISparkImpl
 
             ReplAPI.initReplBridge(
               cls.asInstanceOf[Class[ReplAPIHolder]],
