@@ -13,13 +13,13 @@ import org.http4s.server.blaze.BlazeBuilder
 
 import scala.concurrent.duration.Duration
 
-class SparkHandle(power: Power) { api =>
+class SparkHandle(power: Power) extends Serializable { api =>
 
   lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
 
   var _classServerURI: URI = null
-  var _classServer: Server = null
+  @transient var _classServer: Server = null
 
   def classServerURI = {
     if (_classServerURI == null)
@@ -47,6 +47,7 @@ class SparkHandle(power: Power) { api =>
       idleTimeout = Duration.Inf,
       isNio2 = false,
       sslBits = None,
+      isHttp2Enabled = false,
       serviceMounts = Vector.empty
     )
 
@@ -114,7 +115,7 @@ class SparkHandle(power: Power) { api =>
 
   lazy val sparkConf: SparkConf = new SparkConf()
 
-  var _sc: SparkContext = null
+  @transient var _sc: SparkContext = null
 
   power.classes.onJarsAdded { newJars =>
     if (_sc != null)
@@ -133,8 +134,6 @@ class SparkHandle(power: Power) { api =>
       }
       _sc = new SparkContext(sparkConf)
     }
-
-    _sc.stop()
 
     _sc
   }

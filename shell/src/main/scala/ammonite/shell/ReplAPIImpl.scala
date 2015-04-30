@@ -45,8 +45,8 @@ class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet
       intp.init()
     }
   }
-  lazy val power: Power = new Power {
-    val classes = new Classes {
+  lazy val power: Power = new Power with Serializable {
+    val classes = new Classes with Serializable {
       def currentClassLoader = intp.classes.currentClassLoader
       def dirs = intp.classes.dirs
       def addClassMap(classMap: (String) => Option[Array[Byte]]) = intp.classes.addClassMap(classMap)

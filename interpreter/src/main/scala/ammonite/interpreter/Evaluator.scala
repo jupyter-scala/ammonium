@@ -171,7 +171,7 @@ object Evaluator{
     type InitEx = ExceptionInInitializerError
 
     def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false, classWrapperBoostrap: Option[String] = None) = for {
-      wrapperName <- Res.Success("line" + currentLine + "$anonfun$$iwC")
+      wrapperName <- Res.Success("line" + currentLine)
       wrappedLine = {
         val l = wrap(input, previousImportBlock, wrapperName)
         if (show)
