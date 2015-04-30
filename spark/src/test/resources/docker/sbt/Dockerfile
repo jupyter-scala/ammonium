@@ -11,4 +11,6 @@ RUN \
   apt-get update && \
   apt-get install sbt
 
-WORKDIR /root
+VOLUME ["/ammonite-shell"]
+
+WORKDIR /ammonite-shell
