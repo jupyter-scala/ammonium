@@ -1,5 +1,6 @@
-package ammonite.interpreter
+package ammonite.shell
 
+import ammonite.interpreter._
 import utest._
 
 

@@ -1,9 +1,11 @@
-package ammonite.interpreter
+package ammonite.shell
 
 import acyclic.file
 import scala.tools.nsc.Global
+import ammonite.interpreter._
+import ammonite.interpreter.bridge._
 import ammonite.pprint
-import bridge._
+import ammonite.shell.bridge._
 
 
 object IvyPPrintInterpreter {

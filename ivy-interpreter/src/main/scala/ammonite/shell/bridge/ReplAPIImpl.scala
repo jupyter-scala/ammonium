@@ -1,4 +1,4 @@
-package ammonite.interpreter
+package ammonite.shell
 package bridge
 
 import java.io.File
@@ -6,7 +6,8 @@ import java.io.File
 import scala.reflect.runtime.universe._
 import acyclic.file
 
-import ammonite.interpreter.Evaluator.Exit
+import ammonite.interpreter.{ Classes => _, _ }, Evaluator.Exit
+import ammonite.interpreter.bridge._
 import ammonite.pprint
 
 

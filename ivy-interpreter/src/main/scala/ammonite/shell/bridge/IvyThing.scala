@@ -1,4 +1,4 @@
-package ammonite.interpreter
+package ammonite.shell
 package bridge
 
 import java.io.File

@@ -2,7 +2,7 @@ package ammonite.shell
 
 import java.io._
 import ammonite.interpreter._
-import ammonite.interpreter.bridge.ColorSet
+import ammonite.shell.bridge.ColorSet
 import ammonite.pprint
 import acyclic.file
 

@@ -1,3 +1,3 @@
-package ammonite.interpreter
+package ammonite.shell
 
 object EvaluatorTests extends tests.EvaluatorTests(new Checker)

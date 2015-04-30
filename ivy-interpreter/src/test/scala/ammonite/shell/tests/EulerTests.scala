@@ -1,4 +1,4 @@
-package ammonite.interpreter
+package ammonite.shell
 package tests
 
 import utest._

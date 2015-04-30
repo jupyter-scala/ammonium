@@ -1,5 +1,7 @@
-package ammonite.interpreter
+package ammonite.shell
 package classwrapper
+
+import ammonite.interpreter._
 
 object ClassWrapperChecker {
   val instanceSymbol = "INSTANCE"

@@ -1,6 +1,7 @@
-package ammonite.interpreter
+package ammonite.shell
 package tests
 
+import ammonite.interpreter.Res
 import utest._
 
 import scala.collection.{immutable => imm}
