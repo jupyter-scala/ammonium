@@ -1,12 +1,12 @@
 package ammonite.interpreter
 package classwrapper
 
-object SparkChecker {
+object ClassWrapperChecker {
   val instanceSymbol = "INSTANCE"
 }
 
-class SparkChecker extends Checker {
-  import SparkChecker.instanceSymbol
+class ClassWrapperChecker extends Checker {
+  import ClassWrapperChecker.instanceSymbol
 
   override def newInterpreter(): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
