@@ -40,16 +40,21 @@ object AmmoniteShellBuild extends Build {
     },
     licenses := Seq("MIT license" -> url("http://www.opensource.org/licenses/mit-license.php")),
     pomExtra := {
-      <url>https://github.com/alexarchambault/Ammonite</url>
+      <url>https://github.com/alexarchambault/ammonite-shell</url>
       <scm>
-        <url>git://github.com/alexarchambault/Ammonite.git</url>
-        <connection>scm:git://github.com/alexarchambault/Ammonite.git</connection>
+        <url>git://github.com/alexarchambault/ammonite-shell.git</url>
+        <connection>scm:git://github.com/alexarchambault/ammonite-shell.git</connection>
       </scm>
       <developers>
         <developer>
           <id>alexarchambault</id>
           <name>Alexandre Archambault</name>
           <url>https://github.com/alexarchambault</url>
+        </developer>
+        <developer>
+          <id>lihaoyi</id>
+          <name>Li Haoyi</name>
+          <url>https://github.com/lihaoyi</url>
         </developer>
       </developers>
     },
