@@ -11,8 +11,8 @@ RUN \
   apt-get update && \
   apt-get install sbt
 
-VOLUME ["/ammonite-shell"]
+VOLUME ["/project"]
 
-WORKDIR /ammonite-shell
+WORKDIR /project
 
 CMD sleep infinity

@@ -60,17 +60,23 @@ object AmmoniteShellBuild extends Build {
     },
     publishMavenStyle := true,
     ReleaseKeys.versionBump := sbtrelease.Version.Bump.Bugfix,
-    ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value,
-    fork in test := true,
-    fork in (Test, test) := true,
-    fork in (Test, testOnly) := true
+    ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value
   ) ++ releaseSettings
 
   private lazy val testSettings = Seq(
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "utest" % "0.3.0" % "test"
     ),
-    testFrameworks += new TestFramework("utest.runner.Framework")
+    testFrameworks += new TestFramework("utest.runner.Framework"),
+    fork in test := true,
+    fork in (Test, test) := true,
+    fork in (Test, testOnly) := true,
+    testOptions in Test := {
+      sys.env.get("AMM_SPARK_CLUSTER_TESTS") match {
+        case Some("1") => Seq()
+        case _ => Seq(Tests.Filter(s => !s.startsWith("ammonite.spark.localcluster") && !s.startsWith("ammonite.spark.standalonecluster")))
+      }
+    }
   )
 
   lazy val interpreter = Project(id = "interpreter", base = file("interpreter"))
