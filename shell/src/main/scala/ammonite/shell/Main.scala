@@ -10,13 +10,14 @@ import scala.annotation.tailrec
 import scala.util.Try
 
 class Main(input: InputStream,
-           output: OutputStream,
+           val output: OutputStream,
+           newInterpreter: Main => Interpreter[Preprocessor.Output, Iterator[String]],
            colorSet: ColorSet = ColorSet.Default,
            pprintConfig: pprint.Config = pprint.Config.Colors.PPrintConfig,
            shellPrompt0: String = "@",
-           initialHistory: Seq[String] = Nil,
+           val initialHistory: Seq[String] = Nil,
            saveHistory: String => Unit = _ => (),
-           predef: String = Main.defaultPredef) {
+           predef: String = "") {
 
   val shellPrompt = Ref(shellPrompt0)
 
@@ -30,19 +31,7 @@ class Main(input: InputStream,
 
   val bridgeConfig = IvyPPrintInterpreter.bridgeConfig(shellPrompt, pprintConfig.copy(maxWidth = frontEnd.width), colorSet)
 
-  def newInterpreter(): Interpreter[Preprocessor.Output, Iterator[String]] =
-    new Interpreter(
-      bridgeConfig = bridgeConfig,
-      IvyPPrintInterpreter.preprocessor,
-      IvyPPrintInterpreter.wrap,
-      handleResult = frontEnd.update,
-      stdout = new PrintStream(output).println,
-      initialHistory = initialHistory,
-      jarDeps = Classpath.jarDeps,
-      dirDeps = Classpath.dirDeps
-    )
-
-  val interp = newInterpreter()
+  val interp = newInterpreter(this)
 
   def action() = for{
     // Condition to short circuit early if `interp` hasn't finished evaluating
@@ -65,18 +54,32 @@ class Main(input: InputStream,
 }
 
 object Main{
-  val defaultPredef = """"""
-  def main(args: Array[String]) = {
+  def ivyInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
+    new Interpreter(
+      bridgeConfig = main.bridgeConfig,
+      IvyPPrintInterpreter.preprocessor,
+      IvyPPrintInterpreter.wrap,
+      handleResult = main.frontEnd.update,
+      stdout = new PrintStream(main.output).println,
+      initialHistory = main.initialHistory,
+      jarDeps = Classpath.jarDeps,
+      dirDeps = Classpath.dirDeps
+    )
+
+  def apply(interpreter: Main => Interpreter[Preprocessor.Output, Iterator[String]]) = {
     println("Loading Ammonite Shell...")
     import ammonite.ops._
     val saveFile = home/".amm"
     val delimiter = "\n\n\n"
     val shell = new Main(
       System.in, System.out,
+      interpreter,
       initialHistory = Try{read! saveFile}.getOrElse("").split(delimiter),
       saveHistory = s => write.append(home/".amm", s + delimiter)
     )
     shell.run()
-
   }
+
+  def main(args: Array[String]) =
+    apply(ivyInterpreter)
 }
