@@ -2,6 +2,10 @@ package ammonite.interpreter.cl
 
 // Extracted from SBT
 
+/*
+ * For later use, to expose a cleaner ClassLoader to users
+ */
+
 import java.io.{InputStream, ByteArrayInputStream, File}
 import java.io.File._
 import java.net._
