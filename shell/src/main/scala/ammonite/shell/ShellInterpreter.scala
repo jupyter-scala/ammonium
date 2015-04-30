@@ -4,6 +4,7 @@ import java.io.File
 
 import acyclic.file
 import org.apache.ivy.plugins.resolver.DependencyResolver
+import com.github.alexarchambault.ivylight.ResolverHelpers
 import scala.tools.nsc.Global
 import ammonite.interpreter._
 import ammonite.pprint
@@ -40,7 +41,7 @@ object ShellInterpreter {
             }
       },
       Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.shell.util.IvyConstructor")).toSeq
+        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.shell.IvyConstructor")).toSeq
     )
 
   val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output] =

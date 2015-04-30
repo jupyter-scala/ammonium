@@ -1,4 +1,4 @@
-package ammonite.shell.util
+package com.github.alexarchambault.ivylight
 
 import java.io.{IOException, File}
 import java.net.{URISyntaxException, URL}
@@ -20,23 +20,6 @@ import org.xml.sax.SAXParseException
 import scala.xml.XML
 
 // From Ammonite's IvyThing and sbt-ivy
-
-object IvyConstructor extends IvyConstructor
-trait IvyConstructor{
-  val scalaBinaryVersion = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
-
-  implicit class GroupIdExt(groupId: String){
-    def %(artifactId: String) = (groupId, artifactId)
-    def %%(artifactId: String) = (groupId, artifactId + "_" + scalaBinaryVersion)
-  }
-  implicit class ArtifactIdExt(t: (String, String)){
-    def %(version: String) = (t._1, t._2, version)
-  }
-
-  object Resolvers {
-    case class Resolver(underlying: DependencyResolver) extends ammonite.shell.Resolver
-  }
-}
 
 object IvyHelper {
 

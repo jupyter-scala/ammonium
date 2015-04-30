@@ -1,4 +1,4 @@
-package ammonite.shell.util
+package com.github.alexarchambault.ivylight
 
 import java.io.File
 import java.text.ParseException

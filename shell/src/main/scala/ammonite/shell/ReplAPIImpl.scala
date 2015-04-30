@@ -3,6 +3,7 @@ package ammonite.shell
 import java.io.File
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
+import com.github.alexarchambault.ivylight.IvyHelper
 
 import scala.reflect.runtime.universe._
 import acyclic.file
@@ -95,4 +96,23 @@ class ReplAPIImpl[B](
   def clear() = ()
   def newCompiler() = intp.init()
   def history = intp.history.toVector.dropRight(1)
+}
+
+// From Ammonite's IvyThing
+
+object IvyConstructor extends IvyConstructor
+trait IvyConstructor{
+  val scalaBinaryVersion = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
+
+  implicit class GroupIdExt(groupId: String){
+    def %(artifactId: String) = (groupId, artifactId)
+    def %%(artifactId: String) = (groupId, artifactId + "_" + scalaBinaryVersion)
+  }
+  implicit class ArtifactIdExt(t: (String, String)){
+    def %(version: String) = (t._1, t._2, version)
+  }
+
+  object Resolvers {
+    case class Resolver(underlying: DependencyResolver) extends ammonite.shell.Resolver
+  }
 }

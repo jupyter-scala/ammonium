@@ -113,7 +113,15 @@ object AmmoniteShellBuild extends Build {
       name := "ivy-light",
       libraryDependencies ++= Seq(
         "org.apache.ivy" % "ivy" % "2.4.0"
-      )
+      ),
+      libraryDependencies ++= {
+        if (scalaVersion.value startsWith "2.10.")
+          Seq()
+        else
+          Seq(
+            "org.scala-lang.modules" %% "scala-xml" % "1.0.3"
+          )
+      }
     )
 
   lazy val shell = Project(id = "shell", base = file("shell"))
@@ -129,8 +137,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(interpreter, shellApi, spark, shell)
-    .dependsOn(interpreter, shellApi, spark, shell)
+    .aggregate(interpreter, shellApi, spark, ivyLight, shell)
+    .dependsOn(interpreter, shellApi, spark, ivyLight, shell)
     .settings(
       publish := {},
       publishLocal := {},
