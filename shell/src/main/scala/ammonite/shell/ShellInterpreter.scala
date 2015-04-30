@@ -28,7 +28,7 @@ object ShellInterpreter {
 
           (intp, cls, stdout) =>
             if (replApi == null)
-              replApi = new ReplAPIImpl[Iterator[String]](intp, _.foreach(stdout), s => stdout(s + "\n"), colors, shellPrompt, pprintConfig, startJars, startIvys, startResolvers)
+              replApi = new ReplAPIImpl[Iterator[String]](intp, s => stdout(s + "\n"), colors, shellPrompt, pprintConfig, startJars, startIvys, startResolvers)
 
             ReplAPI.initReplBridge(
               cls.asInstanceOf[Class[ReplAPIHolder]],
@@ -43,7 +43,7 @@ object ShellInterpreter {
         Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.shell.util.IvyConstructor")).toSeq
     )
 
-  val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, Int) => Res[Preprocessor.Output] =
+  val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output] =
     f => Preprocessor(f()).apply
 
   val wrap: (Preprocessor.Output, String, String) => String =

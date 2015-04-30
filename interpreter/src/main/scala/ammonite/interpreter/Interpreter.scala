@@ -30,12 +30,14 @@ object BridgeHandle {
  * real encapsulation for now.
  */
 class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
-                       preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, Int) => Res[A],
+                       preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[A],
                        wrap: (A, String, String) => String,
                        handleResult: => (String, Res[Evaluated[_]]) => Res[Evaluated[_]] = (_, r) => r,
+                       printer: B => Unit,
                        stdout: String => Unit = print,
                        initialImports: Seq[(String, ImportData)] = Nil,
                        initialHistory: Seq[String] = Nil,
+                       predef: String = "",
                        val classes: Classes = new DefaultClassesImpl(),
                        useClassWrapper: Boolean = false,
                        classWrapperInstance: Option[String] = None){ interp =>
@@ -76,7 +78,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
         buffered = line + "\n"
         true
       case Res.Exit =>
-        stdout("Bye!")
+        stdout("Bye!\n")
         pressy.shutdownPressy()
         false
       case Res.Success(ev) =>
@@ -85,7 +87,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
         true
       case Res.Failure(msg) =>
         buffered = ""
-        stdout(Console.RED + msg + Console.RESET)
+        stdout(Console.RED + msg + Console.RESET + "\n")
         true
     }
   }
@@ -128,11 +130,16 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     bridgeConfig.imports ++ initialImports,
     wrap,
     compiler.compile,
-    stdout
+    if (predef != "") -1 else 0
   )
 
   classes.addClassMap(s => eval.classes.get(s))
 
   init()
+
+  if (predef != "") {
+    val res1 = processLine(predef, (_, _) => (), printer)
+    val res2 = handleOutput(res1)
+  }
 }
 

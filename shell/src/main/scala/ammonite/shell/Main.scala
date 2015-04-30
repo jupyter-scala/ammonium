@@ -17,7 +17,7 @@ class Main(input: InputStream,
            shellPrompt0: String = "@",
            val initialHistory: Seq[String] = Nil,
            saveHistory: String => Unit = _ => (),
-           predef: String = "") {
+           val predef: String = Main.defaultPredef) {
 
   val startClassLoader = Thread.currentThread().getContextClassLoader
   val startJars = Classpath.jarDeps
@@ -65,8 +65,10 @@ object Main{
       ShellInterpreter.preprocessor,
       ShellInterpreter.wrap,
       handleResult = { (buf, r) => main.frontEnd.update(buf, r); r },
+      printer = _.foreach(print),
       stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
+      predef = main.predef,
       classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs)
     )
 
@@ -81,16 +83,19 @@ object Main{
         val transform = ShellInterpreter.classWrapImportsTransform(classWrapperInstanceSymbol) _
         (buf, r0) => val r = transform(r0); main.frontEnd.update(buf, r); r
       },
+      printer = _.foreach(print),
       stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
+      predef = main.predef,
       classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs),
       useClassWrapper = true,
       classWrapperInstance = Some(classWrapperInstanceSymbol)
     )
 
-
+  val defaultPredef = """"""
   def apply(
-    interpreter: Main => Interpreter[Preprocessor.Output, Iterator[String]]
+    interpreter: Main => Interpreter[Preprocessor.Output, Iterator[String]],
+    predef: String
   ): Unit = {
     println("Loading Ammonite Shell...")
 
@@ -108,16 +113,21 @@ object Main{
         val fw = new FileWriter(saveFile, true)
         try fw.write(delimiter + s)
         finally fw.close()
-      }
+      },
+      predef = predef
     )
     shell.run()
   }
 
-  def main(args: Array[String]) =
-    Option(args) match {
-      case Some(Array("--class-wrap")) =>
-        Main(shellClassWrapInterpreter)
-      case _ =>
-        apply(shellInterpreter)
-    }
+  def main(args: Array[String]) = {
+    val classWrap =
+      Option(args) match {
+        case Some(Array("--class-wrap")) => true
+        case _ => false
+      }
+
+    run(classWrap = classWrap)
+  }
+  def run(predef: String = "", classWrap: Boolean = false) =
+    apply(if (classWrap) shellClassWrapInterpreter else shellInterpreter, predef)
 }

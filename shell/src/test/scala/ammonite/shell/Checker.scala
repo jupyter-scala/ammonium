@@ -5,6 +5,7 @@ import utest._
 
 
 class Checker {
+  def predef = ""
   var allOutput = ""
 
   def newInterpreter(): Interpreter[Preprocessor.Output, Iterator[String]] =
@@ -12,7 +13,9 @@ class Checker {
       ShellInterpreter.bridgeConfig(),
       ShellInterpreter.preprocessor,
       ShellInterpreter.wrap,
-      stdout = allOutput += _
+      printer = _.foreach(allOutput += _),
+      stdout = allOutput += _,
+      predef = predef
     )
 
   val interp = newInterpreter()
@@ -33,7 +36,7 @@ class Checker {
       val expected = resultLines.mkString("\n").trim
       for(line <- commandText.init) {
         allOutput += "\n@ " + line
-        val (processed, printed) = run(line)
+        val (processed, _) = run(line)
         if (!line.startsWith("//")) {
           failLoudly(assert(processed.isInstanceOf[Res.Buffer]))
         }

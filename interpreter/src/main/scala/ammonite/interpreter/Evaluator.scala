@@ -24,7 +24,14 @@ import scala.util.matching.Regex
  */
 trait Evaluator[-A, +B] {
   def evalClass(code: String, wrapperName: String, useClassWrapper: Boolean = false): Res[(Class[_], Unit => Class[_], Seq[ImportData])]
-  def getCurrentLine: Int
+
+  /**
+   * _2, _1, 0, 1, 2, 3...
+   *
+   * Numbers starting from _ are used to represent predefined commands
+   */
+  def getCurrentLine: String
+
   def getShow: Boolean
   def setShow(v: Boolean): Unit
   def update(newImports: Seq[ImportData]): Unit
@@ -63,7 +70,7 @@ object Evaluator{
                   initialImports: Seq[(String, ImportData)],
                   wrap: (A, String, String) => String,
                   compile: => (Array[Byte], String => Unit) => Compiler.Output,
-                  stdout: String => Unit): Evaluator[A, B] = new Evaluator[A, B] {
+                  startingLine: Int): Evaluator[A, B] = new Evaluator[A, B] {
 
     /**
      * Files which have been compiled, stored so that our special
@@ -86,13 +93,13 @@ object Evaluator{
      * The current line number of the REPL, used to make sure every snippet
      * evaluated can have a distinct name that doesn't collide.
      */
-    var currentLine = 0
+    var currentLine = startingLine
 
     /**
      * Weird indirection only necessary because of
      * https://issues.scala-lang.org/browse/SI-7085
      */
-    def getCurrentLine = currentLine
+    def getCurrentLine = currentLine.toString.replace("-", "_")
 
     /**
      *
@@ -170,7 +177,7 @@ object Evaluator{
     type InitEx = ExceptionInInitializerError
 
     def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false, classWrapperBoostrap: Option[String] = None) = for {
-      wrapperName <- Res.Success("cmd" + currentLine)
+      wrapperName <- Res.Success("cmd" + getCurrentLine)
       _ <- Catching{ case e: ThreadDeath => interrupted() }
       wrappedLine = {
         val l = wrap(input, previousImportBlock, wrapperName)
