@@ -14,8 +14,8 @@ trait Classes {
   def onJarsAdded(action: Seq[File] => Unit): Unit
 }
 
-trait AddJarClassLoader extends URLClassLoader {
-  def add(url: URL): Unit
+class AddURLClassLoader(parent: ClassLoader) extends URLClassLoader(Array(), parent) {
+  override def addURL(url: URL) = super.addURL(url)
 }
 
 class DefaultClassesImpl(
@@ -39,14 +39,12 @@ class DefaultClassesImpl(
    * re-defining the core (pre-REPL) classes. I'm still not sure
    * where those come from.
    */
-  var classLoader: AddJarClassLoader = _
+  var classLoader: AddURLClassLoader = _
 
   var loading = Set.empty[String]
 
   def newClassLoader() = {
-    classLoader = new URLClassLoader(Array(), Option(classLoader) getOrElse startClassLoader) with AddJarClassLoader {
-      def add(url: URL) = addURL(url)
-
+    classLoader = new AddURLClassLoader(Option(classLoader) getOrElse startClassLoader) {
       // Overriding the main method and not the overload (which misses the resolve argument) for an easier
       // reuse of this ClassLoader
       // This whole thing is such a hack!!! - and should it be thread-safe??
@@ -80,7 +78,7 @@ class DefaultClassesImpl(
   def addJars(jars: File*) = {
     extraJars = extraJars ++ jars
     newClassLoader()
-    jars.foreach(classLoader add _.toURI.toURL)
+    jars.foreach(classLoader addURL _.toURI.toURL)
     onJarsAddedHooks.foreach(_(jars))
   }
   def addClassMap(classMap: String => Option[Array[Byte]]) = {
