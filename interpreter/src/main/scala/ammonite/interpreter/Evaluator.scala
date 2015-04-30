@@ -50,7 +50,9 @@ object Evaluator{
   case object Exit extends ControlThrowable
 
   def namesFor(t: scala.reflect.runtime.universe.Type): Set[String] = {
-    val yours = t.members.map(_.name.toString).toSet
+    val yours = t.members.map(_.name.toString)
+      .filterNot(_ endsWith nme.LOCAL_SUFFIX_STRING) // See http://stackoverflow.com/a/17248174/3714539
+      .toSet
     val default = typeOf[Object].members.map(_.name.toString)
     yours -- default
   }
