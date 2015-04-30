@@ -36,6 +36,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
                        stdout: String => Unit = print,
                        initialImports: Seq[(String, ImportData)] = Nil,
                        initialHistory: Seq[String] = Nil,
+                       startClassLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
                        val jarDeps: Seq[File] = Classpath.jarDeps,
                        val dirDeps: Seq[File] = Classpath.dirDeps,
                        useClassWrapper: Boolean = false,
@@ -118,11 +119,10 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     if (handle != null) handle.stop()
   }
 
-  val mainThread = Thread.currentThread()
   val preprocess = preprocessor(_ => compiler.parse)
 
   val eval = Evaluator[A, B](
-    mainThread.getContextClassLoader,
+    startClassLoader,
     bridgeConfig.imports ++ initialImports,
     preprocess.apply,
     wrap,

@@ -36,7 +36,7 @@ class Main(input: InputStream,
   def action() = for{
     // Condition to short circuit early if `interp` hasn't finished evaluating
     line <- frontEnd.action(interp.buffered)
-    _ <- Signaller("INT") { interp.mainThread.stop() }
+    _ <- Signaller("INT") { Thread.currentThread().stop() }
     out <- interp.processLine(line, (f, x) => {saveHistory(x); f(x)}, _.foreach(print))
   } yield {
     println()
