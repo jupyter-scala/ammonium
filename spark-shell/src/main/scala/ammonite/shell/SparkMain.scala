@@ -9,7 +9,7 @@ object SparkMain {
 
   def sparkIvyInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
-      bridgeConfig = IvyPPrintInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet, useClassWrapper = true),
+      IvyPPrintInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet, useClassWrapper = true),
       IvyPPrintInterpreter.preprocessor,
       IvyPPrintInterpreter.classWrap(instanceSymbol),
       handleResult = {

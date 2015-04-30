@@ -91,9 +91,19 @@ object AmmoniteShellBuild extends Build {
     .settings(
       name := "ammonite-pprint-shapeless",
       libraryDependencies ++= Seq(
-        "com.lihaoyi" %% "ammonite-pprint" % "0.2.7",
-        "com.chuusai" %% "shapeless" % "2.1.0"
-      )
+        "com.lihaoyi" %% "ammonite-pprint" % "0.2.7"
+      ),
+      libraryDependencies ++= {
+        if (scalaVersion.value startsWith "2.10.")
+          Seq(
+            "com.chuusai" %  "shapeless_2.10.4" % "2.1.0",
+            compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full)
+          )
+        else
+          Seq(
+            "com.chuusai" %% "shapeless" % "2.1.0"
+          )
+      }
     )
 
   lazy val ivyInterpreter = Project(id = "ivy-interpreter", base = file("ivy-interpreter"))

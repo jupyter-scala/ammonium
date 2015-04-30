@@ -55,7 +55,7 @@ class Main(input: InputStream,
 object Main{
   def ivyInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
-      bridgeConfig = IvyPPrintInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet),
+      IvyPPrintInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet),
       IvyPPrintInterpreter.preprocessor,
       IvyPPrintInterpreter.wrap,
       handleResult = { (buf, r) => main.frontEnd.update(buf, r); r },
