@@ -52,6 +52,14 @@ object AmmoniteShellBuild extends Build {
     ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value
   ) ++ releaseSettings
 
+  private lazy val testSettings = Seq(
+    libraryDependencies ++= Seq(
+      "com.lihaoyi" %% "utest" % "0.3.0" % "test"
+    ),
+    testFrameworks += new TestFramework("utest.runner.Framework"),
+    fork in (Test, testOnly) := true // Makes some tests fail in 2.10?
+  )
+
   lazy val interpreter = Project(id = "interpreter", base = file("interpreter"))
     .settings(sharedSettings: _*)
     .settings(
@@ -77,14 +85,18 @@ object AmmoniteShellBuild extends Build {
 
   lazy val ivyInterpreterTests = Project(id = "ivy-interpreter-tests", base = file("ivy-interpreter-tests"))
     .dependsOn(ivyInterpreter)
-    .settings(sharedSettings: _*)
+    .settings(sharedSettings ++ testSettings: _*)
     .settings(
-      name := "ammonite-ivy-interpreter-tests",
+      name := "ammonite-ivy-interpreter-tests"
+    )
+
+  lazy val sparkIvyInterpreter = Project(id = "spark-ivy-interpreter", base = file("spark-ivy-interpreter"))
+    .dependsOn(ivyInterpreter, ivyInterpreterTests % "test")
+    .settings(sharedSettings ++ testSettings: _*)
+    .settings(
+      name := "ammonite-spark-ivy-interpreter",
       libraryDependencies ++= Seq(
-        "com.lihaoyi" %% "utest" % "0.3.0" % "test"
-      ),
-      testFrameworks += new TestFramework("utest.runner.Framework"),
-      fork in (Test, testOnly) := true // Makes some tests fail in 2.10?
+      )
     )
 
   lazy val shell = Project(id = "shell", base = file("shell"))
@@ -99,6 +111,6 @@ object AmmoniteShellBuild extends Build {
 
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
-    .aggregate(interpreter, ivyInterpreter, ivyInterpreterTests, shell)
+    .aggregate(interpreter, ivyInterpreter, ivyInterpreterTests, sparkIvyInterpreter, shell)
 
 }
