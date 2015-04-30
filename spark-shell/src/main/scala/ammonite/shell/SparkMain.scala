@@ -10,12 +10,13 @@ object SparkMain {
       bridgeConfig = main.bridgeConfig,
       SparkIvyPPrintInterpreter.preprocessor,
       SparkIvyPPrintInterpreter.wrap,
-      handleResult = { (buf, r0) => val r = SparkIvyPPrintInterpreter.bootstrapImport(r0); main.frontEnd.update(buf, r); r },
+      handleResult = { (buf, r0) => val r = SparkIvyPPrintInterpreter.importsTransform(r0); main.frontEnd.update(buf, r); r },
       stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
       jarDeps = Classpath.jarDeps,
       dirDeps = Classpath.dirDeps,
-      useClassWrapper = true
+      useClassWrapper = true,
+      classWrapperInstance = Some(SparkIvyPPrintInterpreter.instanceSymbol)
     )
 
   def sparkIvyBridgeConfig(main: Main): BridgeConfig[Preprocessor.Output, Iterator[String]] =

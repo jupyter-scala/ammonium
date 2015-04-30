@@ -9,7 +9,8 @@ import utest._
 import scala.collection.{immutable => imm}
 import scala.reflect.io.VirtualDirectory
 
-class EvaluatorTests(check0: => Checker) extends TestSuite{
+class EvaluatorTests(check0: => Checker, wrapperInstance: Option[String] = None) extends TestSuite{
+  val wrapperStr = wrapperInstance.map(".".+).mkString
 
   val tests = TestSuite{
     val check = check0
@@ -105,18 +106,18 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
       """)
     }
     'types{
-      check.session("""
+      check.session(s"""
         @ type Funky = Array[Array[String]]
         defined type Funky
 
         @ val arr: Funky = Array(Array("Hello!"))
-        arr: cmd0.Funky = Array(Array("Hello!"))
+        arr: cmd0$wrapperStr.Funky = Array(Array("Hello!"))
 
         @ type Funky2[T] = Array[Array[T]]
         defined type Funky2
 
         @ val arr: Funky2[Int] = Array(Array(123))
-        arr: cmd2.Funky2[Int] = Array(Array(123))
+        arr: cmd2$wrapperStr.Funky2[Int] = Array(Array(123))
       """)
     }
     'library{
@@ -240,36 +241,36 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
 
 
     'classes{
-      check.session("""
+      check.session(s"""
         @ class C{override def toString() = "Ceee"}
         defined class C
 
         @ new C
-        res1: cmd0.C = Ceee
+        res1: cmd0$wrapperStr.C = Ceee
 
         @ case object CO
         defined object CO
 
         @ CO
-        res3: cmd2.CO.type = CO
+        res3: cmd2$wrapperStr.CO.type = CO
 
         @ case class CC()
         defined class CC
 
         @ CC()
-        res5: cmd4.CC = CC()
+        res5: cmd4$wrapperStr.CC = CC()
 
         @ CO
-        res6: cmd2.CO.type = CO
+        res6: cmd2$wrapperStr.CO.type = CO
 
         @ case class CO()
         defined class CO
 
         @ CO
-        res8: cmd7.CO.type = CO
+        res8: cmd7$wrapperStr.CO.type = CO
 
         @ CO()
-        res9: cmd7.CO = CO()
+        res9: cmd7$wrapperStr.CO = CO()
       """)
     }
 
@@ -303,7 +304,7 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
       """)
     }
     'multistatement{
-      check.session("""
+      check.session(s"""
         @ ;1; 2L; '3';
         res0_0: Int = 1
         res0_1: Long = 2L
@@ -324,7 +325,7 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
         res3_2: Int = 3
 
         @ C()
-        res4: cmd3.C = C(0)
+        res4: cmd3$wrapperStr.C = C(0)
       """)
     }
 

@@ -5,7 +5,9 @@ import utest._
 
 import scala.collection.{immutable => imm}
 
-class AdvancedTests(check0: => Checker) extends TestSuite{
+class AdvancedTests(check0: => Checker, wrapperInstance: Option[String] = None) extends TestSuite{
+  val wrapperStr = wrapperInstance.map(".".+).mkString
+
   val tests = TestSuite{
     val check = check0
     'load{
@@ -113,7 +115,7 @@ class AdvancedTests(check0: => Checker) extends TestSuite{
       }
     }
     'pprint{
-      check.session("""
+      check.session(s"""
         @ Seq.fill(10)(Seq.fill(3)("Foo"))
         res0: Seq[Seq[java.lang.String]] = List(
           List("Foo", "Foo", "Foo"),
@@ -132,10 +134,10 @@ class AdvancedTests(check0: => Checker) extends TestSuite{
         defined class Foo
 
         @ Foo(1, "", Nil)
-        res2: cmd1.Foo = Foo(1, "", List())
+        res2: cmd1$wrapperStr.Foo = Foo(1, "", List())
 
         @ Foo(1234567, "I am a cow, hear me moo", Seq("I weigh twice as much as you", "and I look good on the barbecue"))
-        res3: cmd1.Foo = Foo(
+        res3: cmd1$wrapperStr.Foo = Foo(
           1234567,
           "I am a cow, hear me moo",
           List("I weigh twice as much as you", "and I look good on the barbecue")
@@ -170,7 +172,7 @@ class AdvancedTests(check0: => Checker) extends TestSuite{
       """)
     }
     'customPPrint{
-      check.session("""
+      check.session(s"""
         @ class C
         defined class C
 
@@ -178,7 +180,7 @@ class AdvancedTests(check0: => Checker) extends TestSuite{
         defined function pprint
 
         @ new C
-        res2: cmd0.C = INSTANCE OF CLASS C
+        res2: cmd0$wrapperStr.C = INSTANCE OF CLASS C
       """)
     }
 

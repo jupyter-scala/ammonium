@@ -6,8 +6,9 @@ class SparkChecker extends Checker {
       SparkIvyPPrintInterpreter.bridgeConfig(),
       SparkIvyPPrintInterpreter.preprocessor,
       SparkIvyPPrintInterpreter.wrap,
-      handleResult = (buf, r) => SparkIvyPPrintInterpreter.bootstrapImport(r),
+      handleResult = (buf, r) => SparkIvyPPrintInterpreter.importsTransform(r),
       stdout = allOutput += _,
-      useClassWrapper = true
+      useClassWrapper = true,
+      classWrapperInstance = Some(SparkIvyPPrintInterpreter.instanceSymbol)
     )
 }

@@ -34,19 +34,25 @@ object SparkIvyPPrintInterpreter {
 
   def preprocessor = IvyPPrintInterpreter.preprocessor
 
-  val bootstrapSymbol = "$bootstrap"
+  val instanceSymbol = "INSTANCE"
 
-  def bootstrapImport(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
+  def importsTransform(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
     r .map { ev =>
-      // ev.copy(imports = ev.imports.map(d => d.copy(prefix = d.prefix + "." + bootstrapSymbol)))
-      ev
+      ev.copy(imports = ev.imports.map{ d =>
+        if (d.wrapperName == d.prefix)
+          d.copy(prefix = d.prefix + "." + instanceSymbol)
+        else
+          d
+      })
     }
 
   val wrap: (Preprocessor.Output, String, String) => String =
     (p, previousImportBlock, wrapperName) =>
       s"""$previousImportBlock
 
-            object $wrapperName extends $wrapperName
+            object $wrapperName {
+              val $instanceSymbol = new $wrapperName
+            }
 
             class $wrapperName extends Serializable {
               ${p.code}

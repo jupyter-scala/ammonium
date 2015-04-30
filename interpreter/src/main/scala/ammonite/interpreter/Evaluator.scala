@@ -34,7 +34,7 @@ trait Evaluator[-A, +B] {
    * passing in the callback ensures the printing is still done lazily, but within
    * the exception-handling block of the `Evaluator`
    */
-  def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false): Res[Evaluated[C]]
+  def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false, classWrapperBoostrap: Option[String] = None): Res[Evaluated[C]]
 
   def previousImportBlock: String
   def addJar(url: URL): Unit
@@ -215,7 +215,7 @@ object Evaluator{
     type InvEx = InvocationTargetException
     type InitEx = ExceptionInInitializerError
 
-    def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false) = for {
+    def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false, classWrapperBoostrap: Option[String] = None) = for {
       wrapperName <- Res.Success("cmd" + currentLine)
       (cls, objClass, newImports) <- evalClass(wrap(input, previousImportBlock, wrapperName), wrapperName, useClassWrapper)
       _ = currentLine += 1
@@ -233,9 +233,11 @@ object Evaluator{
       // block, so any exceptions thrown get properly caught and handled
       val value = evaluatorRunPrinter(process {
         val instance =
-          if (useClassWrapper)
-            objClass() getField "MODULE$" get null
-          else
+          if (useClassWrapper) {
+            val o = objClass()
+            val singleton = o getField "MODULE$" get null
+            classWrapperBoostrap.fold(singleton)(o getMethod _ invoke singleton)
+          } else
             null
 
         evalMain(cls, instance).asInstanceOf[B]

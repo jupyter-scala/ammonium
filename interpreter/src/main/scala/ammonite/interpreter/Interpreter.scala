@@ -27,7 +27,8 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
                        initialHistory: Seq[String] = Nil,
                        jarDeps: Seq[File] = Classpath.jarDeps,
                        dirDeps: Seq[File] = Classpath.dirDeps,
-                       useClassWrapper: Boolean = false){ interp =>
+                       useClassWrapper: Boolean = false,
+                       classWrapperInstance: Option[String] = None){ interp =>
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
   var extraJars = Seq[java.io.File]()
@@ -47,7 +48,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     oldClassloader = Thread.currentThread().getContextClassLoader
     out <- try{
       Thread.currentThread().setContextClassLoader(eval.evalClassloader)
-      eval.processLine(p, printer, useClassWrapper)
+      eval.processLine(p, printer, useClassWrapper, classWrapperInstance)
     } finally Thread.currentThread().setContextClassLoader(oldClassloader)
   } yield out
 
