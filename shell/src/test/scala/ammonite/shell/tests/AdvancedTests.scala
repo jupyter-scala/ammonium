@@ -6,7 +6,7 @@ import utest._
 
 import scala.collection.{immutable => imm}
 
-class AdvancedTests(check0: => Checker, wrapperInstance: Option[String] = None) extends TestSuite{
+class AdvancedTests(check0: => AmmoniteChecker, wrapperInstance: Option[String] = None) extends TestSuite{
   val wrapperStr = wrapperInstance.map(".".+).mkString
 
   val tests = TestSuite{
@@ -211,7 +211,7 @@ class AdvancedTests(check0: => Checker, wrapperInstance: Option[String] = None) 
       """)
     }
     'predef{
-      val check2 = new Checker{
+      val check2 = new AmmoniteChecker{
         override def predef = """
           import math.abs
           val x = 1

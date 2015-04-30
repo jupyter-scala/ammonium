@@ -1,4 +1,6 @@
 package ammonite.shell
 package classwrapper
 
-object EvaluatorTests extends tests.EvaluatorTests(new ClassWrapperChecker, wrapperInstance = Some(ClassWrapperChecker.instanceSymbol))
+object EvaluatorTests extends tests.EvaluatorTests(
+  new AmmoniteClassWrapperChecker, wrapperInstance = Some(AmmoniteClassWrapperChecker.instanceSymbol)
+)

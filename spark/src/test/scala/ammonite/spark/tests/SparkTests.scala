@@ -1,10 +1,10 @@
 package ammonite.spark
 package tests
 
-import ammonite.shell.classwrapper.ClassWrapperChecker
+import ammonite.shell.Checker
 import utest._
 
-class SparkTests(master: String, broadcastOk: Boolean = true) extends TestSuite {
+class SparkTests(checker: Checker, master: String, broadcastOk: Boolean = true) extends TestSuite {
 
   val preamble = s"""
           @ @transient val h = new ammonite.spark.SparkHandle
@@ -24,7 +24,7 @@ class SparkTests(master: String, broadcastOk: Boolean = true) extends TestSuite 
     """
 
   val tests = TestSuite {
-    val check = new ClassWrapperChecker()
+    val check = checker
 
     'simpleForeachWithAccum{
       check.session(preamble +

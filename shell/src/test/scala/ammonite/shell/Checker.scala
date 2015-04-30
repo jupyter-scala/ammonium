@@ -3,8 +3,15 @@ package ammonite.shell
 import ammonite.interpreter._
 import utest._
 
+trait Checker {
+  def session(sess: String): Unit
+  def fail(input: String, failureCheck: String => Boolean = _ => true): Unit
 
-class Checker {
+  def session(sess: String, finally0: String): Unit =
+    try session(sess) finally session(finally0)
+}
+
+class AmmoniteChecker extends Checker {
   def predef = ""
   var allOutput = ""
 
@@ -19,9 +26,6 @@ class Checker {
     )
 
   val interp = newInterpreter()
-
-  def session(sess: String, finally0: String): Unit =
-    try session(sess) finally session(finally0)
 
   def session(sess: String): Unit = {
 //    println("SESSION")
@@ -74,7 +78,7 @@ class Checker {
   }
 
   def fail(input: String,
-           failureCheck: String => Boolean = _ => true) = {
+           failureCheck: String => Boolean = _ => true): Unit = {
     val (processed, printed) = run(input)
 
     printed match{

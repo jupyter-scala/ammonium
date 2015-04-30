@@ -1,3 +1,3 @@
 package ammonite.shell
 
-object EulerTests extends tests.EulerTests(new Checker)
+object EulerTests extends tests.EulerTests(new AmmoniteChecker)

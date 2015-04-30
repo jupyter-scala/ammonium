@@ -1,3 +1,3 @@
 package ammonite.shell
 
-object AdvancedTests extends tests.AdvancedTests(new Checker)
+object AdvancedTests extends tests.AdvancedTests(new AmmoniteChecker)

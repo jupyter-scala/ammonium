@@ -1,4 +1,6 @@
 package ammonite.spark
 package localcluster
 
-object SparkTests extends tests.SparkTests(master = "local-cluster[1,1,512]")
+import ammonite.shell.classwrapper.AmmoniteClassWrapperChecker
+
+object SparkTests extends tests.SparkTests(new AmmoniteClassWrapperChecker, master = "local-cluster[1,1,512]")

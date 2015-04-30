@@ -3,12 +3,12 @@ package classwrapper
 
 import ammonite.interpreter._
 
-object ClassWrapperChecker {
+object AmmoniteClassWrapperChecker {
   val instanceSymbol = "INSTANCE"
 }
 
-class ClassWrapperChecker extends Checker {
-  import ClassWrapperChecker.instanceSymbol
+class AmmoniteClassWrapperChecker extends AmmoniteChecker {
+  import AmmoniteClassWrapperChecker.instanceSymbol
 
   override def newInterpreter(): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(

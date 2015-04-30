@@ -1,4 +1,4 @@
 package ammonite.shell
 package classwrapper
 
-object EulerTests extends tests.EulerTests(new ClassWrapperChecker)
+object EulerTests extends tests.EulerTests(new AmmoniteClassWrapperChecker)
