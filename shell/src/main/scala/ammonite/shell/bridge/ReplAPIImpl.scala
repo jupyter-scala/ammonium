@@ -7,7 +7,6 @@ import scala.reflect.runtime.universe._
 import acyclic.file
 
 import ammonite.interpreter.{ Classes => _, _ }, Evaluator.Exit
-import ammonite.interpreter.bridge._
 import ammonite.pprint
 
 

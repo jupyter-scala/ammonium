@@ -3,7 +3,6 @@ package ammonite.shell
 import acyclic.file
 import scala.tools.nsc.Global
 import ammonite.interpreter._
-import ammonite.interpreter.bridge._
 import ammonite.pprint
 import ammonite.shell.bridge._
 
@@ -16,7 +15,7 @@ object IvyPPrintInterpreter {
     useClassWrapper: Boolean = false
   ): BridgeConfig[Preprocessor.Output, Iterator[String]] =
     BridgeConfig(
-      "object ReplBridge extends ammonite.interpreter.bridge.ReplAPIHolder{}",
+      "object ReplBridge extends ammonite.shell.ReplAPIHolder{}",
       "ReplBridge",
       {
         _ =>

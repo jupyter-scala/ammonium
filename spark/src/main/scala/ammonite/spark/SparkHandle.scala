@@ -4,7 +4,7 @@ import java.io.IOException
 import java.net._
 import java.util.concurrent.Executors
 
-import ammonite.interpreter.bridge.Power
+import ammonite.shell.Power
 import org.apache.spark.{ SparkContext, SparkConf }
 
 import org.http4s.dsl._
