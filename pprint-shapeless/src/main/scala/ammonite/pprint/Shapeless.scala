@@ -2,7 +2,7 @@ package ammonite.pprint
 
 import shapeless._
 
-// Temporary workaround for https://github.com/lihaoyi/Ammonite/issues/47
+// Temporary workaround for https://github.com/lihaoyi/Ammonite/issues/47, when using class-based REPL wrappers
 
 trait Shapeless {
 
