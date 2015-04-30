@@ -4,7 +4,7 @@ package tests
 import ammonite.shell.Checker
 import utest._
 
-class SparkTests(checker: Checker, master: String, broadcastOk: Boolean = true) extends TestSuite {
+class SparkTests(checker: => Checker, master: String, broadcastOk: Boolean = true) extends TestSuite {
 
   val preamble = s"""
           @ @transient val h = new ammonite.spark.SparkHandle

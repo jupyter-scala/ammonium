@@ -217,7 +217,7 @@ object Evaluator{
 
     def update(newImports: Seq[ImportData]) = {
       for(i <- newImports)
-        if (!i.prefix.matches("line.*" + Regex.quote(".$ref") + "[0-9]*$"))
+        if (!i.prefix.matches("line.*" + java.util.regex.Pattern.quote(".$ref") + "[0-9]*$"))
           previousImports(i.toName) = i
         else
           Console.err println s"Filtered import $i"
