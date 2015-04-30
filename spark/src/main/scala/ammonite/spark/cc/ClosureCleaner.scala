@@ -56,11 +56,11 @@ object ClosureCleaner extends Logging {
   def getOuterClasses(obj: AnyRef): List[Class[_]] = {
     for (f <- obj.getClass.getDeclaredFields if f.getName == "$outer") {
       f.setAccessible(true)
-//      if (isClosure(f.getType)) {
+      if (isClosure(f.getType)) {
         return f.getType :: getOuterClasses(f.get(obj))
-//      } else {
-//        return f.getType :: Nil // Stop at the first $outer that is not a closure
-//      }
+      } else {
+        return f.getType :: Nil // Stop at the first $outer that is not a closure
+      }
     }
     Nil
   }
@@ -69,11 +69,11 @@ object ClosureCleaner extends Logging {
   def getOuterObjects(obj: AnyRef): List[AnyRef] = {
     for (f <- obj.getClass.getDeclaredFields if f.getName == "$outer") {
       f.setAccessible(true)
-//      if (isClosure(f.getType)) {
+      if (isClosure(f.getType)) {
         return f.get(obj) :: getOuterObjects(f.get(obj))
-//      } else {
-//        return f.get(obj) :: Nil // Stop at the first $outer that is not a closure
-//      }
+      } else {
+        return f.get(obj) :: Nil // Stop at the first $outer that is not a closure
+      }
     }
     Nil
   }
@@ -102,7 +102,7 @@ object ClosureCleaner extends Logging {
     }
   }
 
-  def clean(func: AnyRef, checkSerializable: Boolean = true): Map[Class[_], Set[String]] = {
+  def clean(func: AnyRef, checkSerializable: Boolean = true) {
     // TODO: cache outerClasses / innerClasses / accessedFields
     val outerClasses = getOuterClasses(func)
     val innerClasses = getInnerClasses(func)
@@ -138,10 +138,8 @@ object ClosureCleaner extends Logging {
     // Clone the closure objects themselves, nulling out any fields that are not
     // used in the closure we're working on or any of its inner closures.
     for ((cls, obj) <- outerPairs) {
-      Console.err println s"Instantiating ${cls.getName}"
       outer = instantiateClass(cls, outer, inInterpreter)
       for (fieldName <- accessedFields(cls)) {
-        Console.err println s"  field $fieldName"
         val field = cls.getDeclaredField(fieldName)
         field.setAccessible(true)
         val value = field.get(obj)
@@ -160,8 +158,6 @@ object ClosureCleaner extends Logging {
     if (checkSerializable) {
       ensureSerializable(func)
     }
-
-    accessedFields
   }
 
   def ensureSerializable(func: AnyRef) {

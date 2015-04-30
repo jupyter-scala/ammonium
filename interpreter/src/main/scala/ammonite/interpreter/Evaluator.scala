@@ -136,7 +136,7 @@ object Evaluator{
         (prefix0, allImports) <- previousImports.values.toList.groupBy(_.prefix)
         imports <- transpose(allImports.groupBy(_.fromName).values.toList).reverse
       } yield {
-        val withVal = prefix0.startsWith("line") && prefix0.endsWith("INSTANCE.$iw.$iw")
+        val withVal = false // prefix0.startsWith("line") && prefix0.endsWith("INSTANCE.$iw.$iw")
         val (prepend, prefix) =
           if (withVal) {
             valCount += 1
