@@ -19,9 +19,6 @@ object ShelloutTests extends TestSuite{
         Set("folder1", "folder2", "File.txt")
       )
     }
-    'chained{
-      assert((%git %branch).output.mkString.contains("master"))
-    }
     'failures{
       intercept[RuntimeException]{ %ls "does-not-exist" }
     }

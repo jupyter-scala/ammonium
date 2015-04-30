@@ -9,8 +9,8 @@ publishTo := Some(Resolver.file("Unused transient repository", file("target/unus
 val sharedSettings = Seq(
   scalaVersion := "2.11.5",
   crossScalaVersions := Seq("2.11.5", "2.10.5"),
-  organization := "com.lihaoyi",
-  version := "0.2.7",
+  organization := "com.github.alexarchambault.tmp",
+  version := "0.2.7-SNAPSHOT",
   libraryDependencies += "com.lihaoyi" %% "utest" % "0.3.0" % "test",
   testFrameworks += new TestFramework("utest.runner.Framework"),
   scalacOptions += "-target:jvm-1.7",
@@ -20,7 +20,21 @@ val sharedSettings = Seq(
     "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided",
     "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided"
   ),
-  publishTo := Some("releases" at "https://oss.sonatype.org/service/local/staging/deploy/maven2"),
+  publishTo := {
+    val nexus = "https://oss.sonatype.org/"
+    if (isSnapshot.value)
+      Some("snapshots" at nexus + "content/repositories/snapshots")
+    else
+      Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+  },
+  credentials += {
+    Seq("SONATYPE_USER", "SONATYPE_PASS").map(sys.env.get) match {
+      case Seq(Some(user), Some(pass)) =>
+        Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", user, pass)
+      case _ =>
+        Credentials(Path.userHome / ".ivy2" / ".credentials")
+    }
+  },
   pomExtra :=
     <url>https://github.com/lihaoyi/Ammonite</url>
       <licenses>
