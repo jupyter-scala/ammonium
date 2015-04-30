@@ -104,12 +104,14 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
       classes.jars,
       classes.dirs,
       dynamicClasspath,
+      classes.currentClassLoader,
       () => pressy.shutdownPressy()
     )
     pressy = Pressy(
       classes.jars,
       classes.dirs,
-      dynamicClasspath
+      dynamicClasspath,
+      classes.currentClassLoader
     )
 
     val cls = eval.evalClass(bridgeConfig.init, bridgeConfig.name).map(_._1) match {
