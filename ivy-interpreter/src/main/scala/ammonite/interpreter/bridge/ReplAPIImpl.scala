@@ -49,8 +49,10 @@ class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet
       intp.init()
     }
   }
-  def jars = intp.classes.jars
-  def classes = intp.eval.classes
+  lazy val power: Power = new Power {
+    def jars = intp.classes.jars
+    def classes = intp.eval.classes
+  }
   implicit def pprintConfig = pprintConfig0
   def clear() = ()
   def newCompiler() = intp.init()

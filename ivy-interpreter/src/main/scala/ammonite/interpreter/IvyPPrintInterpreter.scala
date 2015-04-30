@@ -27,6 +27,8 @@ object IvyPPrintInterpreter {
               cls.asInstanceOf[Class[ReplAPIHolder]],
               replApi
             )
+
+          BridgeHandle{}
       },
       Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
         Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.bridge.IvyConstructor")).toSeq

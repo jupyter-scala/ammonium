@@ -8,17 +8,32 @@ import java.util.concurrent.Executors
 import org.apache.spark.{ SparkContext, SparkConf }
 
 import org.http4s.dsl._
-import org.http4s.server.HttpService
+import org.http4s.server.{ Server, HttpService }
 import org.http4s.server.blaze.BlazeBuilder
 
 import scala.concurrent.duration.Duration
 
-trait ReplAPISparkImpl extends ReplAPI {
+trait ReplAPISparkImpl extends ReplAPI { api =>
 
-  private lazy val host =
+  lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
 
-  private lazy val (classServerURI, classServer) = {
+  var _classServerURI: URI = null
+  var _classServer: Server = null
+
+  def classServerURI = {
+    if (_classServerURI == null)
+      initClassServer()
+    _classServerURI
+  }
+
+  def classServer = {
+    if (_classServer == null)
+      initClassServer()
+    _classServer
+  }
+
+  def initClassServer() = {
     val socketAddress = InetSocketAddress.createUnresolved(host, {
       val s = new ServerSocket(0)
       val port = s.getLocalPort
@@ -41,28 +56,23 @@ trait ReplAPISparkImpl extends ReplAPI {
           HttpService {
             case GET -> Root / _item =>
               val item = URLDecoder.decode(_item, "UTF-8")
-
-              classes.get(item.stripSuffix(".class")) match {
-                case Some(data) =>
-                  Ok(data)
-                case None =>
-                  NotFound()
-              }
+              power.classes.get(item.stripSuffix(".class")).fold(NotFound())(Ok(_))
           },
           ""
         )
         .run
 
-    (new URI(s"http://$socketAddress"), server)
+    _classServerURI = new URI(s"http://$socketAddress")
+    _classServer = server
   }
 
-  private def defaultMaster = {
+  def defaultMaster = {
     val envMaster = sys.env.get("MASTER")
     val propMaster = sys.props.get("spark.master")
     propMaster.orElse(envMaster).getOrElse("local[*]")
   }
 
-  private def availablePort(from: Int): Int = {
+  def availablePort(from: Int): Int = {
     var socket: ServerSocket = null
     try {
       socket = new ServerSocket(from)
@@ -77,7 +87,7 @@ trait ReplAPISparkImpl extends ReplAPI {
     }
   }
 
-  private def setConfDefaults(conf: SparkConf): Unit = {
+  def setConfDefaults(conf: SparkConf): Unit = {
     implicit class SparkConfExtensions(val conf: SparkConf) {
       def setIfMissingLazy(key: String, value: => String): conf.type = {
         if (conf.getOption(key).isEmpty)
@@ -89,7 +99,7 @@ trait ReplAPISparkImpl extends ReplAPI {
     conf
       .setIfMissing("spark.master", defaultMaster)
       .setIfMissing("spark.app.name", "Ammonite Shell")
-      .setIfMissingLazy("spark.jars", jars.map(_.toURI.toString) mkString ",")
+      .setIfMissingLazy("spark.jars", power.jars.map(_.toURI.toString) mkString ",")
       .setIfMissingLazy("spark.repl.class.uri", classServerURI.toString)
       .setIfMissing("spark.driver.allowMultipleContexts", "true")
       .setIfMissingLazy("spark.ui.port", availablePort(4040).toString)
@@ -105,9 +115,28 @@ trait ReplAPISparkImpl extends ReplAPI {
 
   lazy val sparkConf: SparkConf = new SparkConf()
 
-  lazy val sc: SparkContext = {
-    setConfDefaults(sparkConf)
-    new SparkContext(sparkConf)
+  var _sc: SparkContext = null
+
+  def sc: SparkContext = {
+    if (_sc == null) {
+      setConfDefaults(sparkConf)
+      _sc = new SparkContext(sparkConf)
+    }
+
+    _sc
+  }
+
+  def stop() = {
+    if (_sc != null) {
+      _sc.stop()
+      _sc = null
+    }
+    if (_classServer != null) {
+      _classServer.shutdownNow()
+      _classServer = null
+    }
+    if (_classServerURI != null)
+      _classServerURI = null
   }
 
   def resetSpark() = ???

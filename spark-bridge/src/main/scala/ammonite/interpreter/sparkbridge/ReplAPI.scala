@@ -1,6 +1,8 @@
 package ammonite.interpreter
 package sparkbridge
 
+import java.net.URI
+
 import org.apache.spark.{SparkContext, SparkConf}
 
 trait ReplAPI extends bridge.ReplAPI {
@@ -11,6 +13,14 @@ trait ReplAPI extends bridge.ReplAPI {
   def sc: SparkContext
 
   def resetSpark(): Unit
+
+  def power: Power
+}
+
+trait Power extends bridge.Power {
+  def host: String
+  def classServerURI: URI
+  def setConfDefaults(): Unit
 }
 
 object ReplAPI{
