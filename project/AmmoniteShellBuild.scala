@@ -118,7 +118,7 @@ object AmmoniteShellBuild extends Build {
 
   lazy val sparkShell = Project(id = "spark-shell", base = file("spark-shell"))
     .dependsOn(shell)
-    .settings(sharedSettings: _*)
+    .settings(sharedSettings ++ testSettings: _*)
     .settings(
       name := "ammonite-spark-shell",
       libraryDependencies ++= Seq(
