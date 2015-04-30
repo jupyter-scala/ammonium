@@ -118,6 +118,7 @@ class SparkTests(master: String) extends TestSuite {
 
     // TODO? interacting with files
 
+    // Fails, similar to https://github.com/lihaoyi/Ammonite/issues/47 ?
     'sparkIssue1199{
       check.session(preamble +
         """
@@ -128,6 +129,17 @@ class SparkTests(master: String) extends TestSuite {
           @ def b(a: Sum): String = a match { case Sum(_, _) => "Found Sum" }
 
           @ b(a)
+        """)
+    }
+
+    'sparkIssue2452{
+      check.session(preamble +
+        """
+          @ val x = 4 ; def f() = x
+          defined function f
+
+          @ f()
+          res2: Int = 4
         """)
     }
   }
