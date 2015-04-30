@@ -1,6 +1,7 @@
-package ammonite.interpreter
+package ammonite.shell
 
 import acyclic.file
+import ammonite.interpreter.{BacktickWrap, Res}
 import org.parboiled2.ParseError
 
 import scala.reflect.internal.Flags
@@ -86,10 +87,10 @@ object Preprocessor{
         }
       }
       splitter.Split.run() match {
-        case util.Failure(e @ ParseError(p, pp, t)) if p.index == code.length => Res.Buffer(code)
-        case util.Failure(e) => Res.Failure(parse(code).left.get)
-        case util.Success(Nil) => Res.Skip
-        case util.Success(postSplit: Seq[String]) => complete(code, wrapperId, postSplit.map(_.trim))
+        case scala.util.Failure(e @ ParseError(p, pp, t)) if p.index == code.length => Res.Buffer(code)
+        case scala.util.Failure(e) => Res.Failure(parse(code).left.get)
+        case scala.util.Success(Nil) => Res.Skip
+        case scala.util.Success(postSplit: Seq[String]) => complete(code, wrapperId, postSplit.map(_.trim))
       }
     }
     
