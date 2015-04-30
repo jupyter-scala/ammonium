@@ -100,10 +100,7 @@ object AmmoniteShellBuild extends Build {
       name := "ammonite-spark",
       libraryDependencies ++= Seq(
         "org.apache.spark" %% "spark-core" % "1.3.1",
-        "org.http4s" %% "http4s-core" % "0.7.0-SNAPSHOT",
-        "org.http4s" %% "http4s-server" % "0.7.0-SNAPSHOT",
-        "org.http4s" %% "http4s-blazeserver" % "0.7.0-SNAPSHOT",
-        "org.http4s" %% "http4s-dsl" % "0.7.0-SNAPSHOT"
+        "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
       )
     )
 

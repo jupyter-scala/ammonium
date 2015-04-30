@@ -4,16 +4,14 @@ import java.io.IOException
 import java.net._
 import java.io.File
 import java.nio.file.Files
-import java.util.concurrent.Executors
+import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
 import ammonite.shell.Power
 import org.apache.spark.{ SparkContext, SparkConf }
 
-import org.http4s.dsl._
-import org.http4s.server.{ Server, HttpService }
-import org.http4s.server.blaze.BlazeBuilder
-
-import scala.concurrent.duration.Duration
+import org.eclipse.jetty.server.Server
+import org.eclipse.jetty.server.Request
+import org.eclipse.jetty.server.handler.AbstractHandler
 
 class SparkHandle(implicit power: Power) extends Serializable { api =>
 
@@ -43,38 +41,40 @@ class SparkHandle(implicit power: Power) extends Serializable { api =>
       port
     })
 
-    val builder = new BlazeBuilder(
-      socketAddress = socketAddress,
-      serviceExecutor = Executors.newCachedThreadPool(),
-      idleTimeout = Duration.Inf,
-      isNio2 = false,
-      sslBits = None,
-      isHttp2Enabled = false,
-      serviceMounts = Vector.empty
-    )
+    val handler = new AbstractHandler {
+      def handle(target: String, baseRequest: Request, request: HttpServletRequest, response: HttpServletResponse): Unit = {
+        val path = target.stripPrefix("/").split('/').toList.filter(_.nonEmpty)
 
-    val server =
-      builder
-        .mountService(
-          HttpService {
-            case GET -> path =>
-              def fromClassMaps =
-                for {
-                  List(_item) <- Some(path.toList)
-                  item = URLDecoder.decode(_item, "UTF-8")
-                  b <- power.classes.fromAddedClasses(item.stripSuffix(".class"))
-                } yield b
+        def fromClassMaps =
+          for {
+            List(item) <- Some(path)
+            b <- power.classes.fromAddedClasses(item.stripSuffix(".class"))
+          } yield b
 
-              def fromDirs =
-                power.classes.dirs
-                  .map(path.toList.map(URLDecoder.decode(_, "UTF-8")).foldLeft(_)(new File(_, _)))
-                  .collectFirst{ case f if f.exists() => Files.readAllBytes(f.toPath) }
+        def fromDirs =
+          power.classes.dirs
+            .map(path.foldLeft(_)(new File(_, _)))
+            .collectFirst{ case f if f.exists() => Files.readAllBytes(f.toPath) }
 
-              (fromClassMaps orElse fromDirs).fold(NotFound())(Ok(_))
-          },
-          ""
-        )
-        .run
+        fromClassMaps orElse fromDirs match {
+          case Some(bytes) =>
+            response setContentType "application/octet-stream"
+            response setStatus HttpServletResponse.SC_OK
+            baseRequest setHandled true
+            response.getOutputStream write bytes
+
+          case None =>
+            response.setContentType("text/plain")
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND)
+            baseRequest.setHandled(true)
+            response.getWriter.println("not found")
+        }
+      }
+    }
+
+    val server = new Server(socketAddress)
+    server.setHandler(handler)
+    server.start()
 
     _classServerURI = new URI(s"http://$socketAddress")
     _classServer = server
@@ -160,7 +160,7 @@ class SparkHandle(implicit power: Power) extends Serializable { api =>
       _sc = null
     }
     if (_classServer != null) {
-      _classServer.shutdownNow()
+      _classServer.stop()
       _classServer = null
     }
     if (_classServerURI != null)
