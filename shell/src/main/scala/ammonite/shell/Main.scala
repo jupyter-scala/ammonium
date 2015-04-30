@@ -27,14 +27,19 @@ class Main(input: InputStream,
     initialHistory
   )
 
-  def newInterpreter(): IvyPPrintInterpreter = IvyPPrintInterpreter(
-    frontEnd.update,
-    shellPrompt,
-    pprintConfig.copy(maxWidth = frontEnd.width),
-    colorSet,
-    stdout = new PrintStream(output).println,
-    initialHistory = initialHistory
-  )
+  val bridgeConfig = IvyPPrintInterpreter.bridgeConfig(shellPrompt, pprintConfig.copy(maxWidth = frontEnd.width), colorSet)
+
+  def newInterpreter(): Interpreter[Preprocessor.Output, Iterator[String]] =
+    new Interpreter(
+      bridgeConfig = bridgeConfig,
+      IvyPPrintInterpreter.preprocessor,
+      IvyPPrintInterpreter.wrap,
+      handleResult = frontEnd.update,
+      stdout = new PrintStream(output).println,
+      initialHistory = initialHistory,
+      jarDeps = Classpath.jarDeps,
+      dirDeps = Classpath.dirDeps
+    )
 
   val interp = newInterpreter()
 

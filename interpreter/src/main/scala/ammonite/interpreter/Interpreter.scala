@@ -6,22 +6,27 @@ import acyclic.file
 import scala.reflect.io.VirtualDirectory
 import scala.tools.nsc.Global
 
+case class BridgeConfig[A,B](
+  init: String,
+  name: String,
+  initClass: Unit => (Interpreter[A,B], Class[_], String => Unit) => Unit,
+  imports: Seq[(String, ImportData)]
+)
+
 /**
  * A convenient bundle of all the functionality necessary
  * to interpret Scala code. Doesn't attempt to provide any
  * real encapsulation for now.
  */
-class Interpreter[A,B](handleResult: => (String, Res[Evaluated[_]]) => Unit,
-                       stdout: String => Unit,
-                       initialHistory: Seq[String],
-                       initialImports: Seq[(String, ImportData)],
+class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
                        preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, Int) => Res[A],
                        wrap: (A, String, String) => String,
-                       bridgeInit: String,
-                       bridgeInitName: String,
-                       bridgeInitClass: (Interpreter[A,B], Class[_]) => Unit,
-                       jarDeps: Seq[File],
-                       dirDeps: Seq[File]){ interp =>
+                       handleResult: => (String, Res[Evaluated[_]]) => Unit = (_, _) => (),
+                       stdout: String => Unit = print,
+                       initialImports: Seq[(String, ImportData)] = Nil,
+                       initialHistory: Seq[String] = Nil,
+                       jarDeps: Seq[File] = Classpath.jarDeps,
+                       dirDeps: Seq[File] = Classpath.dirDeps){ interp =>
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
   var extraJars = Seq[java.io.File]()
@@ -73,6 +78,8 @@ class Interpreter[A,B](handleResult: => (String, Res[Evaluated[_]]) => Unit,
     }
   }
 
+  val bridgeInitClass = bridgeConfig.initClass()
+
   var compiler: Compiler = _
   var pressy: Pressy = _
   def init() = {
@@ -88,8 +95,8 @@ class Interpreter[A,B](handleResult: => (String, Res[Evaluated[_]]) => Unit,
       dynamicClasspath
     )
 
-    val cls = eval.evalClass(bridgeInit, bridgeInitName)
-    bridgeInitClass(interp, cls.map(_._1).asInstanceOf[Res.Success[Class[_]]].s)
+    val cls = eval.evalClass(bridgeConfig.init, bridgeConfig.name)
+    bridgeInitClass(interp, cls.map(_._1).asInstanceOf[Res.Success[Class[_]]].s, stdout)
   }
 
   val mainThread = Thread.currentThread()
@@ -97,7 +104,7 @@ class Interpreter[A,B](handleResult: => (String, Res[Evaluated[_]]) => Unit,
 
   val eval = Evaluator[A, B](
     mainThread.getContextClassLoader,
-    initialImports,
+    bridgeConfig.imports ++ initialImports,
     preprocess.apply,
     wrap,
     compiler.compile,

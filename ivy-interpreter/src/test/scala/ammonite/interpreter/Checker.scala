@@ -5,14 +5,14 @@ import utest._
 
 class Checker {
   var allOutput = ""
-  val interp = IvyPPrintInterpreter(
-    (_, _) => (),
-    Ref[String](""),
-    stdout = allOutput += _,
-    initialHistory = Nil
+  val interp = new Interpreter(
+    IvyPPrintInterpreter.bridgeConfig(),
+    IvyPPrintInterpreter.preprocessor,
+    IvyPPrintInterpreter.wrap,
+    stdout = allOutput += _
   )
 
-  def session(sess: String): Unit ={
+  def session(sess: String): Unit = {
 //    println("SESSION")
 //    println(sess)
     val margin = sess.lines.filter(_.trim != "").map(_.takeWhile(_ == ' ').length).min
