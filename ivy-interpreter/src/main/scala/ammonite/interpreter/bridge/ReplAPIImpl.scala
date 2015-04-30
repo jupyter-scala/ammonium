@@ -36,23 +36,20 @@ class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet
     ))
 
     def handleJar(jar: File): Unit = {
-      intp.extraJars = intp.extraJars ++ Seq(jar)
-      intp.eval.addJar(jar.toURI.toURL)
+      intp.classes.addJar(jar)
     }
     def jar(jar: File): Unit = {
-      intp.eval.newClassloader()
       handleJar(jar)
       intp.init()
     }
     def ivy(coordinates: (String, String, String)): Unit ={
       val (groupId, artifactId, version) = coordinates
-      intp.eval.newClassloader()
       IvyThing.resolveArtifact(groupId, artifactId, version)
         .map(handleJar)
       intp.init()
     }
   }
-  def jars = intp.jarDeps ++ intp.extraJars
+  def jars = intp.classes.jars
   def classes = intp.eval.classes
   implicit def pprintConfig = pprintConfig0
   def clear() = ()

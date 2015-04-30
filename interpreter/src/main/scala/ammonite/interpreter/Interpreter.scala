@@ -25,13 +25,11 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
                        stdout: String => Unit = print,
                        initialImports: Seq[(String, ImportData)] = Nil,
                        initialHistory: Seq[String] = Nil,
-                       val jarDeps: Seq[File] = Classpath.jarDeps,
-                       val dirDeps: Seq[File] = Classpath.dirDeps,
+                       val classes: Classes = new DefaultClassesImpl(),
                        useClassWrapper: Boolean = false,
                        classWrapperInstance: Option[String] = None){ interp =>
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
-  var extraJars = Seq[java.io.File]()
 
   val history = initialHistory.to[collection.mutable.Buffer]
   var buffered = ""
@@ -47,7 +45,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     _ = saveHistory(history.append(_), line)
     oldClassloader = Thread.currentThread().getContextClassLoader
     out <- try{
-      Thread.currentThread().setContextClassLoader(eval.evalClassloader)
+      Thread.currentThread().setContextClassLoader(classes.currentClassLoader)
       eval.processLine(p, printer, useClassWrapper, classWrapperInstance)
     } finally Thread.currentThread().setContextClassLoader(oldClassloader)
   } yield out
@@ -85,14 +83,14 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
   var pressy: Pressy = _
   def init() = {
     compiler = Compiler(
-      jarDeps ++ extraJars,
-      dirDeps,
+      classes.jars,
+      classes.dirs,
       dynamicClasspath,
       () => pressy.shutdownPressy()
     )
     pressy = Pressy(
-      jarDeps ++ extraJars,
-      dirDeps,
+      classes.jars,
+      classes.dirs,
       dynamicClasspath
     )
 
@@ -100,17 +98,18 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     bridgeInitClass(interp, cls.map(_._1).asInstanceOf[Res.Success[Class[_]]].s, stdout)
   }
 
-  val mainThread = Thread.currentThread()
   val preprocess = preprocessor(_ => compiler.parse)
 
   val eval = Evaluator[A, B](
-    mainThread.getContextClassLoader,
+    classes.currentClassLoader,
     bridgeConfig.imports ++ initialImports,
     preprocess.apply,
     wrap,
     compiler.compile,
     stdout
   )
+
+  classes.addClassMap(s => eval.classes.get(s))
 
   init()
 }

@@ -39,7 +39,7 @@ object SparkIvyPPrintInterpreter {
   def importsTransform(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
     r .map { ev =>
       ev.copy(imports = ev.imports.map{ d =>
-        if (d.wrapperName == d.prefix)
+        if (d.wrapperName == d.prefix) // Assuming this is an import of REPL variables
           d.copy(prefix = d.prefix + "." + instanceSymbol)
         else
           d

@@ -9,6 +9,8 @@ trait ReplAPI extends bridge.ReplAPI {
 
   /** Lazily initialized SparkContext - first call will trigger its creation, using the current `sparkConf` */
   def sc: SparkContext
+
+  def resetSpark(): Unit
 }
 
 object ReplAPI{

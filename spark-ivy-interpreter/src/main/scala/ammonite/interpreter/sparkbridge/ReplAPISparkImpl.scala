@@ -109,4 +109,6 @@ trait ReplAPISparkImpl extends ReplAPI {
     setConfDefaults(sparkConf)
     new SparkContext(sparkConf)
   }
+
+  def resetSpark() = ???
 }

@@ -37,9 +37,6 @@ trait Evaluator[-A, +B] {
   def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false, classWrapperBoostrap: Option[String] = None): Res[Evaluated[C]]
 
   def previousImportBlock: String
-  def addJar(url: URL): Unit
-  def newClassloader(): Unit
-  def evalClassloader: ClassLoader
   def classes: Map[String, Array[Byte]]
 }
 
@@ -59,7 +56,7 @@ object Evaluator{
 
   def namesFor[T: TypeTag]: Set[String] = namesFor(typeOf[T])
 
-  def apply[A, B](currentClassloader: ClassLoader,
+  def apply[A, B](classLoader: => ClassLoader,
                   initialImports: Seq[(String, ImportData)],
                   preprocess: (String, Int) => Res[A],
                   wrap: (A, String, String) => String,
@@ -95,69 +92,6 @@ object Evaluator{
      */
     def getCurrentLine = currentLine
 
-    /**
-     * Performs the conversion of our pre-compiled `Array[Byte]`s into
-     * actual classes with methods we can execute.
-     *
-     * Structured such that when a class is desired:
-     *
-     * - First we try to load it with the REPL's "root" classloader
-     * - If we can't find it there, we slowly start making our way
-     *   up from the current classloader back up to the root
-     *
-     * This has the property that if you import something, later imports
-     * take precedence, although you don't end up with weird bugs
-     * re-defining the core (pre-REPL) classes. I'm still not sure
-     * where those come from.
-     */
-    var evalClassloader =
-      new URLClassLoader(Array(), currentClassloader) {
-        // Public access to addURL - a visibility-changing override fails here
-        def add(url: URL) = addURL(url)
-      }
-
-    lazy val tmpClassDir = {
-      val d = new File(new File(System.getProperty("java.io.tmpdir")), s"ammonite-${UUID.randomUUID()}")
-      d.mkdirs()
-      d.deleteOnExit()
-      d
-    }
-
-    def newClassloader() = {
-      evalClassloader = new URLClassLoader(Array(), evalClassloader){
-        def add(url: URL) = addURL(url)
-        override def getResource(name: String): URL = {
-          if (name.endsWith(".class") && newFileDict.contains(name.stripSuffix(".class"))) {
-            val f = new File(tmpClassDir, name)
-            if (!f.exists()) {
-              val w = new FileOutputStream(f)
-              w.write(newFileDict(name.stripSuffix(".class")))
-              w.close()
-            }
-
-            f.toURI.toURL
-          } else
-            super.getResource(name)
-        }
-        override def loadClass(name: String): Class[_] = {
-          if(newFileDict.contains(name)) {
-            val bytes = newFileDict(name)
-            defineClass(name, bytes, 0, bytes.length)
-          }
-          else try currentClassloader.loadClass(name)
-          catch{ case e: ClassNotFoundException =>
-            try this.findClass(name)
-            catch{ case e: ClassNotFoundException =>
-              super.loadClass(name)
-            }
-          }
-        }
-      }
-    }
-    newClassloader()
-
-    def addJar(url: URL) = evalClassloader.add(url)
-
     def evalClass(code: String, wrapperName: String, useClassWrapper: Boolean = false) = for{
 
       (output, compiled) <- Res.Success{
@@ -172,8 +106,8 @@ object Evaluator{
 
       (cls, objCls) <- Res[(Class[_], Unit => Class[_])](Try {
         for ((name, bytes) <- classFiles) newFileDict(name) = bytes
-        val cls = Class.forName(wrapperName, true, evalClassloader)
-        def objCls = if (useClassWrapper) Class.forName(wrapperName + "$", true, evalClassloader) else null
+        val cls = Class.forName(wrapperName, true, classLoader)
+        def objCls = if (useClassWrapper) Class.forName(wrapperName + "$", true, classLoader) else null
         (cls, (_: Unit) => objCls)
       }, e => "Failed to load compiled class " + e)
     } yield (cls, objCls, importData)
