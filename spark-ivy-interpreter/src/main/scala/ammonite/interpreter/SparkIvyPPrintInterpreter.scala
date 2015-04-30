@@ -27,12 +27,9 @@ object SparkIvyPPrintInterpreter {
               replApi
             )
       },
-    {
-      val r = Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.bridge.IvyConstructor")).toSeq
-      Console.err println s"$r"
-      r
-    }
+      Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
+        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.bridge.IvyConstructor")).toSeq ++
+        Evaluator.namesFor[ammonite.pprint.Shapeless].map(n => n -> ImportData(n, n, "", "ammonite.pprint.Shapeless")).toSeq
     )
 
   def preprocessor = IvyPPrintInterpreter.preprocessor

@@ -118,8 +118,18 @@ object AmmoniteShellBuild extends Build {
       )
     )
 
+  lazy val pprintShapeless = Project(id = "pprint-shapeless", base = file("pprint-shapeless"))
+    .settings(sharedSettings: _*)
+    .settings(
+      name := "ammonite-pprint-shapeless",
+      libraryDependencies ++= Seq(
+        "com.lihaoyi" %% "ammonite-pprint" % "0.2.7",
+        "com.chuusai" %% "shapeless" % "2.2.0-RC4"
+      )
+    )
+
   lazy val sparkIvyInterpreter = Project(id = "spark-ivy-interpreter", base = file("spark-ivy-interpreter"))
-    .dependsOn(ivyInterpreter, ivyInterpreterTests % "test", sparkBridge)
+    .dependsOn(ivyInterpreter, ivyInterpreterTests % "test", sparkBridge, pprintShapeless)
     .settings(sharedSettings ++ testSettings: _*)
     .settings(
       name := "ammonite-spark-ivy-interpreter"
@@ -134,6 +144,6 @@ object AmmoniteShellBuild extends Build {
 
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
-    .aggregate(interpreter, bridge, ivyInterpreter, ivyInterpreterTests, shell, sparkBridge, sparkIvyInterpreter, sparkShell)
+    .aggregate(interpreter, bridge, ivyInterpreter, ivyInterpreterTests, shell, sparkBridge, pprintShapeless, sparkIvyInterpreter, sparkShell)
 
 }
