@@ -220,10 +220,12 @@ object Evaluator{
       (cls, objClass, newImports) <- evalClass(wrap(input, previousImportBlock, wrapperName), wrapperName, useClassWrapper)
       _ = currentLine += 1
       _ <- Catching{
-        case Ex(_: InvEx, _: InitEx, Exit)  => Res.Exit
+        case Ex(_: InitEx, Exit)           if  useClassWrapper  => Res.Exit
+        case Ex(_: InvEx, _: InitEx, Exit) if !useClassWrapper  => Res.Exit
         case Ex(_: ThreadDeath)                 => interrupted()
         case Ex(_: InvEx, _: ThreadDeath)       => interrupted()
-        case Ex(_: InvEx, _: InitEx, userEx@_*) => Res.Failure(userEx, stop = "$main")
+        case Ex(_: InitEx, userEx@_*)           if  useClassWrapper  => Res.Failure(userEx, stop = "<clinit>") // FIXME We're stopping at a method which is not ours
+        case Ex(_: InvEx, _: InitEx, userEx@_*) if !useClassWrapper  => Res.Failure(userEx, stop = "$main")
         case Ex(userEx@_*)                      => Res.Failure(userEx, stop = "evaluatorRunPrinter")
       }
     } yield {

@@ -124,7 +124,7 @@ object AmmoniteShellBuild extends Build {
       name := "ammonite-pprint-shapeless",
       libraryDependencies ++= Seq(
         "com.lihaoyi" %% "ammonite-pprint" % "0.2.7",
-        "com.chuusai" %% "shapeless" % "2.2.0-RC4"
+        "com.chuusai" %% "shapeless" % "2.1.0"
       )
     )
 
