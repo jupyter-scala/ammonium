@@ -13,7 +13,7 @@ import org.http4s.server.blaze.BlazeBuilder
 
 import scala.concurrent.duration.Duration
 
-class SparkHandle(power: Power) extends Serializable { api =>
+class SparkHandle(implicit power: Power) extends Serializable { api =>
 
   lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
