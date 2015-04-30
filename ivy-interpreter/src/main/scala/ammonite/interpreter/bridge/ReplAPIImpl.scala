@@ -35,17 +35,13 @@ class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet
       print
     ))
 
-    def handleJar(jar: File): Unit = {
-      intp.classes.addJar(jar)
-    }
     def jar(jar: File): Unit = {
-      handleJar(jar)
+      intp.classes.addJars(jar)
       intp.init()
     }
     def ivy(coordinates: (String, String, String)): Unit ={
       val (groupId, artifactId, version) = coordinates
-      IvyThing.resolveArtifact(groupId, artifactId, version)
-        .map(handleJar)
+      intp.classes.addJars(IvyThing.resolveArtifact(groupId, artifactId, version): _*)
       intp.init()
     }
   }
@@ -54,7 +50,7 @@ class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet
       def currentClassLoader = intp.classes.currentClassLoader
       def dirs = intp.classes.dirs
       def addClassMap(classMap: (String) => Option[Array[Byte]]) = intp.classes.addClassMap(classMap)
-      def addJar(jar: File) = intp.classes.addJar(jar)
+      def addJar(jar: File) = intp.classes.addJars(jar)
       def jars = intp.classes.jars
       def fromClassMaps(name: String) = intp.classes.fromClassMaps(name)
       def onJarsAdded(action: Seq[File] => Unit) = intp.classes.onJarsAdded(action)

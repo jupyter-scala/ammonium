@@ -7,7 +7,7 @@ trait Classes {
   def currentClassLoader: ClassLoader
   def jars: Seq[File]
   def dirs: Seq[File]
-  def addJar(jar: File): Unit
+  def addJars(jars: File*): Unit
   def addClassMap(classMap: String => Option[Array[Byte]]): Unit
   def fromClassMaps(name: String): Option[Array[Byte]]
   def onJarsAdded(action: Seq[File] => Unit): Unit
@@ -40,23 +40,34 @@ class DefaultClassesImpl(
    */
   var classLoader: AddJarClassLoader = _
 
+  var loading = Set.empty[String]
+
   def newClassLoader() = {
     classLoader = new URLClassLoader(Array(), Option(classLoader) getOrElse startClassLoader) with AddJarClassLoader {
       def add(url: URL) = addURL(url)
 
+      // Overriding the main method and not the overload (which misses the resolve argument) for an easier
+      // reuse of this ClassLoader
+      // This whole thing is such a hack!!! - and should it be thread-safe??
       override def loadClass(name: String, resolve: Boolean) =
-        fromClassMaps(name) match {
-          case Some(bytes) =>
-            defineClass(name, bytes, 0, bytes.length)
-          case None =>
-            try startClassLoader.loadClass(name)
-            catch{ case e: ClassNotFoundException =>
-              try this.findClass(name)
-              catch{ case e: ClassNotFoundException =>
-                super.loadClass(name, resolve)
-              }
+        if (resolve || loading(name))
+          super.loadClass(name, resolve)
+        else
+          try {
+            loading += name
+            fromClassMaps(name) match {
+              case Some(bytes) =>
+                defineClass(name, bytes, 0, bytes.length)
+              case None =>
+                try startClassLoader.loadClass(name)
+                catch{ case e: ClassNotFoundException =>
+                  try this.findClass(name)
+                  catch{ case e: ClassNotFoundException =>
+                    super.loadClass(name, resolve)
+                  }
+                }
             }
-        }
+          } finally loading -= name
     }
   }
 
@@ -65,11 +76,11 @@ class DefaultClassesImpl(
   var extraJars = Seq.empty[File]
   var classMaps = Seq.empty[String => Option[Array[Byte]]]
 
-  def addJar(jar: File) = {
-    extraJars = extraJars :+ jar
-    classLoader.add(jar.toURI.toURL)
-    val s = Seq(jar)
-    onJarsAddedHooks.foreach(_(s))
+  def addJars(jars: File*) = {
+    extraJars = extraJars ++ jars
+    newClassLoader()
+    jars.foreach(classLoader add _.toURI.toURL)
+    onJarsAddedHooks.foreach(_(jars))
   }
   def addClassMap(classMap: String => Option[Array[Byte]]) = {
     classMaps = classMaps :+ classMap
