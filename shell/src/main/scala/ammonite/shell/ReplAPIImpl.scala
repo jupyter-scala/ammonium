@@ -17,7 +17,7 @@ trait ShellReplAPIImpl extends FullShellReplAPI {
   def shellPrompt0: Ref[String]
 
 
-  def clear() = ()
+  def clear = ()
 
   def shellPrompt: String = shellPrompt0()
   def shellPrompt_=(s: String) = shellPrompt0() = s
