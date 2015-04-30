@@ -59,52 +59,12 @@ val sharedSettings = Seq(
       </developers>
 )
 
-lazy val pprint = project
-  .settings(sharedSettings:_*)
-  .settings(
-    name := "ammonite-pprint",
-    libraryDependencies ++= {
-      if (scalaVersion.value startsWith "2.10.")
-        Seq(
-          "org.scalamacros" %% "quasiquotes" % "2.0.1",
-          compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full)
-        )
-      else
-        Seq()
-    },
-    sourceGenerators in Compile <+= sourceManaged in Compile map { dir =>
-      val file = dir/"ammonite"/"pprint"/"PPrintGen.scala"
-      val tuples = (1 to 22).map{ i =>
-        val ts = (1 to i) map ("T" + _)
-        val chunks = 1 to i map { n =>
-          s"render(t._$n, cfg)"
-        }
-        val commaTs = ts.mkString(", ")
-        val tupleType = s"Product$i[$commaTs]"
-        val boundedTypes = ts.map(_ + ": PP").mkString(",")
-        s"""
-        implicit def Product${i}Unpacker[$boundedTypes] = {
-          (t: $tupleType, cfg: C) => Iterator(${chunks.mkString(",")})
-        }
-        """
-      }
-      val output = s"""
-        package ammonite.pprint
-        trait PPrinterGen extends GenUtils{
-          ${tuples.mkString("\n")}
-        }
-      """.stripMargin
-      IO.write(file, output)
-      Seq(file)
-    }
-  )
-
 lazy val repl = project
-  .dependsOn(pprint)
   .settings(
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "ammonite-tools" % "0.2.7",
-      "com.lihaoyi" %% "ammonite-ops" % "0.2.7"
+      "com.lihaoyi" %% "ammonite-ops" % "0.2.7",
+      "com.lihaoyi" %% "ammonite-pprint" % "0.2.7"
     )
   )
   .settings(sharedSettings:_*)
@@ -135,4 +95,4 @@ lazy val readme = ScalatexReadme(
 )
 
 
-lazy val root = project.in(file(".")).aggregate(pprint,  repl)
+lazy val root = project.in(file(".")).aggregate(repl)
