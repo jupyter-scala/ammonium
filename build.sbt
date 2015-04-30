@@ -123,6 +123,9 @@ lazy val repl = project
       "org.apache.ivy" % "ivy" % "2.4.0",
       "com.lihaoyi" %% "scala-parser" % "0.1.3"
     ),
+    crossVersion := CrossVersion.full,
+    crossScalaVersions := (0 to 6).filterNot(3.==).map("2.11." + _) ++ (0 to 5).map("2.10." + _),
+    ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) },
     javaOptions += "-Xmx2G",
     fork in (Test, testOnly) := true,
     // Will not be necessary with sbt 0.13.8
