@@ -30,8 +30,7 @@ trait IvyConstructor{
  * And transliterated into Scala. I have no idea how or why it works.
  */
 object IvyThing {
-  val scalaBinaryVersion = scala.util.Properties.versionString
-    .stripPrefix("version ").split('.').take(2).mkString(".")
+  val scalaBinaryVersion = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
 
   def resolveArtifact(groupId: String, artifactId: String, version: String) = {
     //url resolver for configuration of maven repo
