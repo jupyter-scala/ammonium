@@ -1,7 +1,6 @@
 package ammonite.shell
 
 import java.io.{PrintStream, OutputStream, InputStream}
-import ammonite.compiler._
 import ammonite.interpreter._
 import ammonite.pprint
 import acyclic.file

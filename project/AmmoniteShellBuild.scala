@@ -52,21 +52,21 @@ object AmmoniteShellBuild extends Build {
     ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value
   ) ++ releaseSettings
 
-  lazy val compiler = Project(id = "compiler", base = file("compiler"))
+  lazy val interpreter = Project(id = "interpreter", base = file("interpreter"))
     .settings(sharedSettings: _*)
     .settings(
-      name := "ammonite-compiler",
+      name := "ammonite-interpreter",
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-compiler" % scalaVersion.value,
         "com.lihaoyi" %% "scala-parser" % "0.1.3"
       )
     )
 
-  lazy val interpreter = Project(id = "interpreter", base = file("interpreter"))
-    .dependsOn(compiler)
+  lazy val ivyInterpreter = Project(id = "ivy-interpreter", base = file("ivy-interpreter"))
+    .dependsOn(interpreter)
     .settings(sharedSettings: _*)
     .settings(
-      name := "ammonite-interpreter",
+      name := "ammonite-ivy-interpreter",
       libraryDependencies ++= Seq(
         "org.apache.ivy" % "ivy" % "2.4.0",
         "com.lihaoyi" %% "ammonite-tools" % "0.2.7",
@@ -79,7 +79,7 @@ object AmmoniteShellBuild extends Build {
     )
 
   lazy val shell = Project(id = "shell", base = file("shell"))
-    .dependsOn(interpreter)
+    .dependsOn(ivyInterpreter)
     .settings(sharedSettings: _*)
     .settings(
       name := "ammonite-shell",
@@ -90,6 +90,6 @@ object AmmoniteShellBuild extends Build {
 
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
-    .aggregate(compiler, interpreter, shell)
+    .aggregate(interpreter, ivyInterpreter, shell)
 
 }

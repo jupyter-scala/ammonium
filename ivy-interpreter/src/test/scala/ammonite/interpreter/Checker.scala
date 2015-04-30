@@ -1,6 +1,5 @@
 package ammonite.interpreter
 
-import ammonite.compiler.{Evaluated, Res, Ref}
 import utest._
 
 

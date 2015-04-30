@@ -5,7 +5,7 @@ import java.io.File
 import scala.reflect.runtime.universe._
 import acyclic.file
 
-import ammonite.compiler.Evaluator.Exit
+import ammonite.interpreter.Evaluator.Exit
 
 
 class ReplAPIHolder {

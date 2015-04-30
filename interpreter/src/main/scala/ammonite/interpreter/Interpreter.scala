@@ -1,4 +1,4 @@
-package ammonite.compiler
+package ammonite.interpreter
 
 import java.io.File
 import acyclic.file

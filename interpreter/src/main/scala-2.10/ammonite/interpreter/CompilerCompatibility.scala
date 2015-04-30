@@ -1,4 +1,4 @@
-package ammonite.compiler
+package ammonite.interpreter
 
 import scala.tools.nsc.Global
 import scala.tools.nsc.interactive.{ Global => InteractiveGlobal }

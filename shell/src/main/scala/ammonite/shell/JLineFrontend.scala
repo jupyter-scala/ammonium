@@ -2,7 +2,7 @@ package ammonite.shell
 
 import java.io.{OutputStream, InputStream}
 
-import ammonite.compiler.{Timer, Evaluated, Res}
+import ammonite.interpreter.{Timer, Evaluated, Res}
 import jline.console.ConsoleReader
 import acyclic.file
 

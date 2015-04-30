@@ -2,7 +2,6 @@ package ammonite.interpreter
 
 import java.io.File
 import acyclic.file
-import ammonite.compiler._
 import ammonite.pprint
 
 object IvyPPrintInterpreter {
