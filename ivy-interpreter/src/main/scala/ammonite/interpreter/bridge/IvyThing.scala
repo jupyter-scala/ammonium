@@ -1,4 +1,5 @@
 package ammonite.interpreter
+package bridge
 
 import java.io.File
 

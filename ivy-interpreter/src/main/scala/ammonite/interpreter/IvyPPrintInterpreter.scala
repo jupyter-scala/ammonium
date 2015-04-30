@@ -1,9 +1,10 @@
 package ammonite.interpreter
 
 import acyclic.file
-import ammonite.pprint
-
 import scala.tools.nsc.Global
+import ammonite.pprint
+import bridge._
+
 
 object IvyPPrintInterpreter {
   def bridgeConfig(
@@ -28,7 +29,7 @@ object IvyPPrintInterpreter {
             )
       },
       Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-        Evaluator.namesFor[ammonite.interpreter.IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.IvyConstructor")).toSeq
+        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.IvyConstructor")).toSeq
     )
 
   val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, Int) => Res[Preprocessor.Output] =
