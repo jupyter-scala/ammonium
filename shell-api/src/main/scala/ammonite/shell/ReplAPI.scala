@@ -44,12 +44,6 @@ trait ReplAPI {
   def load: Load
 
   implicit def power: Power
-
-  /**
-   * Controls how things are pretty-printed in the REPL. Feel free
-   * to shadow this with your own definition to change how things look
-   */
-  implicit def pprintConfig: ammonite.pprint.Config
 }
 
 trait Resolver
@@ -132,6 +126,12 @@ trait ShellReplAPI {
    * REPL prompt at any time!
    */
   var shellPrompt: String
+
+  /**
+   * Controls how things are pretty-printed in the REPL. Feel free
+   * to shadow this with your own definition to change how things look
+   */
+  implicit def pprintConfig: ammonite.pprint.Config
 }
 
 /**

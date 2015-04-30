@@ -37,7 +37,6 @@ trait ShellReplAPIImpl extends FullShellReplAPI {
 class ReplAPIImpl[B](
   intp: Interpreter[_, B],
   println: String => Unit,
-  pprintConfig0: pprint.Config,
   startJars: Seq[File],
   startIvys: Seq[(String, String, String)],
   startResolvers: Seq[DependencyResolver]
@@ -104,7 +103,6 @@ class ReplAPIImpl[B](
     def newCompiler() = intp.init()
     def imports = intp.eval.previousImportBlock
   }
-  def pprintConfig = pprintConfig0
   def history = intp.history.toVector.dropRight(1)
 }
 

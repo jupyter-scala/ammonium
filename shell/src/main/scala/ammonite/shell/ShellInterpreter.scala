@@ -27,14 +27,16 @@ object ShellInterpreter {
       {
         _ =>
           val _colors = colors
-          val _shellPrompt = shellPrompt
+          def _shellPrompt = shellPrompt
+          val _pprintConfig = pprintConfig
           var replApi: ReplAPI with FullShellReplAPI = null
 
           (intp, cls, stdout) =>
             if (replApi == null)
-              replApi = new ReplAPIImpl[Iterator[String]](intp, s => stdout(s + "\n"), pprintConfig, startJars, startIvys, startResolvers) with ShellReplAPIImpl {
+              replApi = new ReplAPIImpl[Iterator[String]](intp, s => stdout(s + "\n"), startJars, startIvys, startResolvers) with ShellReplAPIImpl {
                 def colors = _colors
                 def shellPrompt0 = _shellPrompt
+                def pprintConfig = _pprintConfig
               }
 
             ReplAPI.initReplBridge(
