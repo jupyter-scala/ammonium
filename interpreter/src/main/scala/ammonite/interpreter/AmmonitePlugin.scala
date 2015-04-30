@@ -29,7 +29,12 @@ class AmmonitePlugin(g: scala.tools.nsc.Global, output: Seq[ImportData] => Unit)
         def apply(unit: g.CompilationUnit): Unit = {
           val stats = unit.body.children.last match {
             case m: g.ModuleDef => m.impl.body
-            case c: g.ClassDef => c.impl.body
+            case c: g.ClassDef =>
+              def inner(c: g.ClassDef) =
+                c.impl.body.collectFirst{case t: g.ClassDef => t}
+                 .getOrElse(throw new IllegalArgumentException(s"Unsupported class wrapper definition: $c"))
+
+              inner(inner(c)).impl.body
             case other => throw new IllegalArgumentException(s"Unsupported wrapper definition: $other")
           }
           val symbols = stats.foldLeft(List.empty[(g.Symbol, String, String, String)]){
@@ -72,6 +77,11 @@ class AmmonitePlugin(g: scala.tools.nsc.Global, output: Seq[ImportData] => Unit)
             case (ctx, t @ g.TypeDef(_, _, _, _))       => decode(t) :: ctx
             case (ctx, _) => ctx
           }
+
+          for (t <- unit.body.children) {
+            Console.err println s"Compiling:\n${g.asCompactString(t)}"
+          }
+
 
           output(
             for {

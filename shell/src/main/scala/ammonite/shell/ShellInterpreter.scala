@@ -51,24 +51,46 @@ object ShellInterpreter {
          """
 
   def classWrap(instanceSymbol: String): (Preprocessor.Output, String, String) => String =
-    (p, previousImportBlock, wrapperName) =>
-      s"""$previousImportBlock
-
-            object $wrapperName {
+    (p, previousImportBlock, wrapperName) => {
+      val r =
+      s"""object $wrapperName extends AnyRef {
               val $instanceSymbol = new $wrapperName
             }
 
-            class $wrapperName extends Serializable {
-              ${p.code}
+           object $wrapperName$$Main extends AnyRef {
+              val $instanceSymbol = $wrapperName.$instanceSymbol
+              import $instanceSymbol.$$iw.$$iw._
+              import _root_.ammonite.pprint.Config.Defaults.PPrintConfig
               def $$main() = {${p.printer.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")}}
             }
+
+
+            class $wrapperName extends Serializable {
+              class $wrapperName extends Serializable {
+                $previousImportBlock
+
+                class $wrapperName extends Serializable {
+                  ${p.code}
+                }
+
+                val $$iw = new $wrapperName
+              }
+
+              val $$iw = new $wrapperName
+            }
          """
+
+//      Console.err println s"Wrapping:\n$r\n"
+
+      r
+    }
+
 
   def classWrapImportsTransform(instanceSymbol: String)(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
     r .map { ev =>
       ev.copy(imports = ev.imports.map{ d =>
         if (d.wrapperName == d.prefix) // Assuming this is an import of REPL variables
-          d.copy(prefix = d.prefix + "." + instanceSymbol)
+          d.copy(prefix = d.prefix + "." + instanceSymbol + ".$iw.$iw")
         else
           d
       })

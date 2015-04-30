@@ -59,6 +59,9 @@ class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet
     var onStopHooks = Seq.empty[() => Unit]
     def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
     def stop() = onStopHooks.foreach(_())
+
+    def getShow = intp.eval.getShow
+    def setShow(v: Boolean) = intp.eval.setShow(v)
   }
   implicit def pprintConfig = pprintConfig0
   def clear() = ()

@@ -95,6 +95,9 @@ trait Power {
    */
   def classes: Classes
 
+  def getShow: Boolean
+  def setShow(v: Boolean): Unit
+
   /**
    *
    */

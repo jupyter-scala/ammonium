@@ -98,7 +98,7 @@ object AmmoniteShellBuild extends Build {
     .settings(
       name := "ammonite-spark",
       libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core" % "1.3.0",
+        "org.apache.spark" %% "spark-core" % "1.3.1",
         "org.http4s" %% "http4s-core" % "0.7.0-SNAPSHOT",
         "org.http4s" %% "http4s-server" % "0.7.0-SNAPSHOT",
         "org.http4s" %% "http4s-blazeserver" % "0.7.0-SNAPSHOT",
@@ -107,8 +107,8 @@ object AmmoniteShellBuild extends Build {
     )
 
   lazy val shell = Project(id = "shell", base = file("shell"))
-    .dependsOn(shellApi, interpreter, spark % "test")
-    .settings(sharedSettings ++ testSettings: _*)
+    .dependsOn(shellApi, interpreter, spark)
+    .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
     .settings(
       name := "ammonite-shell",
       libraryDependencies ++= Seq(

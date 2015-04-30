@@ -128,6 +128,9 @@ class SparkHandle(power: Power) { api =>
   def sc: SparkContext = {
     if (_sc == null) {
       setConfDefaults(sparkConf)
+      if (sparkConf.get("spark.master").startsWith("local-cluster") && sparkConf.getOption("spark.home").isEmpty) {
+        Console.err.println(s"Warning: Spark master set to ${sparkConf.get("spark.master")} and spark.home not set, proceeding any way.")
+      }
       _sc = new SparkContext(sparkConf)
     }
 

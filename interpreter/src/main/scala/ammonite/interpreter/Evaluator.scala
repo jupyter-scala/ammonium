@@ -11,6 +11,7 @@ import scala.reflect.runtime.universe._
 import scala.collection.mutable
 import scala.util.Try
 import scala.util.control.ControlThrowable
+import scala.util.matching.Regex
 
 /**
  * Takes source code and, with the help of a compiler and preprocessor,
@@ -24,6 +25,8 @@ import scala.util.control.ControlThrowable
 trait Evaluator[-A, +B] {
   def evalClass(code: String, wrapperName: String, useClassWrapper: Boolean = false): Res[(Class[_], Unit => Class[_], Seq[ImportData])]
   def getCurrentLine: Int
+  def getShow: Boolean
+  def setShow(v: Boolean): Unit
   def update(newImports: Seq[ImportData]): Unit
 
   /**
@@ -92,6 +95,13 @@ object Evaluator{
      */
     def getCurrentLine = currentLine
 
+    /**
+     *
+     */
+    var show = true
+    def getShow = show
+    def setShow(v: Boolean) = show = v
+
     def evalClass(code: String, wrapperName: String, useClassWrapper: Boolean = false) = for{
 
       (output, compiled) <- Res.Success{
@@ -106,7 +116,7 @@ object Evaluator{
 
       (cls, objCls) <- Res[(Class[_], Unit => Class[_])](Try {
         for ((name, bytes) <- classFiles) newFileDict(name) = bytes
-        val cls = Class.forName(wrapperName, true, classLoader)
+        val cls = Class.forName(if (useClassWrapper) wrapperName + "$Main" else wrapperName, true, classLoader)
         def objCls = if (useClassWrapper) Class.forName(wrapperName + "$", true, classLoader) else null
         (cls, (_: Unit) => objCls)
       }, e => "Failed to load compiled class " + e)
@@ -120,15 +130,26 @@ object Evaluator{
       case ys: List[List[A]] => ys.map{ _.head }::transpose(ys.map{ _.tail })
     }
     def previousImportBlock = {
+      var valCount = 0
+
       val snippets = for {
-        (prefix, allImports) <- previousImports.values.toList.groupBy(_.prefix)
-        imports <- transpose(allImports.groupBy(_.fromName).values.toList)
+        (prefix0, allImports) <- previousImports.values.toList.groupBy(_.prefix)
+        imports <- transpose(allImports.groupBy(_.fromName).values.toList).reverse
       } yield {
-        imports match{
+        val withVal = prefix0.startsWith("line") && prefix0.endsWith("INSTANCE.$iw.$iw")
+        val (prepend, prefix) =
+          if (withVal) {
+            valCount += 1
+            val valName = "$ref" + valCount
+            (s"final val $valName = ${prefix0.stripSuffix(".$iw.$iw")}\n", valName + ".$iw.$iw")
+          } else
+            ("", prefix0)
+
+        prepend + (imports match{
           case Seq(imp) if imp.fromName == imp.toName =>
             s"import $prefix.${BacktickWrap(imp.fromName)}"
           case imports =>
-            val lines = for (x <- imports) yield {
+            val lines = for (x <- imports if !x.toName.endsWith("_$eq")) yield {
               if (x.fromName == x.toName)
                 "\n  " + BacktickWrap(x.fromName)
               else
@@ -137,7 +158,7 @@ object Evaluator{
             }
             val block = lines.mkString(",")
             s"import $prefix.{$block\n}"
-        }
+        })
       }
       snippets.mkString("\n")
     }
@@ -150,8 +171,14 @@ object Evaluator{
     type InitEx = ExceptionInInitializerError
 
     def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false, classWrapperBoostrap: Option[String] = None) = for {
-      wrapperName <- Res.Success("cmd" + currentLine)
-      (cls, objClass, newImports) <- evalClass(wrap(input, previousImportBlock, wrapperName), wrapperName, useClassWrapper)
+      wrapperName <- Res.Success("line" + currentLine + "$iw")
+      wrappedLine = {
+        val l = wrap(input, previousImportBlock, wrapperName)
+        if (show)
+          Console.err println s"Line:\n$l"
+        l
+      }
+      (cls, objClass, newImports) <- evalClass(wrappedLine, wrapperName, useClassWrapper)
       _ = currentLine += 1
       _ <- Catching{
         case Ex(_: InitEx, Exit)           if  useClassWrapper  => Res.Exit
@@ -166,15 +193,17 @@ object Evaluator{
       // Exhaust the printer iterator now, before exiting the `Catching`
       // block, so any exceptions thrown get properly caught and handled
       val value = evaluatorRunPrinter(process {
-        val instance =
+        def instance =
           if (useClassWrapper) {
             val o = objClass()
             val singleton = o getField "MODULE$" get null
-            classWrapperBoostrap.fold(singleton)(o getMethod _ invoke singleton)
+//            classWrapperBoostrap.fold(singleton)(o getMethod _ invoke singleton)
+            singleton
+            null
           } else
             null
 
-        evalMain(cls, instance).asInstanceOf[B]
+        evalMain(cls, null).asInstanceOf[B]
       })
       Evaluated(
         wrapperName,
@@ -187,7 +216,11 @@ object Evaluator{
     }
 
     def update(newImports: Seq[ImportData]) = {
-      for(i <- newImports) previousImports(i.toName) = i
+      for(i <- newImports)
+        if (!i.prefix.matches("line.*" + Regex.quote(".$ref") + "[0-9]*$"))
+          previousImports(i.toName) = i
+        else
+          Console.err println s"Filtered import $i"
     }
   }
 
