@@ -65,7 +65,9 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     val res = handleResult(buffered, res0)
 
     res match{
-      case Res.Skip => true
+      case Res.Skip =>
+        buffered = ""
+        true
       case Res.Buffer(line) =>
         /**
          * Hack to work around the fact that if nothing got entered into

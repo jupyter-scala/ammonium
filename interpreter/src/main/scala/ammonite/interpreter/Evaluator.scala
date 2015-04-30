@@ -150,6 +150,7 @@ object Evaluator{
 
     def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false, classWrapperBoostrap: Option[String] = None) = for {
       wrapperName <- Res.Success("cmd" + currentLine)
+      _ <- Catching{ case e: ThreadDeath => interrupted() }
       (cls, objClass, newImports) <- evalClass(wrap(input, previousImportBlock, wrapperName), wrapperName, useClassWrapper)
       _ = currentLine += 1
       _ <- Catching{
