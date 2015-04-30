@@ -19,11 +19,7 @@ object Res{
    * Successes map and flatmap just like a simple Box[T]
    */
   case class Success[+T](s: T) extends Res[T] {
-    def flatMap[V](f: T => Res[V]): Res[V] = f(s) match {
-      case Success(v) => Success(v)
-      case other => other
-    }
-
+    def flatMap[V](f: T => Res[V]): Res[V] = f(s)
     def map[V](f: T => V): Res[V] = Success(f(s))
   }
 
