@@ -117,6 +117,11 @@ class SparkHandle(classes: Classes) { api =>
 
   var _sc: SparkContext = null
 
+  classes.onJarsAdded { newJars =>
+    if (_sc != null)
+      newJars.foreach(_sc addJar _.toURI.toURL.toString)
+  }
+
   def sc: SparkContext = {
     if (_sc == null) {
       setConfDefaults(sparkConf)
