@@ -88,7 +88,7 @@ object AmmoniteShellBuild extends Build {
       name := "ammonite-shell-api",
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-        "com.lihaoyi" %% "ammonite-pprint" % "0.2.7"
+        "com.lihaoyi" %% "ammonite-pprint" % "0.2.9"
       )
     )
 
@@ -112,9 +112,6 @@ object AmmoniteShellBuild extends Build {
     .settings(
       name := "ammonite-shell",
       libraryDependencies ++= Seq(
-        // Snapshot version of pprint, for the fix for https://github.com/lihaoyi/Ammonite/issues/47
-        // (No snapshots are published by lihaoyi)
-        "com.github.alexarchambault.tmp" %% "ammonite-pprint" % "0.2.8-SNAPSHOT",
         "org.apache.ivy" % "ivy" % "2.4.0",
         "jline" % "jline" % "2.12"
       )
