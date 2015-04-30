@@ -94,8 +94,11 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
       dynamicClasspath
     )
 
-    val cls = eval.evalClass(bridgeConfig.init, bridgeConfig.name)
-    bridgeInitClass(interp, cls.map(_._1).asInstanceOf[Res.Success[Class[_]]].s, stdout)
+    val cls = eval.evalClass(bridgeConfig.init, bridgeConfig.name).map(_._1) match {
+      case Res.Success(s) => s
+      case other => throw new Exception(s"Error while initializing REPL API: $other")
+    }
+    bridgeInitClass(interp, cls, stdout)
   }
 
   val preprocess = preprocessor(_ => compiler.parse)
