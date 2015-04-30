@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+cd "$(dirname "$0")"/..
+docker build -t test_spark/base base
+docker build -t test_spark/master master
+docker build -t test_spark/slave slave
+docker build -t test_spark/sbt sbt
+

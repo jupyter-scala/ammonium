@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec docker run -it --rm -h extra --name extra --link master:master --link slave1:slave1 dockerfile/java:oracle-java8 "$@"

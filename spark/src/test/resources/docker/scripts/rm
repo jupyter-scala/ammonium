@@ -1,0 +1,8 @@
+#!/bin/bash
+
+for i in $(seq 1 3); do
+  docker rm "slave$i"
+done
+
+docker rm master
+docker rm sbt
