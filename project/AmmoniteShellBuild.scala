@@ -99,16 +99,26 @@ object AmmoniteShellBuild extends Build {
       )
     )
 
-  lazy val spark = Project(id = "spark", base = file("spark"))
-    .dependsOn(shellApi, shell % "test->test")
-    .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
-    .settings(
-      name := "ammonite-spark",
-      libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core" % "1.3.1",
-        "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
+  def sparkProject(sparkVersion: String) = {
+    val binaryVersion = sparkVersion.split('.').take(2).mkString(".")
+    val shortBinaryVersion = binaryVersion.filter('.'.!=)
+
+    Project(id = s"spark-$shortBinaryVersion", base = file("spark"))
+      .dependsOn(shellApi, shell % "test->test")
+      .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
+      .settings(
+        name := s"ammonite-spark-$shortBinaryVersion",
+        moduleName := s"ammonite-spark_$binaryVersion",
+        target := target.value / s"spark-$binaryVersion",
+        libraryDependencies ++= Seq(
+          "org.apache.spark" %% "spark-core" % sparkVersion,
+          "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
+        )
       )
-    )
+  }
+
+  lazy val spark13 = sparkProject("1.3.1")
+  lazy val spark12 = sparkProject("1.2.2")
 
   lazy val ivyLight = Project(id = "ivy-light", base = file("ivy-light"))
     .settings(sharedSettings ++ testSettings: _*)
@@ -140,8 +150,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(interpreter, shellApi, spark, ivyLight, shell)
-    .dependsOn(interpreter, shellApi, spark, ivyLight, shell)
+    .aggregate(interpreter, shellApi, spark13, spark12, ivyLight, shell)
+    .dependsOn(interpreter, shellApi, spark13, spark12, ivyLight, shell)
     .settings(
       publish := {},
       publishLocal := {},
