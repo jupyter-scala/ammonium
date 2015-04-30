@@ -1,5 +1,7 @@
 #!/bin/bash
 
+docker stop sbt
+
 for i in $(seq 3 -1 1); do
   docker stop "slave$i"
 done

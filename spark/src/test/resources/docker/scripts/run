@@ -8,4 +8,13 @@ for i in $(seq 1 3); do
   docker ps | grep -q "\<slave$i\>" || docker run -d -p 8080 -h "slave$i" --name "slave$i" --link master:master test_spark/slave
 done
 
-exec docker run -it --rm -h "sbt" --name "sbt" --link master:master $(for i in $(seq 1 3); do echo " --link slave$i:slave$i"; done) -v "$(cd "$(dirname "$0")/../../../../../.."; pwd):/ammonite-shell" "$@" test_spark/sbt
+docker run -d -h "sbt" --name "sbt" --link master:master $(for i in $(seq 1 3); do echo " --link slave${i}:slave$i"; done) -v "$(cd "$(dirname "$0")/../../../../../.."; pwd):/ammonite-shell" test_spark/sbt
+sleep 5
+
+HOSTS="$(docker exec -it sbt cat /etc/hosts | grep -E '\<master\>|\<slave[1-3]\>|\<sbt\>')"
+docker exec master /bin/bash -c "echo \"$HOSTS\" >> /etc/hosts"
+for i in $(seq 1 3); do
+  docker exec "slave$i" /bin/bash -c "echo \"$HOSTS\" >> /etc/hosts"
+done
+
+docker exec -it sbt sbt ++2.10.4 "spark/test:run-main ammonite.shell.Main --class-wrap"

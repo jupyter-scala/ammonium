@@ -14,3 +14,5 @@ RUN \
 VOLUME ["/ammonite-shell"]
 
 WORKDIR /ammonite-shell
+
+CMD sleep infinity

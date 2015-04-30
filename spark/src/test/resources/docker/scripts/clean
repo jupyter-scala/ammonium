@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for i in $(seq 1 3); do
+  docker exec -it "slave$i" rm -rf /opt/spark/work
+  docker exec -it "slave$i" /bin/bash -c "rm -rf /tmp/spark-*"
+done
