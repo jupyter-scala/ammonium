@@ -57,6 +57,7 @@ class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet
       def addJar(jar: File) = intp.classes.addJar(jar)
       def jars = intp.classes.jars
       def fromClassMaps(name: String) = intp.classes.fromClassMaps(name)
+      def onJarsAdded(action: Seq[File] => Unit) = intp.classes.onJarsAdded(action)
     }
 
     var onStopHooks = Seq.empty[() => Unit]
