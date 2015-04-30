@@ -112,7 +112,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
       case Res.Success(s) => s
       case other => throw new Exception(s"Error while initializing REPL API: $other")
     }
-    bridgeInitClass(interp, cls, stdout)
+    handle = bridgeInitClass(interp, cls, stdout)
   }
 
   def stop() = {
