@@ -80,7 +80,7 @@ object Main{
       ShellInterpreter.preprocessor,
       ShellInterpreter.classWrap(classWrapperInstanceSymbol),
       handleResult = {
-        val transform = ShellInterpreter.classWrapImportsTransform(classWrapperInstanceSymbol) _
+        val transform = Wrap.classWrapImportsTransform(classWrapperInstanceSymbol) _
         (buf, r0) => val r = transform(r0); main.frontEnd.update(buf, r); r
       },
       printer = _.foreach(print),

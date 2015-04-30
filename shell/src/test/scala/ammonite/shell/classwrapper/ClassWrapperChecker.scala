@@ -17,7 +17,7 @@ class ClassWrapperChecker extends Checker {
       ShellInterpreter.classWrap(instanceSymbol),
       printer = _.foreach(allOutput += _),
       handleResult = {
-        val transform = ShellInterpreter.classWrapImportsTransform(instanceSymbol) _
+        val transform = Wrap.classWrapImportsTransform(instanceSymbol) _
         (buf, r) => transform(r)
       },
       stdout = allOutput += _,

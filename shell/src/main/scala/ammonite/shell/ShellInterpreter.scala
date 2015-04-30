@@ -66,15 +66,4 @@ object ShellInterpreter {
     (p, previousImportBlock, wrapperName) =>
       Wrap.cls(p.code, mergePrinters(p.printer), previousImportBlock, wrapperName, instanceSymbol)
 
-
-  def classWrapImportsTransform(instanceSymbol: String)(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
-    r .map { ev =>
-      ev.copy(imports = ev.imports.map{ d =>
-        if (d.wrapperName == d.prefix) // Assuming this is an import of REPL variables
-          d.copy(prefix = d.prefix + "." + instanceSymbol + ".$user")
-        else
-          d
-      })
-    }
-
 }
