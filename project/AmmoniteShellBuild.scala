@@ -8,9 +8,7 @@ object AmmoniteShellBuild extends Build {
     organization := "com.github.alexarchambault",
     autoCompilerPlugins := true,
     addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.2"),
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.3.0" % "test",
-    testFrameworks += new TestFramework("utest.runner.Framework"),
-    fork in (Test, testOnly) := true, // Makes some tests fail in 2.10?
+    libraryDependencies += "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided",
     scalaVersion := "2.11.6",
     crossScalaVersions := Seq(
       "2.10.5", "2.10.4", "2.10.3",
@@ -36,18 +34,18 @@ object AmmoniteShellBuild extends Build {
     },
     licenses := Seq("MIT license" -> url("http://www.opensource.org/licenses/mit-license.php")),
     pomExtra := {
-        <url>https://github.com/alexarchambault/Ammonite</url>
-        <scm>
-          <url>git://github.com/alexarchambault/Ammonite.git</url>
-          <connection>scm:git://github.com/alexarchambault/Ammonite.git</connection>
-        </scm>
-        <developers>
-          <developer>
-            <id>alexarchambault</id>
-            <name>Alexandre Archambault</name>
-            <url>https://github.com/alexarchambault</url>
-          </developer>
-        </developers>
+      <url>https://github.com/alexarchambault/Ammonite</url>
+      <scm>
+        <url>git://github.com/alexarchambault/Ammonite.git</url>
+        <connection>scm:git://github.com/alexarchambault/Ammonite.git</connection>
+      </scm>
+      <developers>
+        <developer>
+          <id>alexarchambault</id>
+          <name>Alexandre Archambault</name>
+          <url>https://github.com/alexarchambault</url>
+        </developer>
+      </developers>
     },
     publishMavenStyle := true,
     ReleaseKeys.versionBump := sbtrelease.Version.Bump.Bugfix,
@@ -60,9 +58,7 @@ object AmmoniteShellBuild extends Build {
       name := "ammonite-compiler",
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-        "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
-        "com.lihaoyi" %% "scala-parser" % "0.1.3",
-        "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided"
+        "com.lihaoyi" %% "scala-parser" % "0.1.3"
       )
     )
 
@@ -73,11 +69,13 @@ object AmmoniteShellBuild extends Build {
       name := "ammonite-interpreter",
       libraryDependencies ++= Seq(
         "org.apache.ivy" % "ivy" % "2.4.0",
-        "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided",
         "com.lihaoyi" %% "ammonite-tools" % "0.2.7",
         "com.lihaoyi" %% "ammonite-ops" % "0.2.7",
-        "com.lihaoyi" %% "ammonite-pprint" % "0.2.7"
-      )
+        "com.lihaoyi" %% "ammonite-pprint" % "0.2.7",
+        "com.lihaoyi" %% "utest" % "0.3.0" % "test"
+      ),
+      testFrameworks += new TestFramework("utest.runner.Framework"),
+      fork in (Test, testOnly) := true // Makes some tests fail in 2.10?
     )
 
   lazy val shell = Project(id = "shell", base = file("shell"))
@@ -86,8 +84,7 @@ object AmmoniteShellBuild extends Build {
     .settings(
       name := "ammonite-shell",
       libraryDependencies ++= Seq(
-        "jline" % "jline" % "2.12",
-        "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided"
+        "jline" % "jline" % "2.12"
       )
     )
 
