@@ -100,14 +100,21 @@ object AmmoniteShellBuild extends Build {
       name := "ammonite-ivy-interpreter-tests"
     )
 
-  lazy val sparkIvyInterpreter = Project(id = "spark-ivy-interpreter", base = file("spark-ivy-interpreter"))
-    .dependsOn(ivyInterpreter, ivyInterpreterTests % "test")
-    .settings(sharedSettings ++ testSettings: _*)
+  lazy val sparkBridge = Project(id = "spark-bridge", base = file("spark-bridge"))
+    .dependsOn(bridge)
+    .settings(sharedSettings: _*)
     .settings(
-      name := "ammonite-spark-ivy-interpreter",
+      name := "ammonite-spark-bridge",
       libraryDependencies ++= Seq(
         "org.apache.spark" %% "spark-core" % "1.3.0"
       )
+    )
+
+  lazy val sparkIvyInterpreter = Project(id = "spark-ivy-interpreter", base = file("spark-ivy-interpreter"))
+    .dependsOn(ivyInterpreter, ivyInterpreterTests % "test", sparkBridge)
+    .settings(sharedSettings ++ testSettings: _*)
+    .settings(
+      name := "ammonite-spark-ivy-interpreter"
     )
 
   lazy val shell = Project(id = "shell", base = file("shell"))
@@ -122,6 +129,6 @@ object AmmoniteShellBuild extends Build {
 
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
-    .aggregate(interpreter, bridge, ivyInterpreter, ivyInterpreterTests, sparkIvyInterpreter, shell)
+    .aggregate(interpreter, bridge, ivyInterpreter, ivyInterpreterTests, sparkBridge, sparkIvyInterpreter, shell)
 
 }
