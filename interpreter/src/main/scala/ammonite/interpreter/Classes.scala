@@ -64,7 +64,7 @@ class DefaultClassesImpl(
             super.getResource(name)
         }
 
-      override def loadClass(name: String) =
+      override def loadClass(name: String, resolve: Boolean) =
         fromClassMaps(name) match {
           case Some(bytes) =>
             defineClass(name, bytes, 0, bytes.length)
@@ -73,7 +73,7 @@ class DefaultClassesImpl(
             catch{ case e: ClassNotFoundException =>
               try this.findClass(name)
               catch{ case e: ClassNotFoundException =>
-                super.loadClass(name)
+                super.loadClass(name, resolve)
               }
             }
         }
