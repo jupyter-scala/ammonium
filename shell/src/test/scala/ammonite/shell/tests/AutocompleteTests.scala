@@ -6,7 +6,7 @@ import utest._
 import scala.collection.{immutable => imm}
 import scala.reflect.internal.util.BatchSourceFile
 
-class AutocompleteTests(check0: => AmmoniteChecker) extends TestSuite{
+class AutocompleteTests(check0: => Checker) extends TestSuite{
 
   val tests = TestSuite{
     val check = check0
@@ -16,11 +16,8 @@ class AutocompleteTests(check0: => AmmoniteChecker) extends TestSuite{
       val cursor = caretCode.indexOf("<caret>")
       val buf = caretCode.replace("<caret>", "")
 
-      val (index, completions, signatures) = check.interp.pressy.complete(
-        cursor,
-        check.interp.eval.previousImportBlock,
-        buf
-      )
+      val (index, completions, signatures) = check.complete(cursor, buf)
+
       val left = cmp(completions.toSet)
       assert(left == Set())
       val sigLeft = sigs(signatures.toSet)

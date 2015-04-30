@@ -6,6 +6,7 @@ import utest._
 trait Checker {
   def session(sess: String): Unit
   def fail(input: String, failureCheck: String => Boolean = _ => true): Unit
+  def complete(cursor: Int, buf: String): (Int, Seq[String], Seq[String])
 
   def session(sess: String, finally0: String): Unit =
     try session(sess) finally session(finally0)
@@ -98,6 +99,14 @@ class AmmoniteChecker extends Checker {
   } catch{ case e: utest.AssertionError =>
     println("FAILURE TRACE\n" + allOutput)
     throw e
+  }
+
+  def complete(cursor: Int, buf: String): (Int, Seq[String], Seq[String]) = {
+    interp.pressy.complete(
+      cursor,
+      interp.eval.previousImportBlock,
+      buf
+    )
   }
 
 }
