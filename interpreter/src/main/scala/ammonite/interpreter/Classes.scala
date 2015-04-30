@@ -9,6 +9,8 @@ trait Classes {
   def dirs: Seq[File]
   def addJar(jar: File): Unit
   def addClassMap(classMap: String => Option[Array[Byte]]): Unit
+  def fromClassMaps(name: String): Option[Array[Byte]]
+  def onJarsAdded(action: Seq[File] => Unit): Unit
 }
 
 trait AddJarClassLoader extends URLClassLoader {
@@ -66,6 +68,8 @@ class DefaultClassesImpl(
   def addJar(jar: File) = {
     extraJars = extraJars :+ jar
     classLoader.add(jar.toURI.toURL)
+    val s = Seq(jar)
+    onJarsAddedHooks.foreach(_(s))
   }
   def addClassMap(classMap: String => Option[Array[Byte]]) = {
     classMaps = classMaps :+ classMap
@@ -78,4 +82,8 @@ class DefaultClassesImpl(
   def jars = startJars ++ extraJars
   def dirs = startDirs
 
+  var onJarsAddedHooks = Seq.empty[Seq[File] => Unit]
+  def onJarsAdded(action: Seq[File] => Unit) = {
+    onJarsAddedHooks = onJarsAddedHooks :+ action
+  }
 }

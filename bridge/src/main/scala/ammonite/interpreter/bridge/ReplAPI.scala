@@ -4,6 +4,11 @@ import java.io.File
 
 import scala.reflect.runtime.universe._
 
+/*
+ * With just a bit more ClassLoader machinery, this should be the only dependency added to
+ * the REPL user code
+ */
+
 trait ReplAPI {
   /**
    * Exit the Ammonite REPL. You can also use Ctrl-D to exit
@@ -88,12 +93,17 @@ trait Power {
   /**
    *
    */
-  def jars: Seq[File]
+  def classes: Classes
 
   /**
    *
    */
-  def classes: Map[String, Array[Byte]]
+  def onStop(action: => Unit): Unit
+
+  /**
+   *
+   */
+  def stop(): Unit
 }
 
 class ReplAPIHolder {
@@ -120,4 +130,13 @@ abstract class FullReplAPI extends ReplAPI{
   def shellPrintImport(imported: String): String
   def typeOf[T: WeakTypeTag] = scala.reflect.runtime.universe.weakTypeOf[T]
   def typeOf[T: WeakTypeTag](t: => T) = scala.reflect.runtime.universe.weakTypeOf[T]
+}
+
+trait Classes {
+  def currentClassLoader: ClassLoader
+  def jars: Seq[File]
+  def dirs: Seq[File]
+  def addJar(jar: File): Unit
+  def addClassMap(classMap: String => Option[Array[Byte]]): Unit
+  def fromClassMaps(name: String): Option[Array[Byte]]
 }

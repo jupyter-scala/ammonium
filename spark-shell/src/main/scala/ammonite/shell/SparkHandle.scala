@@ -1,10 +1,10 @@
-package ammonite.interpreter
-package sparkbridge
+package ammonite.shell
 
 import java.io.IOException
 import java.net._
 import java.util.concurrent.Executors
 
+import ammonite.interpreter.bridge.Classes
 import org.apache.spark.{ SparkContext, SparkConf }
 
 import org.http4s.dsl._
@@ -13,7 +13,7 @@ import org.http4s.server.blaze.BlazeBuilder
 
 import scala.concurrent.duration.Duration
 
-trait ReplAPISparkImpl extends ReplAPI { api =>
+class SparkHandle(classes: Classes) { api =>
 
   lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
@@ -56,7 +56,7 @@ trait ReplAPISparkImpl extends ReplAPI { api =>
           HttpService {
             case GET -> Root / _item =>
               val item = URLDecoder.decode(_item, "UTF-8")
-              power.classes.get(item.stripSuffix(".class")).fold(NotFound())(Ok(_))
+              classes.fromClassMaps(item.stripSuffix(".class")).fold(NotFound())(Ok(_))
           },
           ""
         )
@@ -99,7 +99,7 @@ trait ReplAPISparkImpl extends ReplAPI { api =>
     conf
       .setIfMissing("spark.master", defaultMaster)
       .setIfMissing("spark.app.name", "Ammonite Shell")
-      .setIfMissingLazy("spark.jars", power.jars.map(_.toURI.toString) mkString ",")
+      .setIfMissingLazy("spark.jars", classes.jars.map(_.toURI.toString) mkString ",")
       .setIfMissingLazy("spark.repl.class.uri", classServerURI.toString)
       .setIfMissing("spark.driver.allowMultipleContexts", "true")
       .setIfMissingLazy("spark.ui.port", availablePort(4040).toString)
@@ -138,6 +138,4 @@ trait ReplAPISparkImpl extends ReplAPI { api =>
     if (_classServerURI != null)
       _classServerURI = null
   }
-
-  def resetSpark() = ???
 }

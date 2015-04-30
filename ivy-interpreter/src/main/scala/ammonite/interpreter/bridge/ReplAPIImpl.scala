@@ -50,8 +50,18 @@ class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet
     }
   }
   lazy val power: Power = new Power {
-    def jars = intp.classes.jars
-    def classes = intp.eval.classes
+    val classes = new Classes {
+      def currentClassLoader = intp.classes.currentClassLoader
+      def dirs = intp.classes.dirs
+      def addClassMap(classMap: (String) => Option[Array[Byte]]) = intp.classes.addClassMap(classMap)
+      def addJar(jar: File) = intp.classes.addJar(jar)
+      def jars = intp.classes.jars
+      def fromClassMaps(name: String) = intp.classes.fromClassMaps(name)
+    }
+
+    var onStopHooks = Seq.empty[() => Unit]
+    def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
+    def stop() = onStopHooks.foreach(_())
   }
   implicit def pprintConfig = pprintConfig0
   def clear() = ()
