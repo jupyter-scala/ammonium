@@ -4,6 +4,8 @@ import java.io.{FileOutputStream, File}
 import java.net.{URLClassLoader, URL}
 import java.util.UUID
 
+import scala.collection.mutable
+
 trait Classes {
   def currentClassLoader: ClassLoader
   def jars: Seq[File]
@@ -41,32 +43,46 @@ class DefaultClassesImpl(
    */
   var classLoader: AddURLClassLoader = _
 
-  var loading = Set.empty[String]
+  lazy val tmpClassDir = {
+    val d = new File(new File(System.getProperty("java.io.tmpdir")), s"ammonite-${UUID.randomUUID()}")
+    d.mkdirs()
+    d.deleteOnExit()
+    d
+  }
 
   def newClassLoader() = {
     classLoader = new AddURLClassLoader(Option(classLoader) getOrElse startClassLoader) {
       // Overriding the main method and not the overload (which misses the resolve argument) for an easier
       // reuse of this ClassLoader
       // This whole thing is such a hack!!! - and should it be thread-safe??
-      override def loadClass(name: String, resolve: Boolean) =
-        if (resolve || loading(name))
-          super.loadClass(name, resolve)
-        else
-          try {
-            loading += name
-            fromClassMaps(name) match {
-              case Some(bytes) =>
-                defineClass(name, bytes, 0, bytes.length)
-              case None =>
-                try startClassLoader.loadClass(name)
-                catch{ case e: ClassNotFoundException =>
-                  try this.findClass(name)
-                  catch{ case e: ClassNotFoundException =>
-                    super.loadClass(name, resolve)
-                  }
-                }
+      override def loadClass(name: String) =
+        fromClassMaps(name) match {
+          case Some(bytes) =>
+            defineClass(name, bytes, 0, bytes.length)
+          case None =>
+            try startClassLoader.loadClass(name)
+            catch{ case e: ClassNotFoundException =>
+              try this.findClass(name)
+              catch{ case e: ClassNotFoundException =>
+                super.loadClass(name)
+              }
             }
-          } finally loading -= name
+        }
+
+      override def getResource(name: String) =
+        Some(name).filter(_ endsWith ".class").map(_ stripSuffix ".class").flatMap(fromClassMaps) match {
+          case Some(bytes) =>
+            val f = new File(tmpClassDir, name)
+            if (!f.exists()) {
+              val w = new FileOutputStream(f)
+              w.write(bytes)
+              w.close()
+            }
+            f.toURI.toURL
+          case None =>
+            super.getResource(name)
+        }
+
     }
   }
 
@@ -100,39 +116,5 @@ class DefaultClassesImpl(
   var onJarsAddedHooks = Seq.empty[Seq[File] => Unit]
   def onJarsAdded(action: Seq[File] => Unit) = {
     onJarsAddedHooks = onJarsAddedHooks :+ action
-  }
-}
-
-trait ClassesLazilyMaterialize extends Classes {
-  lazy val tmpClassDir = {
-    val d = new File(new File(System.getProperty("java.io.tmpdir")), s"ammonite-${UUID.randomUUID()}")
-    d.mkdirs()
-    d.deleteOnExit()
-    d
-  }
-
-  var overriddenClassLoader: ClassLoader = _
-
-  abstract override def currentClassLoader: ClassLoader = {
-    val _super = super.currentClassLoader
-    if (overriddenClassLoader == null || overriddenClassLoader.getParent != _super)
-      overriddenClassLoader = new URLClassLoader(Array(), _super) {
-        // FIXME getResources should be overloaded too
-        override def getResource(name: String) =
-          Some(name).filter(_ endsWith ".class").map(_ stripSuffix ".class").flatMap(fromClassMaps) match {
-            case Some(bytes) =>
-              val f = new File(tmpClassDir, name)
-              if (!f.exists()) {
-                val w = new FileOutputStream(f)
-                w.write(bytes)
-                w.close()
-              }
-              f.toURI.toURL
-            case None =>
-              super.getResource(name)
-          }
-      }
-
-    overriddenClassLoader
   }
 }

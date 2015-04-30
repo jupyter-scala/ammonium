@@ -17,6 +17,9 @@ class Checker {
 
   val interp = newInterpreter()
 
+  def session(sess: String, finally0: String): Unit =
+    try session(sess) finally session(finally0)
+
   def session(sess: String): Unit = {
 //    println("SESSION")
 //    println(sess)
@@ -24,7 +27,7 @@ class Checker {
     val steps = sess.replace("\n" + margin, "\n").split("\n\n")
     for(step <- steps){
 
-      val (cmdLines, resultLines) = step.lines.map(_.drop(margin)).partition(_.startsWith("@"))
+      val (cmdLines, resultLines) = step.lines.map(_.drop(margin)).partition(_.startsWith("@ "))
       val commandText = cmdLines.map(_.stripPrefix("@ ")).toVector
 
       val expected = resultLines.mkString("\n").trim

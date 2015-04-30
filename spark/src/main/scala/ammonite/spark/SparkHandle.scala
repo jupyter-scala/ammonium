@@ -13,7 +13,7 @@ import org.http4s.server.blaze.BlazeBuilder
 
 import scala.concurrent.duration.Duration
 
-class SparkHandle(power: Power) { api =>
+class SparkHandle(implicit power: Power) extends Serializable { api =>
 
   lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
@@ -47,6 +47,7 @@ class SparkHandle(power: Power) { api =>
       idleTimeout = Duration.Inf,
       isNio2 = false,
       sslBits = None,
+      isHttp2Enabled = false,
       serviceMounts = Vector.empty
     )
 
@@ -128,7 +129,12 @@ class SparkHandle(power: Power) { api =>
   def sc: SparkContext = {
     if (_sc == null) {
       setConfDefaults(sparkConf)
-      _sc = new SparkContext(sparkConf)
+      if (sparkConf.get("spark.master").startsWith("local-cluster") && sparkConf.getOption("spark.home").isEmpty) {
+        Console.err.println(s"Warning: Spark master set to ${sparkConf.get("spark.master")} and spark.home not set, proceeding any way.")
+      }
+      _sc = new SparkContext(sparkConf) {
+        override def toString() = "org.apache.spark.SparkContext"
+      }
     }
 
     _sc

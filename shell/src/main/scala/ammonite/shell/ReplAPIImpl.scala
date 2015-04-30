@@ -75,8 +75,8 @@ class ReplAPIImpl[B](
       userResolvers = userResolvers ++ resolver.map(_.asInstanceOf[IvyConstructor.Resolvers.Resolver].underlying)
     }
   }
-  lazy val power: Power = new Power {
-    val classes = new Classes {
+  lazy val power: Power = new Power with Serializable {
+    val classes = new Classes with Serializable {
       def currentClassLoader = intp.classes.currentClassLoader
       def dirs = intp.classes.dirs
       def addClassMap(classMap: (String) => Option[Array[Byte]]) = intp.classes.addClassMap(classMap)
@@ -89,6 +89,9 @@ class ReplAPIImpl[B](
     var onStopHooks = Seq.empty[() => Unit]
     def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
     def stop() = onStopHooks.foreach(_())
+
+    def getShow = intp.eval.getShow
+    def setShow(v: Boolean) = intp.eval.setShow(v)
   }
   implicit def pprintConfig = pprintConfig0
   def clear() = ()

@@ -83,7 +83,7 @@ object Main{
       },
       stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
-      classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs) with ClassesLazilyMaterialize,
+      classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs),
       useClassWrapper = true,
       classWrapperInstance = Some(classWrapperInstanceSymbol)
     )
@@ -100,13 +100,13 @@ object Main{
       System.in, System.out,
       interpreter,
       initialHistory = try{
-        io.Source.fromFile(saveFile).mkString.split(delimiter)
+        scala.io.Source.fromFile(saveFile).mkString.split(delimiter)
       }catch{case e: FileNotFoundException =>
         Nil
       },
       saveHistory = { s =>
         val fw = new FileWriter(saveFile, true)
-        try fw.write(s)
+        try fw.write(delimiter + s)
         finally fw.close()
       }
     )

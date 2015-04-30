@@ -88,17 +88,17 @@ object AmmoniteShellBuild extends Build {
       name := "ammonite-shell-api",
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-        "com.lihaoyi" %% "ammonite-pprint" % "0.2.7"
+        "com.lihaoyi" %% "ammonite-pprint" % "0.2.9"
       )
     )
 
   lazy val spark = Project(id = "spark", base = file("spark"))
-    .dependsOn(shellApi)
-    .settings(sharedSettings: _*)
+    .dependsOn(shellApi, shell % "test->test")
+    .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
     .settings(
       name := "ammonite-spark",
       libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core" % "1.3.0",
+        "org.apache.spark" %% "spark-core" % "1.3.1",
         "org.http4s" %% "http4s-core" % "0.7.0-SNAPSHOT",
         "org.http4s" %% "http4s-server" % "0.7.0-SNAPSHOT",
         "org.http4s" %% "http4s-blazeserver" % "0.7.0-SNAPSHOT",
@@ -107,14 +107,11 @@ object AmmoniteShellBuild extends Build {
     )
 
   lazy val shell = Project(id = "shell", base = file("shell"))
-    .dependsOn(shellApi, interpreter, spark % "test")
-    .settings(sharedSettings ++ testSettings: _*)
+    .dependsOn(shellApi, interpreter)
+    .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
     .settings(
       name := "ammonite-shell",
       libraryDependencies ++= Seq(
-        // Snapshot version of pprint, for the fix for https://github.com/lihaoyi/Ammonite/issues/47
-        // (No snapshots are published by lihaoyi)
-        "com.github.alexarchambault.tmp" %% "ammonite-pprint" % "0.2.8-SNAPSHOT",
         "org.apache.ivy" % "ivy" % "2.4.0",
         "jline" % "jline" % "2.12"
       )
