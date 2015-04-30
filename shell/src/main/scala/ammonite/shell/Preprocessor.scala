@@ -19,20 +19,42 @@ object Preprocessor{
 
   case class Output(code: String, printer: Seq[String])
 
-  def apply(parse: => String => Either[String, Seq[G#Tree]]): Preprocessor[Output] = new Preprocessor[Output] {
+  trait Display {
 
-    def Processor(cond: PartialFunction[(String, String, G#Tree), Preprocessor.Output]) = {
-      (code: String, name: String, tree: G#Tree) => cond.lift(name, code, tree)
-    }
+    def definition(definitionLabel: String, name: String): String
+
+    def identity(ident: String): String
+
+    def lazyIdentity(ident: String): String
+
+    def displayImport(imported: String): String
+
+  }
+  
+  trait ShellDisplay extends Display {
+
+    def definition(definitionLabel: String, name: String) =
+      s"""Iterator(ReplBridge.shell.shellPrintDef("$definitionLabel", "$name"))"""
 
     def pprintSignature(ident: String) = s"""Iterator(ReplBridge.shell.shellPPrint($$user.$ident, "$ident"))"""
 
-    def definedStr(definitionLabel: String, name: String) =
-      s"""Iterator(ReplBridge.shell.shellPrintDef("$definitionLabel", "$name"))"""
-
-    def pprint(ident: String) = {
+    def identity(ident: String) = {
       pprintSignature(ident) +
         s""" ++ Iterator(" = ") ++ ammonite.pprint.PPrint($$user.$ident)"""
+    }
+
+    def lazyIdentity(ident: String) =
+      s"""${pprintSignature(ident)} ++ Iterator(" = <lazy>")"""
+
+    def displayImport(imported: String) =
+      s"""Iterator(ReplBridge.shell.shellPrintImport("$imported"))"""
+
+  }
+
+  class PreprocessorParser(parse: => String => Either[String, Seq[G#Tree]], display: Display) extends Preprocessor[Output] {
+
+    def Processor(cond: PartialFunction[(String, String, G#Tree), Preprocessor.Output]) = {
+      (code: String, name: String, tree: G#Tree) => cond.lift(name, code, tree)
     }
 
     /**
@@ -43,7 +65,7 @@ object Preprocessor{
         cond.lift(tree).map{ name =>
           Preprocessor.Output(
             code,
-            Seq(definedStr(definitionLabel, BacktickWrap(name.decoded)))
+            Seq(display.definition(definitionLabel, BacktickWrap(name.decoded)))
           )
         }
 
@@ -60,19 +82,19 @@ object Preprocessor{
         // synthetic flags right now, because we're dumb-parsing it and not putting
         // it through a full compilation
         if (t.name.decoded.contains("$")) Nil
-        else if (!t.mods.hasFlag(Flags.LAZY)) Seq(pprint(BacktickWrap.apply(t.name.decoded)))
-        else Seq(s"""${pprintSignature(BacktickWrap.apply(t.name.decoded))} ++ Iterator(" = <lazy>")""")
+        else if (!t.mods.hasFlag(Flags.LAZY)) Seq(display.identity(BacktickWrap.apply(t.name.decoded)))
+        else Seq(display.lazyIdentity(BacktickWrap.apply(t.name.decoded)))
       )
     }
 
     val Import = Processor{
       case (name, code, tree: G#Import) =>
         val Array(keyword, body) = code.split(" ", 2)
-        Output(code, Seq(s"""Iterator(ReplBridge.shell.shellPrintImport("$body"))"""))
+        Output(code, Seq(display.displayImport(body)))
     }
 
     val Expr = Processor{
-      case (name, code, tree) => Output(s"val $name = (\n$code\n)", Seq(pprint(name)))
+      case (name, code, tree) => Output(s"val $name = (\n$code\n)", Seq(display.identity(name)))
     }
 
     val decls = Seq[(String, String, G#Tree) => Option[Preprocessor.Output]](
@@ -138,5 +160,8 @@ object Preprocessor{
 
     }
   }
+
+  def apply(parse: => String => Either[String, Seq[G#Tree]]): Preprocessor[Output] =
+    new PreprocessorParser(parse, new ShellDisplay {})
 }
 

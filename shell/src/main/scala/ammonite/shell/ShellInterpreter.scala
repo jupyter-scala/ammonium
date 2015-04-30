@@ -52,13 +52,16 @@ object ShellInterpreter {
   val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output] =
     f => Preprocessor(f()).apply
 
+  def mergePrinters(printers: Seq[String]) =
+    printers.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")
+
   val wrap: (Preprocessor.Output, String, String) => String =
     (p, previousImportBlock, wrapperName) =>
-      Wrap.obj(p.code, p.printer.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()"), previousImportBlock, wrapperName)
+      Wrap.obj(p.code, mergePrinters(p.printer), previousImportBlock, wrapperName)
 
   def classWrap(instanceSymbol: String): (Preprocessor.Output, String, String) => String =
     (p, previousImportBlock, wrapperName) =>
-      Wrap.cls(p.code, p.printer.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()"), previousImportBlock, wrapperName, instanceSymbol)
+      Wrap.cls(p.code, mergePrinters(p.printer), previousImportBlock, wrapperName, instanceSymbol)
 
 
   def classWrapImportsTransform(instanceSymbol: String)(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
