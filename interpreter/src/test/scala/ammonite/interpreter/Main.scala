@@ -1,4 +1,4 @@
-package ammonite.repl
+package ammonite.interpreter
 
 /**
  * Created by haoyi on 2/16/15.

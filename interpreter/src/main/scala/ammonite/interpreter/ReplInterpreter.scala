@@ -1,4 +1,4 @@
-package ammonite.repl
+package ammonite.interpreter
 
 import java.io.File
 import acyclic.file
@@ -10,7 +10,7 @@ object ReplInterpreter {
 
   def initialImports =
     Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-      Evaluator.namesFor[ammonite.repl.IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.repl.IvyConstructor")).toSeq
+      Evaluator.namesFor[ammonite.interpreter.IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.IvyConstructor")).toSeq
 
   def apply(handleResult: => (String, Res[Evaluated[_]]) => Unit,
             shellPrompt0: => Ref[String],

@@ -1,4 +1,4 @@
-package ammonite.repl
+package ammonite.interpreter
 
 import utest._
 import ammonite.pprint.PPrint

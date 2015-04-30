@@ -66,15 +66,13 @@ object AmmoniteReplBuild extends Build {
       )
     )
 
-  lazy val repl = Project(id = "repl", base = file("repl"))
+  lazy val interpreter = Project(id = "interpreter", base = file("interpreter"))
     .dependsOn(compiler)
     .settings(sharedSettings: _*)
     .settings(
-      name := "ammonite-repl",
+      name := "ammonite-interpreter",
       libraryDependencies ++= Seq(
         "org.apache.ivy" % "ivy" % "2.4.0",
-        "jline" % "jline" % "2.12",
-        "com.lihaoyi" %% "scala-parser" % "0.1.3",
         "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided",
         "com.lihaoyi" %% "ammonite-tools" % "0.2.7",
         "com.lihaoyi" %% "ammonite-ops" % "0.2.7",
@@ -82,8 +80,19 @@ object AmmoniteReplBuild extends Build {
       )
     )
 
+  lazy val repl = Project(id = "repl", base = file("repl"))
+    .dependsOn(interpreter)
+    .settings(sharedSettings: _*)
+    .settings(
+      name := "ammonite-repl",
+      libraryDependencies ++= Seq(
+        "jline" % "jline" % "2.12",
+        "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided"
+      )
+    )
+
 
   lazy val root = Project(id = "ammonite-repl", base = file("."))
-    .aggregate(compiler, repl)
+    .aggregate(compiler, interpreter, repl)
 
 }

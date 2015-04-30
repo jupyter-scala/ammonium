@@ -1,4 +1,4 @@
-package ammonite.repl
+package ammonite.interpreter
 
 import ammonite.compiler.Res
 import utest._
