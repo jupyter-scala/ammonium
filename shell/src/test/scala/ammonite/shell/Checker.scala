@@ -9,9 +9,9 @@ class Checker {
 
   def newInterpreter(): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
-      IvyPPrintInterpreter.bridgeConfig(),
-      IvyPPrintInterpreter.preprocessor,
-      IvyPPrintInterpreter.wrap,
+      ShellInterpreter.bridgeConfig(),
+      ShellInterpreter.preprocessor,
+      ShellInterpreter.wrap,
       stdout = allOutput += _
     )
 

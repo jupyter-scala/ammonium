@@ -1,4 +1,6 @@
 package ammonite.shell
+package util
+
 import acyclic.file
 /**
  * Lets you turn on signal handling within a certain block,

@@ -1,5 +1,4 @@
 package ammonite.shell
-package bridge
 
 import java.io.File
 
@@ -8,6 +7,7 @@ import acyclic.file
 
 import ammonite.interpreter.{ Classes => _, _ }, Evaluator.Exit
 import ammonite.pprint
+import ammonite.shell.util._
 
 
 class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet, shellPrompt0: => Ref[String], pprintConfig0: pprint.Config) extends FullReplAPI {

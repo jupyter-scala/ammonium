@@ -4,15 +4,14 @@ import acyclic.file
 import scala.tools.nsc.Global
 import ammonite.interpreter._
 import ammonite.pprint
-import ammonite.shell.bridge._
+import ammonite.shell.util._
 
 
-object IvyPPrintInterpreter {
+object ShellInterpreter {
   def bridgeConfig(
     shellPrompt0: => Ref[String] = Ref("@"),
     pprintConfig0: pprint.Config = pprint.Config.Defaults.PPrintConfig,
-    colors0: ColorSet = ColorSet.BlackWhite,
-    useClassWrapper: Boolean = false
+    colors0: ColorSet = ColorSet.BlackWhite
   ): BridgeConfig[Preprocessor.Output, Iterator[String]] =
     BridgeConfig(
       "object ReplBridge extends ammonite.shell.ReplAPIHolder{}",
@@ -35,7 +34,7 @@ object IvyPPrintInterpreter {
             }
       },
       Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.shell.bridge.IvyConstructor")).toSeq
+        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.shell.util.IvyConstructor")).toSeq
     )
 
   val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, Int) => Res[Preprocessor.Output] =

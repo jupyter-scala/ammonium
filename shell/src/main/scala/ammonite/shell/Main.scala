@@ -2,8 +2,8 @@ package ammonite.shell
 
 import java.io._
 import ammonite.interpreter._
-import ammonite.shell.bridge.ColorSet
 import ammonite.pprint
+import ammonite.shell.util._
 import acyclic.file
 
 import scala.annotation.tailrec
@@ -55,9 +55,9 @@ class Main(input: InputStream,
 object Main{
   def shellInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
-      IvyPPrintInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet),
-      IvyPPrintInterpreter.preprocessor,
-      IvyPPrintInterpreter.wrap,
+      ShellInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet),
+      ShellInterpreter.preprocessor,
+      ShellInterpreter.wrap,
       handleResult = { (buf, r) => main.frontEnd.update(buf, r); r },
       stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory
@@ -67,11 +67,11 @@ object Main{
 
   def shellClassWrapInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
-      IvyPPrintInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet, useClassWrapper = true),
-      IvyPPrintInterpreter.preprocessor,
-      IvyPPrintInterpreter.classWrap(classWrapperInstanceSymbol),
+      ShellInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet),
+      ShellInterpreter.preprocessor,
+      ShellInterpreter.classWrap(classWrapperInstanceSymbol),
       handleResult = {
-        val transform = IvyPPrintInterpreter.classWrapImportsTransform(classWrapperInstanceSymbol) _
+        val transform = ShellInterpreter.classWrapImportsTransform(classWrapperInstanceSymbol) _
         (buf, r0) => val r = transform(r0); main.frontEnd.update(buf, r); r
       },
       stdout = new PrintStream(main.output).println,

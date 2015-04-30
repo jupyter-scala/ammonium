@@ -1,5 +1,5 @@
 package ammonite.shell
-package bridge
+package util
 
 import java.io.File
 

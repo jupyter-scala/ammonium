@@ -1,4 +1,5 @@
-package ammonite.shell.bridge
+package ammonite.shell
+package util
 
 /**
  * A set of colors used to highlight the miscellanious bits of the REPL.

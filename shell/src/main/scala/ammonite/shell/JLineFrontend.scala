@@ -4,6 +4,7 @@ import java.io.{OutputStream, InputStream}
 import java.nio.channels.CompletionHandler
 
 import ammonite.interpreter.{Timer, Evaluated, Res}
+import ammonite.shell.util.Signaller
 import jline.console.{completer, ConsoleReader}
 import acyclic.file
 import jline.console.completer.Completer

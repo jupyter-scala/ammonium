@@ -12,11 +12,11 @@ class ClassWrapperChecker extends Checker {
 
   override def newInterpreter(): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
-      IvyPPrintInterpreter.bridgeConfig(useClassWrapper = true),
-      IvyPPrintInterpreter.preprocessor,
-      IvyPPrintInterpreter.classWrap(instanceSymbol),
+      ShellInterpreter.bridgeConfig(),
+      ShellInterpreter.preprocessor,
+      ShellInterpreter.classWrap(instanceSymbol),
       handleResult = {
-        val transform = IvyPPrintInterpreter.classWrapImportsTransform(instanceSymbol) _
+        val transform = ShellInterpreter.classWrapImportsTransform(instanceSymbol) _
         (buf, r) => transform(r)
       },
       stdout = allOutput += _,
