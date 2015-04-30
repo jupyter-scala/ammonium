@@ -12,22 +12,19 @@ import ammonite.interpreter.{ Classes => _, _ }, Evaluator.Exit
 import ammonite.pprint
 import ammonite.shell.util._
 
+trait ShellReplAPIImpl extends FullShellReplAPI {
+  def colors: ColorSet
+  def shellPrompt0: Ref[String]
 
-class ReplAPIImpl[B](
-  intp: Interpreter[_, B],
-  println: String => Unit,
-  colors: ColorSet,
-  shellPrompt0: => Ref[String],
-  pprintConfig0: pprint.Config,
-  startJars: Seq[File],
-  startIvys: Seq[(String, String, String)],
-  startResolvers: Seq[DependencyResolver]
-) extends FullReplAPI {
-  def exit = throw Exit
-  def help = "Hello!"
+
+  def clear() = ()
+
+  def shellPrompt: String = shellPrompt0()
+  def shellPrompt_=(s: String) = shellPrompt0() = s
+
   def shellPPrint[T: WeakTypeTag](value: => T, ident: String) = {
     colors.ident + ident + colors.reset + ": " +
-    colors.`type` + weakTypeOf[T].toString + colors.reset
+      colors.`type` + weakTypeOf[T].toString + colors.reset
   }
   def shellPrintDef(definitionLabel: String, ident: String) = {
     s"defined ${colors.`type`}$definitionLabel ${colors.ident}$ident${colors.reset}"
@@ -35,9 +32,22 @@ class ReplAPIImpl[B](
   def shellPrintImport(imported: String) = {
     s"${colors.`type`}import ${colors.ident}$imported${colors.reset}"
   }
+}
 
-  def shellPrompt: String = shellPrompt0()
-  def shellPrompt_=(s: String) = shellPrompt0() = s
+class ReplAPIImpl[B](
+  intp: Interpreter[_, B],
+  println: String => Unit,
+  pprintConfig0: pprint.Config,
+  startJars: Seq[File],
+  startIvys: Seq[(String, String, String)],
+  startResolvers: Seq[DependencyResolver]
+) extends ReplAPI {
+  def exit = throw Exit
+  def help = "Hello!"
+
+  def typeOf[T: WeakTypeTag] = scala.reflect.runtime.universe.weakTypeOf[T]
+  def typeOf[T: WeakTypeTag](t: => T) = scala.reflect.runtime.universe.weakTypeOf[T]
+
   object load extends Load{
 
     def apply(line: String) = intp.handleOutput(intp.processLine(
@@ -95,7 +105,6 @@ class ReplAPIImpl[B](
     def imports = intp.eval.previousImportBlock
   }
   def pprintConfig = pprintConfig0
-  def clear() = ()
   def history = intp.history.toVector.dropRight(1)
 }
 

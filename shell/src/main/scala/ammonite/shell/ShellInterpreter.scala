@@ -25,11 +25,16 @@ object ShellInterpreter {
       "ReplBridge",
       {
         _ =>
-          var replApi: ReplAPI = null
+          val _colors = colors
+          val _shellPrompt = shellPrompt
+          var replApi: ReplAPI with FullShellReplAPI = null
 
           (intp, cls, stdout) =>
             if (replApi == null)
-              replApi = new ReplAPIImpl[Iterator[String]](intp, s => stdout(s + "\n"), colors, shellPrompt, pprintConfig, startJars, startIvys, startResolvers)
+              replApi = new ReplAPIImpl[Iterator[String]](intp, s => stdout(s + "\n"), pprintConfig, startJars, startIvys, startResolvers) with ShellReplAPIImpl {
+                def colors = _colors
+                def shellPrompt0 = _shellPrompt
+              }
 
             ReplAPI.initReplBridge(
               cls.asInstanceOf[Class[ReplAPIHolder]],
@@ -40,7 +45,7 @@ object ShellInterpreter {
               replApi.power.stop()
             }
       },
-      Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
+      Evaluator.namesFor[ReplAPI with ShellReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
         Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.shell.IvyConstructor")).toSeq
     )
 

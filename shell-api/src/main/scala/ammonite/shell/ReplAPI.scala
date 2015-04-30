@@ -16,17 +16,6 @@ trait ReplAPI {
   def exit: Nothing
 
   /**
-   * Clears the screen of the REPL
-   */
-  def clear: Unit
-
-  /**
-   * Read/writable prompt for the shell. Use this to change the
-   * REPL prompt at any time!
-   */
-  var shellPrompt: String
-
-  /**
    * Display this help text
    */
   def help: String
@@ -118,12 +107,12 @@ trait Power {
 }
 
 class ReplAPIHolder {
-  var shell0: FullReplAPI = null
+  var shell0: ReplAPI with FullShellReplAPI = null
   lazy val shell = shell0
 }
 
 object ReplAPI{
-  def initReplBridge(holder: Class[ReplAPIHolder], api: ReplAPI) = {
+  def initReplBridge(holder: Class[ReplAPIHolder], api: ReplAPI with FullShellReplAPI) = {
     val method = holder
       .getDeclaredMethods
       .find(_.getName == "shell0_$eq")
@@ -132,15 +121,26 @@ object ReplAPI{
   }
 }
 
+trait ShellReplAPI {
+  /**
+   * Clears the screen of the REPL
+   */
+  def clear: Unit
+
+  /**
+   * Read/writable prompt for the shell. Use this to change the
+   * REPL prompt at any time!
+   */
+  var shellPrompt: String
+}
+
 /**
  * Things that are part of the ReplAPI that aren't really "public"
  */
-abstract class FullReplAPI extends ReplAPI{
+trait FullShellReplAPI extends ShellReplAPI {
   def shellPPrint[T: WeakTypeTag](value: => T, ident: String): String
   def shellPrintDef(definitionLabel: String, ident: String): String
   def shellPrintImport(imported: String): String
-  def typeOf[T: WeakTypeTag] = scala.reflect.runtime.universe.weakTypeOf[T]
-  def typeOf[T: WeakTypeTag](t: => T) = scala.reflect.runtime.universe.weakTypeOf[T]
 }
 
 trait Classes {
