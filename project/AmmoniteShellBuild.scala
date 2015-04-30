@@ -87,9 +87,7 @@ object AmmoniteShellBuild extends Build {
     .settings(
       name := "ammonite-ivy-interpreter",
       libraryDependencies ++= Seq(
-        "org.apache.ivy" % "ivy" % "2.4.0",
-        "com.lihaoyi" %% "ammonite-tools" % "0.2.7",
-        "com.lihaoyi" %% "ammonite-ops" % "0.2.7"
+        "org.apache.ivy" % "ivy" % "2.4.0"
       )
     )
 

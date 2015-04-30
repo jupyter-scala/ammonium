@@ -1,6 +1,6 @@
 package ammonite.shell
 
-import java.io.{PrintStream, OutputStream, InputStream}
+import java.io._
 import ammonite.interpreter._
 import ammonite.interpreter.bridge.ColorSet
 import ammonite.pprint
@@ -25,7 +25,7 @@ class Main(input: InputStream,
   val frontEnd = JLineFrontend(
     input,
     output,
-    colorSet.prompt + shellPrompt() + Console.RESET,
+    colorSet.prompt + shellPrompt() + scala.Console.RESET,
     interp.pressy.complete(_, interp.eval.previousImportBlock, _),
     initialHistory
   )
@@ -74,15 +74,23 @@ object Main{
     interpreter: Main => Interpreter[Preprocessor.Output, Iterator[String]]
   ): Unit = {
     println("Loading Ammonite Shell...")
-    import ammonite.ops._
-    val saveFile = home/".amm"
+
+    val saveFile = new java.io.File(System.getProperty("user.home")) + "/.amm"
     val delimiter = "\n\n\n"
     val shell = new Main(
       System.in, System.out,
       bridgeConfig,
       interpreter,
-      initialHistory = Try{read! saveFile}.getOrElse("").split(delimiter),
-      saveHistory = s => write.append(home/".amm", s + delimiter)
+      initialHistory = try{
+        io.Source.fromFile(saveFile).mkString.split(delimiter)
+      }catch{case e: FileNotFoundException =>
+        Nil
+      },
+      saveHistory = { s =>
+        val fw = new FileWriter(saveFile, true)
+        try fw.write(s)
+        finally fw.close()
+      }
     )
     shell.run()
   }
