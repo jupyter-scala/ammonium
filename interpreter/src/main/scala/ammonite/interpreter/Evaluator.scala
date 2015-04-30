@@ -22,7 +22,7 @@ import scala.util.control.ControlThrowable
  * @tparam B: wrapper $main method return type
  */
 trait Evaluator[-A, +B] {
-  def evalClass(code: String, wrapperName: String, useClassWrapper: Boolean = false): Res[(Class[_], Class[_], Seq[ImportData])]
+  def evalClass(code: String, wrapperName: String, useClassWrapper: Boolean = false): Res[(Class[_], Unit => Class[_], Seq[ImportData])]
   def getCurrentLine: Int
   def update(newImports: Seq[ImportData]): Unit
 
@@ -168,11 +168,11 @@ object Evaluator{
         compiled, "Compilation Failed\n" + output.mkString("\n")
       )
 
-      (cls, objCls) <- Res[(Class[_], Class[_])](Try {
+      (cls, objCls) <- Res[(Class[_], Unit => Class[_])](Try {
         for ((name, bytes) <- classFiles) newFileDict(name) = bytes
         val cls = Class.forName(wrapperName, true, evalClassloader)
-        val objCls = if (useClassWrapper) Class.forName(wrapperName + "$", true, evalClassloader) else null
-        (cls, objCls)
+        def objCls = if (useClassWrapper) Class.forName(wrapperName + "$", true, evalClassloader) else null
+        (cls, (_: Unit) => objCls)
       }, e => "Failed to load compiled class " + e)
     } yield (cls, objCls, importData)
 
@@ -230,7 +230,7 @@ object Evaluator{
       val value = evaluatorRunPrinter(process {
         val instance =
           if (useClassWrapper)
-            objClass getField "MODULE$" get null
+            objClass() getField "MODULE$" get null
           else
             null
 
