@@ -107,13 +107,21 @@ object AmmoniteShellBuild extends Build {
       )
     )
 
+  lazy val ivyLight = Project(id = "ivy-light", base = file("ivy-light"))
+    .settings(sharedSettings ++ testSettings: _*)
+    .settings(
+      name := "ivy-light",
+      libraryDependencies ++= Seq(
+        "org.apache.ivy" % "ivy" % "2.4.0"
+      )
+    )
+
   lazy val shell = Project(id = "shell", base = file("shell"))
-    .dependsOn(shellApi, interpreter)
+    .dependsOn(shellApi, interpreter, ivyLight)
     .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
     .settings(
       name := "ammonite-shell",
       libraryDependencies ++= Seq(
-        "org.apache.ivy" % "ivy" % "2.4.0",
         "jline" % "jline" % "2.12"
       )
     )
