@@ -4,9 +4,9 @@ import java.io.{FileOutputStream, File}
 import java.net.URLClassLoader
 import java.util.UUID
 
-import ammonite.interpreter.DefaultClassesImpl
+import ammonite.interpreter.Classes
 
-trait ClassesLazilyMaterialize extends DefaultClassesImpl {
+trait ClassesLazilyMaterialize extends Classes {
   lazy val tmpClassDir = {
     val d = new File(new File(System.getProperty("java.io.tmpdir")), s"ammonite-${UUID.randomUUID()}")
     d.mkdirs()
@@ -16,7 +16,7 @@ trait ClassesLazilyMaterialize extends DefaultClassesImpl {
 
   var overriddenClassLoader: ClassLoader = _
 
-  override def currentClassLoader: ClassLoader = {
+  abstract override def currentClassLoader: ClassLoader = {
     val _super = super.currentClassLoader
     if (overriddenClassLoader == null || overriddenClassLoader.getParent != _super)
       overriddenClassLoader = new URLClassLoader(Array(), _super) {
