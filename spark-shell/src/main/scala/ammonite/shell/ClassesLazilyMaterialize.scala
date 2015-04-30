@@ -20,6 +20,7 @@ trait ClassesLazilyMaterialize extends DefaultClassesImpl {
     val _super = super.currentClassLoader
     if (overriddenClassLoader == null || overriddenClassLoader.getParent != _super)
       overriddenClassLoader = new URLClassLoader(Array(), _super) {
+        // FIXME getResources should be overloaded too
         override def getResource(name: String) =
           Some(name).filter(_ endsWith ".class").map(_ stripSuffix ".class").flatMap(fromClassMaps) match {
             case Some(bytes) =>
