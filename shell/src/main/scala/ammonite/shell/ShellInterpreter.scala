@@ -3,6 +3,7 @@ package ammonite.shell
 import java.io.File
 
 import acyclic.file
+import ammonite.interpreter.Preprocessor.PreprocessorParser
 import org.apache.ivy.plugins.resolver.DependencyResolver
 import com.github.alexarchambault.ivylight.ResolverHelpers
 import scala.tools.nsc.Global
@@ -50,7 +51,7 @@ object ShellInterpreter {
     )
 
   val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output] =
-    f => Preprocessor(f()).apply
+    f => new PreprocessorParser(f(), new ShellDisplay {}) .apply
 
   def mergePrinters(printers: Seq[String]) =
     printers.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")

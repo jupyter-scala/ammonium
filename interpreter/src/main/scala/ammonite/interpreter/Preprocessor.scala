@@ -1,7 +1,6 @@
-package ammonite.shell
+package ammonite.interpreter
 
 import acyclic.file
-import ammonite.interpreter.{BacktickWrap, Res}
 import org.parboiled2.ParseError
 
 import scala.reflect.internal.Flags
@@ -28,26 +27,6 @@ object Preprocessor{
     def lazyIdentity(ident: String): String
 
     def displayImport(imported: String): String
-
-  }
-  
-  trait ShellDisplay extends Display {
-
-    def definition(definitionLabel: String, name: String) =
-      s"""Iterator(ReplBridge.shell.shellPrintDef("$definitionLabel", "$name"))"""
-
-    def pprintSignature(ident: String) = s"""Iterator(ReplBridge.shell.shellPPrint($$user.$ident, "$ident"))"""
-
-    def identity(ident: String) = {
-      pprintSignature(ident) +
-        s""" ++ Iterator(" = ") ++ ammonite.pprint.PPrint($$user.$ident)"""
-    }
-
-    def lazyIdentity(ident: String) =
-      s"""${pprintSignature(ident)} ++ Iterator(" = <lazy>")"""
-
-    def displayImport(imported: String) =
-      s"""Iterator(ReplBridge.shell.shellPrintImport("$imported"))"""
 
   }
 
@@ -161,7 +140,5 @@ object Preprocessor{
     }
   }
 
-  def apply(parse: => String => Either[String, Seq[G#Tree]]): Preprocessor[Output] =
-    new PreprocessorParser(parse, new ShellDisplay {})
 }
 
