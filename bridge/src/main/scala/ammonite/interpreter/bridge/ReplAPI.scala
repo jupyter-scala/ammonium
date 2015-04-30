@@ -1,5 +1,7 @@
 package ammonite.interpreter.bridge
 
+import java.io.File
+
 import scala.reflect.runtime.universe._
 
 trait ReplAPI {
@@ -46,6 +48,16 @@ trait ReplAPI {
    * Tools related to loading external scripts and code into the REPL
    */
   def load: Load
+
+  /**
+   *
+   */
+  def jars: Seq[File]
+
+  /**
+   *
+   */
+  def classes: Map[String, Array[Byte]]
 
   /**
    * Throw away the current scala.tools.nsc.Global and get a new one

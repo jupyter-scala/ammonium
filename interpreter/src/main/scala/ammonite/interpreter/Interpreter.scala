@@ -25,8 +25,8 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
                        stdout: String => Unit = print,
                        initialImports: Seq[(String, ImportData)] = Nil,
                        initialHistory: Seq[String] = Nil,
-                       jarDeps: Seq[File] = Classpath.jarDeps,
-                       dirDeps: Seq[File] = Classpath.dirDeps,
+                       val jarDeps: Seq[File] = Classpath.jarDeps,
+                       val dirDeps: Seq[File] = Classpath.dirDeps,
                        useClassWrapper: Boolean = false,
                        classWrapperInstance: Option[String] = None){ interp =>
 

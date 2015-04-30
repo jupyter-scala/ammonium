@@ -6,6 +6,12 @@ object AmmoniteShellBuild extends Build {
 
   private lazy val sharedSettings = Seq[Setting[_]](
     organization := "com.github.alexarchambault",
+    resolvers ++= Seq(
+      "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",
+      "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
+      Resolver.sonatypeRepo("releases"),
+      Resolver.sonatypeRepo("snapshots")
+    ),
     autoCompilerPlugins := true,
     addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.2"),
     libraryDependencies += "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided",
@@ -132,7 +138,13 @@ object AmmoniteShellBuild extends Build {
     .dependsOn(ivyInterpreter, ivyInterpreterTests % "test", sparkBridge, pprintShapeless)
     .settings(sharedSettings ++ testSettings: _*)
     .settings(
-      name := "ammonite-spark-ivy-interpreter"
+      name := "ammonite-spark-ivy-interpreter",
+      libraryDependencies ++= Seq(
+        "org.http4s" %% "http4s-core" % "0.7.0-SNAPSHOT",
+        "org.http4s" %% "http4s-server" % "0.7.0-SNAPSHOT",
+        "org.http4s" %% "http4s-blazeserver" % "0.7.0-SNAPSHOT",
+        "org.http4s" %% "http4s-dsl" % "0.7.0-SNAPSHOT"
+      )
     )
 
   lazy val sparkShell = Project(id = "spark-shell", base = file("spark-shell"))
