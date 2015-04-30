@@ -36,7 +36,6 @@ class ReplAPIImpl[B](
     s"${colors.`type`}import ${colors.ident}$imported${colors.reset}"
   }
 
-  def imports = intp.eval.previousImportBlock
   def shellPrompt: String = shellPrompt0()
   def shellPrompt_=(s: String) = shellPrompt0() = s
   object load extends Load{
@@ -91,10 +90,12 @@ class ReplAPIImpl[B](
 
     def getShow = intp.eval.getShow
     def setShow(v: Boolean) = intp.eval.setShow(v)
+
+    def newCompiler() = intp.init()
+    def imports = intp.eval.previousImportBlock
   }
   def pprintConfig = pprintConfig0
   def clear() = ()
-  def newCompiler() = intp.init()
   def history = intp.history.toVector.dropRight(1)
 }
 

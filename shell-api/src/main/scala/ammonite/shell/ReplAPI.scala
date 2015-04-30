@@ -57,15 +57,6 @@ trait ReplAPI {
   implicit def power: Power
 
   /**
-   * Throw away the current scala.tools.nsc.Global and get a new one
-   */
-  def newCompiler(): Unit
-
-  /**
-   *
-   */
-  def imports: String
-  /**
    * Controls how things are pretty-printed in the REPL. Feel free
    * to shadow this with your own definition to change how things look
    */
@@ -104,6 +95,16 @@ trait Power {
 
   def getShow: Boolean
   def setShow(v: Boolean): Unit
+
+  /**
+   * Throw away the current scala.tools.nsc.Global and get a new one
+   */
+  def newCompiler(): Unit
+
+  /**
+   *
+   */
+  def imports: String
 
   /**
    *
