@@ -71,7 +71,16 @@ object AmmoniteShellBuild extends Build {
         "org.apache.ivy" % "ivy" % "2.4.0",
         "com.lihaoyi" %% "ammonite-tools" % "0.2.7",
         "com.lihaoyi" %% "ammonite-ops" % "0.2.7",
-        "com.lihaoyi" %% "ammonite-pprint" % "0.2.7",
+        "com.lihaoyi" %% "ammonite-pprint" % "0.2.7"
+      )
+    )
+
+  lazy val ivyInterpreterTests = Project(id = "ivy-interpreter-tests", base = file("ivy-interpreter-tests"))
+    .dependsOn(ivyInterpreter)
+    .settings(sharedSettings: _*)
+    .settings(
+      name := "ammonite-ivy-interpreter-tests",
+      libraryDependencies ++= Seq(
         "com.lihaoyi" %% "utest" % "0.3.0" % "test"
       ),
       testFrameworks += new TestFramework("utest.runner.Framework"),
@@ -90,6 +99,6 @@ object AmmoniteShellBuild extends Build {
 
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
-    .aggregate(interpreter, ivyInterpreter, shell)
+    .aggregate(interpreter, ivyInterpreter, ivyInterpreterTests, shell)
 
 }

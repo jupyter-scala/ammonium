@@ -1,12 +1,13 @@
 package ammonite.interpreter
+package tests
 
 import utest._
 
 import scala.collection.{immutable => imm}
 
-object AdvancedTests extends TestSuite{
+class AdvancedTests(check0: => Checker) extends TestSuite{
   val tests = TestSuite{
-    val check = new Checker()
+    val check = check0
     'load{
       'ivy{
         'standalone{

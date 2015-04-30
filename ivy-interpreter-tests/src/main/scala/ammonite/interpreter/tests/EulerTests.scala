@@ -1,11 +1,12 @@
 package ammonite.interpreter
+package tests
 
 import utest._
 import ammonite.pprint.PPrint
 import ammonite.pprint.Config.Defaults._
-object EulerTests extends TestSuite{
+class EulerTests(check0: => Checker) extends TestSuite{
   val tests = TestSuite{
-    val check = new Checker()
+    val check = check0
 
 
     // Taken from https://pavelfatin.com/scala-for-project-euler/

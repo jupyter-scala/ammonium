@@ -1,4 +1,5 @@
 package ammonite.interpreter
+package tests
 
 import ammonite.pprint.Config.Defaults._
 import ammonite.pprint.PPrint
@@ -8,10 +9,10 @@ import utest._
 import scala.collection.{immutable => imm}
 import scala.reflect.io.VirtualDirectory
 
-object EvaluatorTests extends TestSuite{
+class EvaluatorTests(check0: => Checker) extends TestSuite{
 
   val tests = TestSuite{
-    val check = new Checker()
+    val check = check0
     'simpleExpressions{
       check.session("""
         @ 1 + 2

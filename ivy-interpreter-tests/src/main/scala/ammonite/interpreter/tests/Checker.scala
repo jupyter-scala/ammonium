@@ -5,12 +5,16 @@ import utest._
 
 class Checker {
   var allOutput = ""
-  val interp = new Interpreter(
-    IvyPPrintInterpreter.bridgeConfig(),
-    IvyPPrintInterpreter.preprocessor,
-    IvyPPrintInterpreter.wrap,
-    stdout = allOutput += _
-  )
+
+  def newInterpreter(): Interpreter[Preprocessor.Output, Iterator[String]] =
+    new Interpreter(
+      IvyPPrintInterpreter.bridgeConfig(),
+      IvyPPrintInterpreter.preprocessor,
+      IvyPPrintInterpreter.wrap,
+      stdout = allOutput += _
+    )
+
+  val interp = newInterpreter()
 
   def session(sess: String): Unit = {
 //    println("SESSION")

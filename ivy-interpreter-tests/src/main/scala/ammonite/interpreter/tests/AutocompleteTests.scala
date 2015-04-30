@@ -1,14 +1,15 @@
 package ammonite.interpreter
+package tests
 
 import utest._
 
 import scala.collection.{immutable => imm}
 import scala.reflect.internal.util.BatchSourceFile
 
-object AutocompleteTests extends TestSuite{
+class AutocompleteTests(check0: => Checker) extends TestSuite{
 
   val tests = TestSuite{
-    val check = new Checker()
+    val check = check0
     def complete(caretCode: String,
                  expected: Set[String],
                  cmp: (Set[String], Set[String]) => Set[String]) = {
@@ -118,4 +119,3 @@ object AutocompleteTests extends TestSuite{
     }
   }
 }
-
