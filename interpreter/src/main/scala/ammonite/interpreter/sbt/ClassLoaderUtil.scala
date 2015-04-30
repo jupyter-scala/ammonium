@@ -1,4 +1,4 @@
-package ammonite.interpreter.cl
+package ammonite.interpreter.sbt
 
 // Extracted from SBT
 

@@ -76,10 +76,15 @@ class DefaultClassesImpl(
   var classMaps = Seq.empty[String => Option[Array[Byte]]]
 
   def addJars(jars: File*) = {
-    extraJars = extraJars ++ jars
     newClassLoader()
-    jars.foreach(classLoader addURL _.toURI.toURL)
-    onJarsAddedHooks.foreach(_(jars))
+    var newJars = Seq.empty[File]
+    for (jar <- jars if !startJars.contains(jar) && !extraJars.contains(jar)) {
+      Console.err println s"Adding $jar"
+      classLoader addURL jar.toURI.toURL
+      newJars = newJars :+ jar
+    }
+    extraJars = extraJars ++ newJars
+    onJarsAddedHooks.foreach(_(newJars))
   }
   def addClassMap(classMap: String => Option[Array[Byte]]) = {
     classMaps = classMaps :+ classMap

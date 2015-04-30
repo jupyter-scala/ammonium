@@ -72,15 +72,22 @@ trait ReplAPI {
   implicit def pprintConfig: ammonite.pprint.Config
 }
 
+trait Resolver
+
 trait Load extends (String => Unit){
   /**
    * Load a `.jar` file
    */
-  def jar(jar: java.io.File): Unit
+  def jar(jar: java.io.File*): Unit
   /**
    * Load a library from its maven/ivy coordinates
    */
-  def ivy(coordinates: (String, String, String)): Unit
+  def ivy(coordinates: (String, String, String)*): Unit
+
+  /**
+   *
+   */
+  def resolver(resolver: Resolver*): Unit
 
   /**
    * Loads a command into the REPL and

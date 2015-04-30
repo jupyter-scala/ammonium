@@ -19,6 +19,12 @@ class Main(input: InputStream,
            saveHistory: String => Unit = _ => (),
            predef: String = "") {
 
+  val startClassLoader = Thread.currentThread().getContextClassLoader
+  val startJars = Classpath.jarDeps
+  val startDirs = Classpath.dirDeps
+
+  val startIvys = Seq.empty[(String, String, String)]
+
   val shellPrompt = Ref(shellPrompt0)
 
   val frontEnd = JLineFrontend(
@@ -55,19 +61,20 @@ class Main(input: InputStream,
 object Main{
   def shellInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
-      ShellInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet),
+      ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
       ShellInterpreter.wrap,
       handleResult = { (buf, r) => main.frontEnd.update(buf, r); r },
       stdout = new PrintStream(main.output).println,
-      initialHistory = main.initialHistory
+      initialHistory = main.initialHistory,
+      classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs)
     )
 
   val classWrapperInstanceSymbol = "INSTANCE"
 
   def shellClassWrapInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
     new Interpreter(
-      ShellInterpreter.bridgeConfig(main.shellPrompt, main.pprintConfig.copy(maxWidth = main.frontEnd.width), main.colorSet),
+      ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
       ShellInterpreter.classWrap(classWrapperInstanceSymbol),
       handleResult = {
@@ -76,7 +83,7 @@ object Main{
       },
       stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
-      classes = new DefaultClassesImpl() with ClassesLazilyMaterialize,
+      classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs) with ClassesLazilyMaterialize,
       useClassWrapper = true,
       classWrapperInstance = Some(classWrapperInstanceSymbol)
     )

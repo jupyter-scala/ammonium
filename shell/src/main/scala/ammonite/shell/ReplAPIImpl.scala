@@ -2,6 +2,8 @@ package ammonite.shell
 
 import java.io.File
 
+import org.apache.ivy.plugins.resolver.DependencyResolver
+
 import scala.reflect.runtime.universe._
 import acyclic.file
 
@@ -10,7 +12,17 @@ import ammonite.pprint
 import ammonite.shell.util._
 
 
-class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet, shellPrompt0: => Ref[String], pprintConfig0: pprint.Config) extends FullReplAPI {
+class ReplAPIImpl[B](
+  intp: Interpreter[_, B],
+  print: B => Unit,
+  println: String => Unit,
+  colors: ColorSet,
+  shellPrompt0: => Ref[String],
+  pprintConfig0: pprint.Config,
+  startJars: Seq[File],
+  startIvys: Seq[(String, String, String)],
+  startResolvers: Seq[DependencyResolver]
+) extends FullReplAPI {
   def exit = throw Exit
   def help = "Hello!"
   def shellPPrint[T: WeakTypeTag](value: => T, ident: String) = {
@@ -35,14 +47,32 @@ class ReplAPIImpl[B](intp: Interpreter[_, B], print: B => Unit, colors: ColorSet
       print
     ))
 
-    def jar(jar: File): Unit = {
-      intp.classes.addJars(jar)
+    private var userJars = startJars
+    private var userIvys = startIvys
+    private var userResolvers = startResolvers
+
+    def jar(jar: File*): Unit = {
+      userJars = userJars ++ jar
+      intp.classes.addJars(jar: _*)
       intp.init()
     }
-    def ivy(coordinates: (String, String, String)): Unit ={
-      val (groupId, artifactId, version) = coordinates
-      intp.classes.addJars(IvyThing.resolveArtifact(groupId, artifactId, version): _*)
+    def ivy(coordinates: (String, String, String)*): Unit = {
+      userIvys = userIvys ++ coordinates
+      val newJars = IvyHelper.resolve(userIvys, userResolvers).filter(null.!=) ++ userJars
+
+      val removedJars = intp.classes.jars.toSet -- newJars
+      if (removedJars.nonEmpty) {
+        println(
+          s"Warning: the following JARs were previously added and are no more required:" +
+          removedJars.toList.sorted.map("  ".+).mkString("\n", "\n", "\n") +
+          "It is likely they were updated, which may lead to instabilities in the REPL.")
+      }
+
+      intp.classes.addJars(newJars: _*)
       intp.init()
+    }
+    def resolver(resolver: Resolver*): Unit = {
+      userResolvers = userResolvers ++ resolver.map(_.asInstanceOf[IvyConstructor.Resolvers.Resolver].underlying)
     }
   }
   lazy val power: Power = new Power {

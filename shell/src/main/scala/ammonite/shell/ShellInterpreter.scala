@@ -1,6 +1,9 @@
 package ammonite.shell
 
+import java.io.File
+
 import acyclic.file
+import org.apache.ivy.plugins.resolver.DependencyResolver
 import scala.tools.nsc.Global
 import ammonite.interpreter._
 import ammonite.pprint
@@ -9,9 +12,12 @@ import ammonite.shell.util._
 
 object ShellInterpreter {
   def bridgeConfig(
-    shellPrompt0: => Ref[String] = Ref("@"),
-    pprintConfig0: pprint.Config = pprint.Config.Defaults.PPrintConfig,
-    colors0: ColorSet = ColorSet.BlackWhite
+    startJars: Seq[File] = Nil,
+    startIvys: Seq[(String, String, String)] = Nil,
+    startResolvers: Seq[DependencyResolver] = Nil,
+    shellPrompt: => Ref[String] = Ref("@"),
+    pprintConfig: pprint.Config = pprint.Config.Defaults.PPrintConfig,
+    colors: ColorSet = ColorSet.BlackWhite
   ): BridgeConfig[Preprocessor.Output, Iterator[String]] =
     BridgeConfig(
       "object ReplBridge extends ammonite.shell.ReplAPIHolder{}",
@@ -22,7 +28,7 @@ object ShellInterpreter {
 
           (intp, cls, stdout) =>
             if (replApi == null)
-              replApi = new ReplAPIImpl[Iterator[String]](intp, _.foreach(stdout), colors0, shellPrompt0, pprintConfig0)
+              replApi = new ReplAPIImpl[Iterator[String]](intp, _.foreach(stdout), s => stdout(s + "\n"), colors, shellPrompt, pprintConfig, startJars, startIvys, startResolvers)
 
             ReplAPI.initReplBridge(
               cls.asInstanceOf[Class[ReplAPIHolder]],
