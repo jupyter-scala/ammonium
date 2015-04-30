@@ -78,10 +78,6 @@ class AmmonitePlugin(g: scala.tools.nsc.Global, output: Seq[ImportData] => Unit)
             case (ctx, _) => ctx
           }
 
-          for (t <- unit.body.children) {
-            Console.err println s"Compiling:\n${g.asCompactString(t)}"
-          }
-
 
           output(
             for {

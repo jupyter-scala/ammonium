@@ -134,6 +134,8 @@ class SparkHandle(power: Power) { api =>
       _sc = new SparkContext(sparkConf)
     }
 
+    _sc.stop()
+
     _sc
   }
 

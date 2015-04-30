@@ -98,7 +98,7 @@ object Evaluator{
     /**
      *
      */
-    var show = true
+    var show = false
     def getShow = show
     def setShow(v: Boolean) = show = v
 
@@ -141,7 +141,7 @@ object Evaluator{
           if (withVal) {
             valCount += 1
             val valName = "$ref" + valCount
-            (s"final val $valName = ${prefix0.stripSuffix(".$iw.$iw")}\n", valName + ".$iw.$iw")
+            (s"lazy val $valName = $prefix0\n", valName)
           } else
             ("", prefix0)
 

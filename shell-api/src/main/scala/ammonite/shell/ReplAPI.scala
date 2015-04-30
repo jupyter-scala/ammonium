@@ -54,7 +54,7 @@ trait ReplAPI {
    */
   def load: Load
 
-  def power: Power
+  implicit def power: Power
 
   /**
    * Throw away the current scala.tools.nsc.Global and get a new one

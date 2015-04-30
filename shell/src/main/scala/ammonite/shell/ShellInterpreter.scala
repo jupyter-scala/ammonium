@@ -66,9 +66,9 @@ object ShellInterpreter {
 
 
             class $wrapperName extends Serializable {
-              class $wrapperName extends Serializable {
-                $previousImportBlock
+              $previousImportBlock
 
+              class $wrapperName extends Serializable {
                 class $wrapperName extends Serializable {
                   ${p.code}
                 }
