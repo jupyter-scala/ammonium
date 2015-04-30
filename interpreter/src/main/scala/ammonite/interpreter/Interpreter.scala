@@ -124,7 +124,6 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
   val eval = Evaluator[A, B](
     classes.currentClassLoader,
     bridgeConfig.imports ++ initialImports,
-    preprocess.apply,
     wrap,
     compiler.compile,
     stdout

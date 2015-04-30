@@ -58,7 +58,6 @@ object Evaluator{
 
   def apply[A, B](classLoader: => ClassLoader,
                   initialImports: Seq[(String, ImportData)],
-                  preprocess: (String, Int) => Res[A],
                   wrap: (A, String, String) => String,
                   compile: => (Array[Byte], String => Unit) => Compiler.Output,
                   stdout: String => Unit): Evaluator[A, B] = new Evaluator[A, B] {
