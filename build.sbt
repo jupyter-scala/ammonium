@@ -2,8 +2,6 @@ organization := "com.github.alexarchambault"
 
 name := "ammonite-repl"
 
-version := "0.2.7-SNAPSHOT"
-
 autoCompilerPlugins := true
 
 addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.2")
@@ -59,14 +57,10 @@ credentials += {
   }
 }
 
+licenses := Seq("MIT license" -> url("http://www.opensource.org/licenses/mit-license.php"))
+
 pomExtra := {
   <url>https://github.com/alexarchambault/Ammonite</url>
-  <licenses>
-    <license>
-      <name>MIT license</name>
-      <url>http://www.opensource.org/licenses/mit-license.php</url>
-    </license>
-  </licenses>
   <scm>
     <url>git://github.com/alexarchambault/Ammonite.git</url>
     <connection>scm:git://github.com/alexarchambault/Ammonite.git</connection>
@@ -80,3 +74,10 @@ pomExtra := {
   </developers>
 }
 
+publishMavenStyle := true
+
+releaseSettings
+
+ReleaseKeys.versionBump := sbtrelease.Version.Bump.Bugfix
+
+sbtrelease.ReleasePlugin.ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value
