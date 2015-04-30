@@ -28,9 +28,9 @@ trait Shapeless {
       Iterator(headPPrint.copy(cfg = cfg).render(h)) ++ tailPPrint(t, cfg)
     }
 
-  def fromUnpackerCustom[T](isSingleton: Boolean)(prefix: T => String)(f: Internals.Unpacker[T]): PPrinter[T] = PPrinter[T]{
+  def fromUnpackerCustom[T](maybeSingleton: Boolean)(prefix: T => String)(f: Internals.Unpacker[T]): PPrinter[T] = PPrinter[T]{
     (t: T, c: Config) =>
-      if (isSingleton && f(t, c).isEmpty)
+      if (maybeSingleton && f(t, c).isEmpty)
         Iterator(prefix(t))
       else
         Internals.handleChunks(prefix(t), c, f(t, _))
@@ -40,28 +40,18 @@ trait Shapeless {
     gen: Generic.Aux[F, G],
     unpacker: Unpacker[G],
     cfg: Config,
-    m: Manifest[F]
+    typeable: Typeable[F]
   ): PPrint[F] = {
-    val (name, isSingleton) = {
-      var name0 = m.runtimeClass.getName
-      var isSingleton0 = false
+    val (name, maybeSingleton) = {
+      var name0 = typeable.describe
+      if (name0 == "Unit") name0 = ""
 
-      if (name0 == "void") name0 = ""
-
-      if (name0 endsWith "$") {
-        isSingleton0 = true
-        name0 = name0 dropRight 1
-      }
-
-      val dolIdx = name0 lastIndexOf '$'
-      if (dolIdx >= 0) name0 = name0 drop dolIdx+1
-
-      (name0, isSingleton0)
+      (name0, typeable.describe endsWith ".type")
     }
 
-    val p = PPrint(fromUnpackerCustom(isSingleton)((_: F) => name){ (f, c) => val it = unpacker(gen.to(f), c); it}, cfg)
+    val p = PPrint(fromUnpackerCustom(maybeSingleton)((_: F) => name){ (f, c) => val it = unpacker(gen.to(f), c); it}, cfg)
 
-    if (isSingleton)
+    if (maybeSingleton)
       PPrint(p.map(s => if (s endsWith "()") s stripSuffix "()" else s), cfg)
     else
       p
