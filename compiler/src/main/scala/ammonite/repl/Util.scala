@@ -128,6 +128,36 @@ class Timer{
   }
 }
 object BacktickWrap{
+  // from ammonite-pprint
+  /**
+   * Escapes a string to turn it back into a string literal
+   */
+  def escape(text: String): String = {
+    val s = new StringBuilder
+    val len = text.length
+    var pos = 0
+    var prev = 0
+
+    @inline
+    def handle(snip: String) = {
+      s.append(text.substring(prev, pos))
+      s.append(snip)
+    }
+    while (pos < len) {
+      text.charAt(pos) match {
+        case '"' => handle("\\\""); prev = pos + 1
+        case '\n' => handle("\\n"); prev = pos + 1
+        case '\r' => handle("\\r"); prev = pos + 1
+        case '\t' => handle("\\t"); prev = pos + 1
+        case '\\' => handle("\\\\"); prev = pos + 1
+        case _ =>
+      }
+      pos += 1
+    }
+    handle("")
+    s.toString()
+  }
+
   def apply(s: String) = {
 
     val splitter = new scalaParser.Scala(s){
@@ -135,6 +165,6 @@ object BacktickWrap{
     }
 
     if (splitter.Id2.run().isSuccess) s
-    else "`" + ammonite.pprint.PPrinter.escape(s) + "`"
+    else "`" + escape(s) + "`"
   }
 }

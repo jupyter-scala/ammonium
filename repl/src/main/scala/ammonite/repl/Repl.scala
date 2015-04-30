@@ -4,7 +4,7 @@ import java.io.{PrintStream, OutputStream, InputStream}
 import ammonite.{pprint}
 import ammonite.repl.frontend._
 import acyclic.file
-import ammonite.repl.interp.Interpreter
+import ammonite.repl.interp.InterpreterConsole
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -28,7 +28,7 @@ class Repl(input: InputStream,
     initialHistory
   )
 
-  val interp: Interpreter.Console = Interpreter.console(
+  val interp: InterpreterConsole.Console = InterpreterConsole.console(
     frontEnd.update,
     shellPrompt,
     pprintConfig.copy(maxWidth = frontEnd.width),
