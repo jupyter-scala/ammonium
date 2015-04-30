@@ -118,7 +118,7 @@ class SparkHandle(power: Power) { api =>
 
   power.classes.onJarsAdded { newJars =>
     if (_sc != null)
-      newJars.foreach(_sc addJar _.toURI.toURL.toString)
+      newJars.foreach(_sc addJar _.toURI.toString)
   }
 
   power.onStop {
