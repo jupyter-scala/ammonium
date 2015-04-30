@@ -140,6 +140,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
   if (predef != "") {
     val res1 = processLine(predef, (_, _) => (), printer)
     val res2 = handleOutput(res1)
+    stdout("\n")
   }
 }
 
