@@ -49,15 +49,7 @@ trait ReplAPI {
    */
   def load: Load
 
-  /**
-   *
-   */
-  def jars: Seq[File]
-
-  /**
-   *
-   */
-  def classes: Map[String, Array[Byte]]
+  def power: Power
 
   /**
    * Throw away the current scala.tools.nsc.Global and get a new one
@@ -90,6 +82,18 @@ trait Load extends (String => Unit){
    * evaluates them one after another
    */
   def apply(line: String): Unit
+}
+
+trait Power {
+  /**
+   *
+   */
+  def jars: Seq[File]
+
+  /**
+   *
+   */
+  def classes: Map[String, Array[Byte]]
 }
 
 class ReplAPIHolder {

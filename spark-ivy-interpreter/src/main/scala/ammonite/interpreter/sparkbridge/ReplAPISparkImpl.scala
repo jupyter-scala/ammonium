@@ -13,7 +13,18 @@ import org.http4s.server.blaze.BlazeBuilder
 
 import scala.concurrent.duration.Duration
 
-trait ReplAPISparkImpl extends ReplAPI {
+trait ReplAPISparkImpl extends ReplAPI { api =>
+
+  abstract override lazy val power: Power = {
+    def parent = super.power
+    new Power {
+      def jars = parent.jars
+      def classes = parent.classes
+      def host = api.host
+      def classServerURI = api.classServerURI
+      def setConfDefaults() = api.setConfDefaults(api.sparkConf)
+    }
+  }
 
   private lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
@@ -42,7 +53,7 @@ trait ReplAPISparkImpl extends ReplAPI {
             case GET -> Root / _item =>
               val item = URLDecoder.decode(_item, "UTF-8")
 
-              classes.get(item.stripSuffix(".class")) match {
+              power.classes.get(item.stripSuffix(".class")) match {
                 case Some(data) =>
                   Ok(data)
                 case None =>
@@ -89,7 +100,7 @@ trait ReplAPISparkImpl extends ReplAPI {
     conf
       .setIfMissing("spark.master", defaultMaster)
       .setIfMissing("spark.app.name", "Ammonite Shell")
-      .setIfMissingLazy("spark.jars", jars.map(_.toURI.toString) mkString ",")
+      .setIfMissingLazy("spark.jars", power.jars.map(_.toURI.toString) mkString ",")
       .setIfMissingLazy("spark.repl.class.uri", classServerURI.toString)
       .setIfMissing("spark.driver.allowMultipleContexts", "true")
       .setIfMissingLazy("spark.ui.port", availablePort(4040).toString)
