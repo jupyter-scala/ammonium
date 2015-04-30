@@ -37,7 +37,12 @@ class AutocompleteTests(check0: => Checker) extends TestSuite{
       "getClass", "asInstanceOf", "isInstanceOf",
       "+", "formatted", "ensuring",
       "→", "->"
-    )
+    ) ++ {
+      if (scala.util.Properties.versionNumberString startsWith "2.10.")
+        Set("__leftOfArrow ", "__resultOfEnsuring ", "x", "self ")
+      else
+        Set()
+    }
     implicit class SetExt[T](s1: Set[T]) {
       def ^(s2: Set[T]): Set[T] = (s1 diff s2) | (s2 diff s1)
     }
