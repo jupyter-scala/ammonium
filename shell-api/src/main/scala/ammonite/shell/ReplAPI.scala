@@ -147,7 +147,6 @@ trait Classes {
   def jars: Seq[File]
   def dirs: Seq[File]
   def addJar(jar: File): Unit
-  def addClassMap(classMap: String => Option[Array[Byte]]): Unit
-  def fromClassMaps(name: String): Option[Array[Byte]]
   def onJarsAdded(action: Seq[File] => Unit): Unit
+  def fromAddedClasses(name: String): Option[Array[Byte]]
 }

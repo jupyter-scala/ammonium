@@ -24,14 +24,14 @@ object Preprocessor{
       (code: String, name: String, tree: G#Tree) => cond.lift(name, code, tree)
     }
 
-    def pprintSignature(ident: String) = s"""Iterator(ReplBridge.shell.shellPPrint($ident, "$ident"))"""
+    def pprintSignature(ident: String) = s"""Iterator(ReplBridge.shell.shellPPrint($$user.$ident, "$ident"))"""
 
     def definedStr(definitionLabel: String, name: String) =
       s"""Iterator(ReplBridge.shell.shellPrintDef("$definitionLabel", "$name"))"""
 
     def pprint(ident: String) = {
       pprintSignature(ident) +
-        s""" ++ Iterator(" = ") ++ ammonite.pprint.PPrint($ident)"""
+        s""" ++ Iterator(" = ") ++ ammonite.pprint.PPrint($$user.$ident)"""
     }
 
     /**

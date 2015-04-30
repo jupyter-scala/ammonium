@@ -4,7 +4,7 @@ package tests
 import ammonite.shell.classwrapper.ClassWrapperChecker
 import utest._
 
-class SparkTests(master: String) extends TestSuite {
+class SparkTests(master: String, broadcastOk: Boolean = true) extends TestSuite {
 
   val preamble = s"""
           @ @transient val h = new ammonite.spark.SparkHandle
@@ -103,7 +103,7 @@ class SparkTests(master: String) extends TestSuite {
 
     'broadcastVars{
       check.session(preamble +
-        """
+       s"""
           @ var array = new Array[Int](5)
           array: scala.Array[Int] = Array(0, 0, 0, 0, 0)
 
@@ -117,7 +117,7 @@ class SparkTests(master: String) extends TestSuite {
           res6: Unit = ()
 
           @ sc.parallelize(0 to 4).map(x => broadcastArray.value(x)).collect()
-          res7: scala.Array[Int] = Array(5, 0, 0, 0, 0)
+          res7: scala.Array[Int] = Array(${if (broadcastOk) 0 else 5 /* Values should be broadcasted only once, they should not change */}, 0, 0, 0, 0)
         """, postamble)
     }
 
@@ -130,11 +130,13 @@ class SparkTests(master: String) extends TestSuite {
           defined class Sum
 
           @ val a = Sum("A", "B")
-          a: line4$Main.INSTANCE.$ref3.Sum = Sum("A", "B")
+          a: cmd4.INSTANCE.$ref2.Sum = Sum("A", "B")
 
           @ def b(a: Sum): String = a match { case Sum(_, _) => "Found Sum" }
+          defined function b
 
           @ b(a)
+          res6: String = "Found Sum"
         """, postamble)
     }
 
@@ -172,7 +174,7 @@ class SparkTests(master: String) extends TestSuite {
 //          defined class TestClass
 //
 //          @ val t = new TestClass
-//          t: line4$Main.INSTANCE.$ref3.TestClass = TestClass
+//          t: cmd4$Main.INSTANCE.$ref3.TestClass = TestClass
 //
 //          @ import t.testMethod
 //          import t.testMethod

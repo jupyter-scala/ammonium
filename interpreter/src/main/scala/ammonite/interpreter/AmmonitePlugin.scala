@@ -34,7 +34,7 @@ class AmmonitePlugin(g: scala.tools.nsc.Global, output: Seq[ImportData] => Unit)
                 c.impl.body.collectFirst{case t: g.ClassDef => t}
                  .getOrElse(throw new IllegalArgumentException(s"Unsupported class wrapper definition: $c"))
 
-              inner(inner(c)).impl.body
+              inner(c).impl.body
             case other => throw new IllegalArgumentException(s"Unsupported wrapper definition: $other")
           }
           val symbols = stats.foldLeft(List.empty[(g.Symbol, String, String, String)]){

@@ -78,11 +78,10 @@ class ReplAPIImpl[B](
     val classes = new Classes with Serializable {
       def currentClassLoader = intp.classes.currentClassLoader
       def dirs = intp.classes.dirs
-      def addClassMap(classMap: (String) => Option[Array[Byte]]) = intp.classes.addClassMap(classMap)
       def addJar(jar: File) = intp.classes.addJars(jar)
       def jars = intp.classes.jars
-      def fromClassMaps(name: String) = intp.classes.fromClassMaps(name)
       def onJarsAdded(action: Seq[File] => Unit) = intp.classes.onJarsAdded(action)
+      def fromAddedClasses(name: String) = intp.classes.fromAddedClasses(name)
     }
 
     var onStopHooks = Seq.empty[() => Unit]
@@ -92,7 +91,7 @@ class ReplAPIImpl[B](
     def getShow = intp.eval.getShow
     def setShow(v: Boolean) = intp.eval.setShow(v)
   }
-  implicit def pprintConfig = pprintConfig0
+  def pprintConfig = pprintConfig0
   def clear() = ()
   def newCompiler() = intp.init()
   def history = intp.history.toVector.dropRight(1)

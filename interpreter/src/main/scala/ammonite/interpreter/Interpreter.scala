@@ -130,10 +130,9 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     bridgeConfig.imports ++ initialImports,
     wrap,
     compiler.compile,
+    classes.addClass,
     if (predef != "") -1 else 0
   )
-
-  classes.addClassMap(s => eval.classes.get(s))
 
   init()
 

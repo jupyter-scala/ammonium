@@ -2,6 +2,8 @@ package ammonite.spark
 
 import java.io.IOException
 import java.net._
+import java.io.File
+import java.nio.file.Files
 import java.util.concurrent.Executors
 
 import ammonite.shell.Power
@@ -55,9 +57,20 @@ class SparkHandle(implicit power: Power) extends Serializable { api =>
       builder
         .mountService(
           HttpService {
-            case GET -> Root / _item =>
-              val item = URLDecoder.decode(_item, "UTF-8")
-              power.classes.fromClassMaps(item.stripSuffix(".class")).fold(NotFound())(Ok(_))
+            case GET -> path =>
+              def fromClassMaps =
+                for {
+                  List(_item) <- Some(path.toList)
+                  item = URLDecoder.decode(_item, "UTF-8")
+                  b <- power.classes.fromAddedClasses(item.stripSuffix(".class"))
+                } yield b
+
+              def fromDirs =
+                power.classes.dirs
+                  .map(path.toList.map(URLDecoder.decode(_, "UTF-8")).foldLeft(_)(new File(_, _)))
+                  .collectFirst{ case f if f.exists() => Files.readAllBytes(f.toPath) }
+
+              (fromClassMaps orElse fromDirs).fold(NotFound())(Ok(_))
           },
           ""
         )
@@ -129,9 +142,10 @@ class SparkHandle(implicit power: Power) extends Serializable { api =>
   def sc: SparkContext = {
     if (_sc == null) {
       setConfDefaults(sparkConf)
-      if (sparkConf.get("spark.master").startsWith("local-cluster") && sparkConf.getOption("spark.home").isEmpty) {
-        Console.err.println(s"Warning: Spark master set to ${sparkConf.get("spark.master")} and spark.home not set, proceeding any way.")
-      }
+      val master = sparkConf.get("spark.master")
+      if ((!master.startsWith("local") || master.contains("cluster")) && sparkConf.getOption("spark.home").isEmpty)
+        throw new IllegalArgumentException(s"Spark master set to $master and spark.home not set")
+
       _sc = new SparkContext(sparkConf) {
         override def toString() = "org.apache.spark.SparkContext"
       }

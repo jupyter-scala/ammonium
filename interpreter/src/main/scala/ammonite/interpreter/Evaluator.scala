@@ -47,7 +47,6 @@ trait Evaluator[-A, +B] {
   def processLine[C](input: A, process: B => C, useClassWrapper: Boolean = false, classWrapperBoostrap: Option[String] = None): Res[Evaluated[C]]
 
   def previousImportBlock: String
-  def classes: Map[String, Array[Byte]]
 }
 
 object Evaluator{
@@ -70,14 +69,8 @@ object Evaluator{
                   initialImports: Seq[(String, ImportData)],
                   wrap: (A, String, String) => String,
                   compile: => (Array[Byte], String => Unit) => Compiler.Output,
+                  addClass: (String, Array[Byte]) => Unit,
                   startingLine: Int): Evaluator[A, B] = new Evaluator[A, B] {
-
-    /**
-     * Files which have been compiled, stored so that our special
-     * classloader can get at them.
-     */
-    val newFileDict = mutable.Map.empty[String, Array[Byte]]
-    def classes = newFileDict.toMap
 
     /**
      * Imports which are required by earlier commands to the REPL. Imports
@@ -121,7 +114,7 @@ object Evaluator{
       )
 
       (cls, objCls) <- Res[(Class[_], Unit => Class[_])](Try {
-        for ((name, bytes) <- classFiles) newFileDict(name) = bytes
+        for ((name, bytes) <- classFiles) addClass(name, bytes)
         val cls = Class.forName(if (useClassWrapper) wrapperName + "$Main" else wrapperName, true, classLoader)
         def objCls = if (useClassWrapper) Class.forName(wrapperName + "$", true, classLoader) else null
         (cls, (_: Unit) => objCls)
@@ -142,7 +135,7 @@ object Evaluator{
         (prefix0, allImports) <- previousImports.values.toList.groupBy(_.prefix)
         imports <- transpose(allImports.groupBy(_.fromName).values.toList).reverse
       } yield {
-        val withVal = prefix0.startsWith("line") && prefix0.endsWith("INSTANCE.$iw.$iw")
+        val withVal = prefix0.startsWith("cmd") && prefix0.endsWith("INSTANCE.$user")
         val (prepend, prefix) =
           if (withVal) {
             valCount += 1

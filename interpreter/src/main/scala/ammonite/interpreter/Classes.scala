@@ -4,20 +4,48 @@ import java.io.{FileOutputStream, File}
 import java.net.{URLClassLoader, URL}
 import java.util.UUID
 
-import scala.collection.mutable
-
 trait Classes {
   def currentClassLoader: ClassLoader
   def jars: Seq[File]
   def dirs: Seq[File]
   def addJars(jars: File*): Unit
-  def addClassMap(classMap: String => Option[Array[Byte]]): Unit
-  def fromClassMaps(name: String): Option[Array[Byte]]
+  def addClass(name: String, b: Array[Byte]): Unit
+  def fromAddedClasses(name: String): Option[Array[Byte]]
   def onJarsAdded(action: Seq[File] => Unit): Unit
 }
 
-class AddURLClassLoader(parent: ClassLoader) extends URLClassLoader(Array(), parent) {
+class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLClassLoader(Array(), parent) {
   override def addURL(url: URL) = super.addURL(url)
+  var map = Map.empty[String, Array[Byte]]
+
+  override def loadClass(name: String): Class[_] = {
+    try super.loadClass(name)
+    catch{ case e: ClassNotFoundException =>
+      try findClass(name)
+      catch{ case e: ClassNotFoundException =>
+        map.get(name) match {
+          case Some(bytes) => defineClass(name, bytes, 0, bytes.length)
+          case None =>
+            throw e
+        }
+      }
+    }
+  }
+
+  override def getResource(name: String) =
+    Some(name).filter(_ endsWith ".class").map(_ stripSuffix ".class").flatMap(map.get) match {
+      case Some(bytes) =>
+        val f = new File(tmpClassDir, name)
+        if (!f.exists()) {
+          val w = new FileOutputStream(f)
+          w.write(bytes)
+          w.close()
+        }
+        f.toURI.toURL
+      case None =>
+        super.getResource(name)
+    }
+
 }
 
 class DefaultClassesImpl(
@@ -26,23 +54,6 @@ class DefaultClassesImpl(
   startDirs: Seq[File] = Classpath.dirDeps
 ) extends Classes {
 
-  /**
-   * Performs the conversion of our pre-compiled `Array[Byte]`s into
-   * actual classes with methods we can execute.
-   *
-   * Structured such that when a class is desired:
-   *
-   * - First we try to load it with the REPL's "root" classloader
-   * - If we can't find it there, we slowly start making our way
-   *   up from the current classloader back up to the root
-   *
-   * This has the property that if you import something, later imports
-   * take precedence, although you don't end up with weird bugs
-   * re-defining the core (pre-REPL) classes. I'm still not sure
-   * where those come from.
-   */
-  var classLoader: AddURLClassLoader = _
-
   lazy val tmpClassDir = {
     val d = new File(new File(System.getProperty("java.io.tmpdir")), s"ammonite-${UUID.randomUUID()}")
     d.mkdirs()
@@ -50,43 +61,18 @@ class DefaultClassesImpl(
     d
   }
 
+  var classLoader: AddURLClassLoader = new AddURLClassLoader(startClassLoader, tmpClassDir)
+
   def newClassLoader() = {
-    classLoader = new AddURLClassLoader(Option(classLoader) getOrElse startClassLoader) {
-      // Overriding the main method and not the overload (which misses the resolve argument) for an easier
-      // reuse of this ClassLoader
-      // This whole thing is such a hack!!! - and should it be thread-safe??
-      override def loadClass(name: String) =
-        fromClassMaps(name) match {
-          case Some(bytes) =>
-            defineClass(name, bytes, 0, bytes.length)
-          case None =>
-            try startClassLoader.loadClass(name)
-            catch{ case e: ClassNotFoundException =>
-              try this.findClass(name)
-              catch{ case e: ClassNotFoundException =>
-                super.loadClass(name)
-              }
-            }
-        }
-
-      override def getResource(name: String) =
-        Some(name).filter(_ endsWith ".class").map(_ stripSuffix ".class").flatMap(fromClassMaps) match {
-          case Some(bytes) =>
-            val f = new File(tmpClassDir, name)
-            if (!f.exists()) {
-              val w = new FileOutputStream(f)
-              w.write(bytes)
-              w.close()
-            }
-            f.toURI.toURL
-          case None =>
-            super.getResource(name)
-        }
-
-    }
+    classLoader = new AddURLClassLoader(classLoader, tmpClassDir)
   }
 
-  newClassLoader()
+  def resetClassLoader() = {
+    lazy val classLoaders0 = classLoaders.toList
+    classLoader = new AddURLClassLoader(startClassLoader, tmpClassDir)
+    extraJars.foreach(classLoader addURL _.toURI.toURL)
+    classLoaders0.foreach(classLoader.map ++= _.map)
+  }
 
   var extraJars = Seq.empty[File]
   var classMaps = Seq.empty[String => Option[Array[Byte]]]
@@ -95,19 +81,29 @@ class DefaultClassesImpl(
     newClassLoader()
     var newJars = Seq.empty[File]
     for (jar <- jars if !startJars.contains(jar) && !extraJars.contains(jar)) {
-      Console.err println s"Adding $jar"
       classLoader addURL jar.toURI.toURL
       newJars = newJars :+ jar
     }
     extraJars = extraJars ++ newJars
     onJarsAddedHooks.foreach(_(newJars))
   }
-  def addClassMap(classMap: String => Option[Array[Byte]]) = {
-    classMaps = classMaps :+ classMap
+
+  def addClass(name: String, b: Array[Byte]): Unit = {
+    classLoader.map += name -> b
   }
 
-  def fromClassMaps(name: String): Option[Array[Byte]] =
-    classMaps.view.map(_(name)).collectFirst{case Some(b) => b}
+  def classLoaders: Stream[AddURLClassLoader] = {
+    def helper(c: ClassLoader): Stream[AddURLClassLoader] =
+      Option(c) match {
+        case Some(a: AddURLClassLoader) => a #:: helper(a.getParent)
+        case _ => Stream.empty
+      }
+
+    helper(currentClassLoader)
+  }
+
+  def fromAddedClasses(name: String): Option[Array[Byte]] =
+    classLoaders.collectFirst{ case c if c.map contains name => c.map(name) }
 
   def currentClassLoader: ClassLoader = classLoader
   def jars = startJars ++ extraJars

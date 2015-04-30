@@ -60,16 +60,17 @@ object AmmoniteShellBuild extends Build {
     },
     publishMavenStyle := true,
     ReleaseKeys.versionBump := sbtrelease.Version.Bump.Bugfix,
-    ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value
+    ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value,
+    fork in test := true,
+    fork in (Test, test) := true,
+    fork in (Test, testOnly) := true
   ) ++ releaseSettings
 
   private lazy val testSettings = Seq(
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "utest" % "0.3.0" % "test"
     ),
-    testFrameworks += new TestFramework("utest.runner.Framework"),
-    fork in Test := true,
-    fork in (Test, testOnly) := true
+    testFrameworks += new TestFramework("utest.runner.Framework")
   )
 
   lazy val interpreter = Project(id = "interpreter", base = file("interpreter"))
