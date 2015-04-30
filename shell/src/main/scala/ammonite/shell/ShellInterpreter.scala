@@ -49,42 +49,11 @@ object ShellInterpreter {
 
   val wrap: (Preprocessor.Output, String, String) => String =
     (p, previousImportBlock, wrapperName) =>
-      s"""$previousImportBlock
-
-            object $wrapperName{
-              ${p.code}
-              def $$main() = {${p.printer.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")}}
-            }
-         """
+      Wrap.obj(p.code, p.printer.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()"), previousImportBlock, wrapperName)
 
   def classWrap(instanceSymbol: String): (Preprocessor.Output, String, String) => String =
-    (p, previousImportBlock, wrapperName) => {
-      s"""object $wrapperName extends AnyRef {
-              val $instanceSymbol = new $wrapperName
-            }
-
-           object $wrapperName$$Main extends AnyRef {
-              $previousImportBlock
-
-              def $$main() = {
-                val $$execute = $wrapperName.$instanceSymbol
-                import $wrapperName.$instanceSymbol.$$user
-                ${p.printer.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")}
-              }
-            }
-
-
-            class $wrapperName extends Serializable {
-              $previousImportBlock
-
-              class $$user extends Serializable {
-                ${p.code}
-              }
-
-              val $$user = new $$user
-            }
-         """
-    }
+    (p, previousImportBlock, wrapperName) =>
+      Wrap.cls(p.code, p.printer.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()"), previousImportBlock, wrapperName, instanceSymbol)
 
 
   def classWrapImportsTransform(instanceSymbol: String)(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
