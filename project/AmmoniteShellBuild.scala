@@ -92,20 +92,6 @@ object AmmoniteShellBuild extends Build {
       )
     )
 
-  lazy val shell = Project(id = "shell", base = file("shell"))
-    .dependsOn(shellApi, interpreter)
-    .settings(sharedSettings ++ testSettings: _*)
-    .settings(
-      name := "ammonite-shell",
-      libraryDependencies ++= Seq(
-        // Snapshot version of pprint, for the fix for https://github.com/lihaoyi/Ammonite/issues/47
-        // (No snapshots are published by lihaoyi)
-        "com.github.alexarchambault.tmp" %% "ammonite-pprint" % "0.2.8-SNAPSHOT",
-        "org.apache.ivy" % "ivy" % "2.4.0",
-        "jline" % "jline" % "2.12"
-      )
-    )
-
   lazy val spark = Project(id = "spark", base = file("spark"))
     .dependsOn(shellApi)
     .settings(sharedSettings: _*)
@@ -120,11 +106,25 @@ object AmmoniteShellBuild extends Build {
       )
     )
 
+  lazy val shell = Project(id = "shell", base = file("shell"))
+    .dependsOn(shellApi, interpreter, spark % "test")
+    .settings(sharedSettings ++ testSettings: _*)
+    .settings(
+      name := "ammonite-shell",
+      libraryDependencies ++= Seq(
+        // Snapshot version of pprint, for the fix for https://github.com/lihaoyi/Ammonite/issues/47
+        // (No snapshots are published by lihaoyi)
+        "com.github.alexarchambault.tmp" %% "ammonite-pprint" % "0.2.8-SNAPSHOT",
+        "org.apache.ivy" % "ivy" % "2.4.0",
+        "jline" % "jline" % "2.12"
+      )
+    )
+
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(interpreter, shellApi, shell, spark)
-    .dependsOn(interpreter, shellApi, shell, spark)
+    .aggregate(interpreter, shellApi, spark, shell)
+    .dependsOn(interpreter, shellApi, spark, shell)
     .settings(
       publish := {},
       publishLocal := {},
