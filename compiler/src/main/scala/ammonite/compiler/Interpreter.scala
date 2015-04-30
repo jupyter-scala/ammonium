@@ -1,5 +1,4 @@
-package ammonite.repl
-package interp
+package ammonite.compiler
 
 import java.io.File
 import acyclic.file

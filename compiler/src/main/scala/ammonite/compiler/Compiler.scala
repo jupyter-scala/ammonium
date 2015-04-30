@@ -1,8 +1,7 @@
-package ammonite.repl.interp
+package ammonite.compiler
 
 
 import acyclic.file
-import ammonite.repl.{Timer, ImportData}
 import scala.collection.mutable
 import scala.reflect.internal.util.{BatchSourceFile, OffsetPosition, Position}
 import scala.reflect.io

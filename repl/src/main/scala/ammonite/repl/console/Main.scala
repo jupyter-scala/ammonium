@@ -1,22 +1,22 @@
 package ammonite.repl
+package console
 
 import java.io.{PrintStream, OutputStream, InputStream}
-import ammonite.{pprint}
-import ammonite.repl.frontend._
+import ammonite.compiler._
+import ammonite.pprint
 import acyclic.file
-import ammonite.repl.interp.InterpreterConsole
 
 import scala.annotation.tailrec
 import scala.util.Try
 
-class Repl(input: InputStream,
+class Main(input: InputStream,
            output: OutputStream,
            colorSet: ColorSet = ColorSet.Default,
            pprintConfig: pprint.Config = pprint.Config.Colors.PPrintConfig,
            shellPrompt0: String = "@",
            initialHistory: Seq[String] = Nil,
            saveHistory: String => Unit = _ => (),
-           predef: String = Repl.defaultPredef) {
+           predef: String = Main.defaultPredef) {
 
   val shellPrompt = Ref(shellPrompt0)
 
@@ -28,7 +28,7 @@ class Repl(input: InputStream,
     initialHistory
   )
 
-  val interp: InterpreterConsole.Console = InterpreterConsole.console(
+  val interp: ReplInterpreter.Repl = ReplInterpreter(
     frontEnd.update,
     shellPrompt,
     pprintConfig.copy(maxWidth = frontEnd.width),
@@ -57,14 +57,14 @@ class Repl(input: InputStream,
   }
 }
 
-object Repl{
+object Main{
   val defaultPredef = """"""
   def main(args: Array[String]) = {
     println("Loading Ammonite Repl...")
     import ammonite.ops._
     val saveFile = home/".amm"
     val delimiter = "\n\n\n"
-    val shell = new Repl(
+    val shell = new Main(
       System.in, System.out,
       initialHistory = Try{read! saveFile}.getOrElse("").split(delimiter),
       saveHistory = s => write.append(home/".amm", s + delimiter)

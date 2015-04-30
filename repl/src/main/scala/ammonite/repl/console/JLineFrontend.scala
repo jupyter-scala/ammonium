@@ -1,8 +1,8 @@
-package ammonite.repl.frontend
+package ammonite.repl.console
 
 import java.io.{OutputStream, InputStream}
 
-import ammonite.repl.{Timer, Evaluated, Res}
+import ammonite.compiler.{Timer, Evaluated, Res}
 import jline.console.ConsoleReader
 import acyclic.file
 

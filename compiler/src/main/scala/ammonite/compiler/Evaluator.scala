@@ -1,4 +1,4 @@
-package ammonite.repl.interp
+package ammonite.compiler
 
 import java.io.{File, FileOutputStream}
 import java.lang.reflect.InvocationTargetException
@@ -6,7 +6,6 @@ import java.net.URL
 import java.util.UUID
 
 import acyclic.file
-import ammonite.repl._
 import java.net.URLClassLoader
 import scala.reflect.runtime.universe._
 import scala.collection.mutable

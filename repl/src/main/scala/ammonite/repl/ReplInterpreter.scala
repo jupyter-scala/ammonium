@@ -1,27 +1,26 @@
-package ammonite.repl.interp
+package ammonite.repl
 
 import java.io.File
 import acyclic.file
+import ammonite.compiler._
 import ammonite.pprint
-import ammonite.repl._
-import ammonite.repl.frontend._
 
-object InterpreterConsole {
-  type Console = Interpreter[Preprocessor.Output, Iterator[String]]
+object ReplInterpreter {
+  type Repl = Interpreter[Preprocessor.Output, Iterator[String]]
 
-  def consoleInitialImports =
+  def initialImports =
     Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
       Evaluator.namesFor[ammonite.repl.IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.repl.IvyConstructor")).toSeq
 
-  def console(handleResult: => (String, Res[Evaluated[_]]) => Unit,
-              shellPrompt0: => Ref[String],
-              pprintConfig0: pprint.Config = pprint.Config.Defaults.PPrintConfig,
-              colors0: ColorSet = ColorSet.BlackWhite,
-              stdout: String => Unit,
-              initialHistory: Seq[String]): Console = {
+  def apply(handleResult: => (String, Res[Evaluated[_]]) => Unit,
+            shellPrompt0: => Ref[String],
+            pprintConfig0: pprint.Config = pprint.Config.Defaults.PPrintConfig,
+            colors0: ColorSet = ColorSet.BlackWhite,
+            stdout: String => Unit,
+            initialHistory: Seq[String]): Repl = {
     var replApi: ReplAPI = null
 
-    def initReplApi(intp: Console) = {
+    def initReplApi(intp: Repl) = {
       replApi = new DefaultReplAPI {
         def imports = intp.eval.previousImportBlock
         def colors = colors0
@@ -61,7 +60,7 @@ object InterpreterConsole {
 
     new Interpreter[Preprocessor.Output, Iterator[String]](
       handleResult, stdout, initialHistory,
-      consoleInitialImports,
+      initialImports,
       f => Preprocessor(f()).apply,
       {
         (p: Preprocessor.Output, previousImportBlock: String, wrapperName: String) =>
@@ -73,7 +72,7 @@ object InterpreterConsole {
               }
            """
       },
-      "object ReplBridge extends ammonite.repl.frontend.ReplAPIHolder{}",
+      "object ReplBridge extends ammonite.repl.ReplAPIHolder{}",
       "ReplBridge",
       {
         (intp, cls) =>

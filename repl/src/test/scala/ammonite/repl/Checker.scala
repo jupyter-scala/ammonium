@@ -1,12 +1,12 @@
 package ammonite.repl
 
-import ammonite.repl.interp.InterpreterConsole
+import ammonite.compiler.{Evaluated, Res, Ref}
 import utest._
 
 
 class Checker {
   var allOutput = ""
-  val interp = InterpreterConsole.console(
+  val interp = ReplInterpreter(
     (_, _) => (),
     Ref[String](""),
     stdout = allOutput += _,

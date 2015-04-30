@@ -1,6 +1,6 @@
-package ammonite.repl.interp
+package ammonite.compiler
+
 import acyclic.file
-import ammonite.repl.{BacktickWrap, Res}
 import org.parboiled2.ParseError
 
 import scala.reflect.internal.Flags

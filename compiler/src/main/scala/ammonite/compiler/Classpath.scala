@@ -1,4 +1,4 @@
-package ammonite.repl.interp
+package ammonite.compiler
 import acyclic.file
 
 /**

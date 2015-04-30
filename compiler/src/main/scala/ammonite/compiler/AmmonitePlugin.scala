@@ -1,6 +1,5 @@
-package ammonite.repl.interp
+package ammonite.compiler
 
-import ammonite.repl.{BacktickWrap, ImportData}
 import acyclic.file
 
 import scala.tools.nsc._

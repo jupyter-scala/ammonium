@@ -1,5 +1,6 @@
 package ammonite.repl
 
+import ammonite.compiler.Res
 import utest._
 
 import scala.collection.{immutable => imm}
