@@ -58,38 +58,32 @@ class DefaultClassesImpl(
       // reuse of this ClassLoader
       // This whole thing is such a hack!!! - and should it be thread-safe??
       override def loadClass(name: String) =
-            fromClassMaps(name) match {
-              case Some(bytes) =>
-                defineClass(name, bytes, 0, bytes.length)
-              case None =>
-                try startClassLoader.loadClass(name)
-                catch{ case e: ClassNotFoundException =>
-                  try this.findClass(name)
-                  catch{ case e: ClassNotFoundException =>
-                    super.loadClass(name)
-                  }
-                }
-            }
-
-      override def getResource(name: String) = {
-        Console.err println s"get res: $name"
-        val r =
-          Some(name).filter(_ endsWith ".class").map(_ stripSuffix ".class").flatMap(fromClassMaps) match {
-            case Some(bytes) =>
-              val f = new File(tmpClassDir, name)
-              if (!f.exists()) {
-                val w = new FileOutputStream(f)
-                w.write(bytes)
-                w.close()
+        fromClassMaps(name) match {
+          case Some(bytes) =>
+            defineClass(name, bytes, 0, bytes.length)
+          case None =>
+            try startClassLoader.loadClass(name)
+            catch{ case e: ClassNotFoundException =>
+              try this.findClass(name)
+              catch{ case e: ClassNotFoundException =>
+                super.loadClass(name)
               }
-              f.toURI.toURL
-            case None =>
-              super.getResource(name)
-          }
+            }
+        }
 
-        Console.err println s"get res: $name -> $r"
-        r
-      }
+      override def getResource(name: String) =
+        Some(name).filter(_ endsWith ".class").map(_ stripSuffix ".class").flatMap(fromClassMaps) match {
+          case Some(bytes) =>
+            val f = new File(tmpClassDir, name)
+            if (!f.exists()) {
+              val w = new FileOutputStream(f)
+              w.write(bytes)
+              w.close()
+            }
+            f.toURI.toURL
+          case None =>
+            super.getResource(name)
+        }
 
     }
   }

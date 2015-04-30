@@ -6,21 +6,25 @@ import utest._
 
 class SparkTests(master: String) extends TestSuite {
 
-  val tests = TestSuite {
-    val check = new ClassWrapperChecker()
+  val preamble = s"""
+          @ @transient val h = new ammonite.spark.SparkHandle
+          h: ammonite.spark.SparkHandle = SparkHandle(uninitialized)
 
-    val preamble =
-     s"""
-        @ @transient val h = new ammonite.spark.SparkHandle
-        h: ammonite.spark.SparkHandle = SparkHandle(uninitialized)
+          @ { h.sparkConf.setMaster("$master"); () }
+          res1: Unit = ()
 
-        @ { h.sparkConf.setMaster("$master"); () }
-        res1: Unit = ()
-
-        @ @transient val sc = h.sc
-        sc: org.apache.spark.SparkContext = org.apache.spark.SparkContext
+          @ @transient val sc = h.sc
+          sc: org.apache.spark.SparkContext = org.apache.spark.SparkContext
 
       """
+
+  val postamble =
+    """
+          @ sc.stop()
+    """
+
+  val tests = TestSuite {
+    val check = new ClassWrapperChecker()
 
     'simpleForeachWithAccum{
       check.session(preamble +
@@ -29,11 +33,11 @@ class SparkTests(master: String) extends TestSuite {
           accum: org.apache.spark.Accumulator[Int] = 0
 
           @ sc.parallelize(1 to 10).foreach(x => accum += x)
-          res2: Unit = ()
+          res4: Unit = ()
 
           @ val v = accum.value
           v: Int = 55
-        """)
+        """, postamble)
     }
 
     'externalVars{
@@ -46,11 +50,11 @@ class SparkTests(master: String) extends TestSuite {
           r1: Int = 70
 
           @ v = 10
-          res2: Unit = ()
+          res5: Unit = ()
 
           @ val r2 = sc.parallelize(1 to 10).map(x => v).collect().reduceLeft(_+_)
           r2: Int = 100
-        """)
+        """, postamble)
     }
 
     'externalClasses{
@@ -62,8 +66,8 @@ class SparkTests(master: String) extends TestSuite {
           defined class C
 
           @ sc.parallelize(1 to 10).map(x => (new C).foo).collect().reduceLeft(_+_)
-          res2: Int = 50
-        """)
+          res4: Int = 50
+        """, postamble)
     }
 
     'externalFunctions{
@@ -73,8 +77,8 @@ class SparkTests(master: String) extends TestSuite {
           defined function double
 
           @ sc.parallelize(1 to 10).map(x => double(x)).collect().reduceLeft(_+_)
-          res2: Int = 110
-        """)
+          res4: Int = 110
+        """, postamble)
     }
 
     'externalFunctionsThatAccessVar{
@@ -87,14 +91,14 @@ class SparkTests(master: String) extends TestSuite {
           defined function getV
 
           @ sc.parallelize(1 to 10).map(x => getV()).collect().reduceLeft(_+_)
-          res2: Int = 70
+          res5: Int = 70
 
           @ v = 10
-          res3: Unit = ()
+          res6: Unit = ()
 
           @ sc.parallelize(1 to 10).map(x => getV()).collect().reduceLeft(_+_)
-          res4: Int = 100
-        """)
+          res7: Int = 100
+        """, postamble)
     }
 
     'broadcastVars{
@@ -104,22 +108,21 @@ class SparkTests(master: String) extends TestSuite {
           array: scala.Array[Int] = Array(0, 0, 0, 0, 0)
 
           @ val broadcastArray = sc.broadcast(array)
-          broadcastArray: org.apache.spark.broadcast.Broadcast[scala.Array[Int]] = Broadcast(4)
+          broadcastArray: org.apache.spark.broadcast.Broadcast[scala.Array[Int]] = Broadcast(0)
 
           @ sc.parallelize(0 to 4).map(x => broadcastArray.value(x)).collect()
-          res2: scala.Array[Int] = Array(0, 0, 0, 0, 0)
+          res5: scala.Array[Int] = Array(0, 0, 0, 0, 0)
 
           @ array(0) = 5
-          res3: Unit = ()
+          res6: Unit = ()
 
           @ sc.parallelize(0 to 4).map(x => broadcastArray.value(x)).collect()
-          res4: scala.Array[Int] = Array(5, 0, 0, 0, 0)
-        """)
+          res7: scala.Array[Int] = Array(5, 0, 0, 0, 0)
+        """, postamble)
     }
 
     // TODO? interacting with files
 
-    // Fails
     'sparkIssue1199{
       check.session(preamble +
         """
@@ -127,23 +130,24 @@ class SparkTests(master: String) extends TestSuite {
           defined class Sum
 
           @ val a = Sum("A", "B")
-          a: line4$Main.INSTANCE.$ref1.Sum = Sum("A", "B")
+          a: line4$Main.INSTANCE.$ref3.Sum = Sum("A", "B")
 
           @ def b(a: Sum): String = a match { case Sum(_, _) => "Found Sum" }
 
           @ b(a)
-        """)
+        """, postamble)
     }
 
     'sparkIssue2452{
       check.session(preamble +
         """
           @ val x = 4 ; def f() = x
+          x: Int = 4
           defined function f
 
           @ f()
-          res2: Int = 4
-        """)
+          res4: Int = 4
+        """, postamble)
     }
 
     'sparkIssue2576{
@@ -156,23 +160,30 @@ class SparkTests(master: String) extends TestSuite {
           @ case class TestCaseClass(value: Int)
 
           @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).toDF().collect()
-        """)
+
+          @ sqlContext.stop()
+        """, postamble)
     }
 
-    'sparkIssue2632{
-      check.session(preamble +
-        """
-          @ class TestClass() { def testMethod = 3 }
-
-          @ val t = new TestClass
-
-          @ import t.testMethod
-
-          @ case class TestCaseClass(value: Int)
-
-          @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
-        """)
-    }
+//    'sparkIssue2632{
+//      check.session(preamble +
+//        """
+//          @ class TestClass() { def testMethod = 3; override def toString = "TestClass" }
+//          defined class TestClass
+//
+//          @ val t = new TestClass
+//          t: line4$Main.INSTANCE.$ref3.TestClass = TestClass
+//
+//          @ import t.testMethod
+//          import t.testMethod
+//
+//          @ case class TestCaseClass(value: Int)
+//          defined class TestCaseClass
+//
+//          @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
+//          res7: Unit = ()
+//        """, postamble)
+//    }
 
     'collectingObjClsDefinedInRepl{
       check.session(preamble +
@@ -180,7 +191,7 @@ class SparkTests(master: String) extends TestSuite {
           @ case class Foo(i: Int)
 
           @ val ret = sc.parallelize((1 to 100).map(Foo), 10).collect()
-        """)
+        """, postamble)
     }
 
     'collectingObjClsDefinedInReplShuffling{
@@ -191,7 +202,7 @@ class SparkTests(master: String) extends TestSuite {
           @ val list = List((1, Foo(1)), (1, Foo(2)))
 
           @ val ret = sc.parallelize(list).groupByKey().collect()
-        """)
+        """, postamble)
     }
   }
 

@@ -17,6 +17,9 @@ class Checker {
 
   val interp = newInterpreter()
 
+  def session(sess: String, finally0: String): Unit =
+    try session(sess) finally session(finally0)
+
   def session(sess: String): Unit = {
 //    println("SESSION")
 //    println(sess)
