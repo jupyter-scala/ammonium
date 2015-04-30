@@ -5,9 +5,7 @@ import acyclic.file
 import ammonite.compiler._
 import ammonite.pprint
 
-object ReplInterpreter {
-  type Repl = Interpreter[Preprocessor.Output, Iterator[String]]
-
+object IvyPPrintInterpreter {
   def initialImports =
     Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
       Evaluator.namesFor[ammonite.interpreter.IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.IvyConstructor")).toSeq
@@ -17,10 +15,10 @@ object ReplInterpreter {
             pprintConfig0: pprint.Config = pprint.Config.Defaults.PPrintConfig,
             colors0: ColorSet = ColorSet.BlackWhite,
             stdout: String => Unit,
-            initialHistory: Seq[String]): Repl = {
+            initialHistory: Seq[String]): IvyPPrintInterpreter = {
     var replApi: ReplAPI = null
 
-    def initReplApi(intp: Repl) = {
+    def initReplApi(intp: IvyPPrintInterpreter) = {
       replApi = new DefaultReplAPI {
         def imports = intp.eval.previousImportBlock
         def colors = colors0

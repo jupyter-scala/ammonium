@@ -29,7 +29,7 @@ class Main(input: InputStream,
     initialHistory
   )
 
-  val interp: ReplInterpreter.Repl = ReplInterpreter(
+  val interp: IvyPPrintInterpreter = IvyPPrintInterpreter(
     frontEnd.update,
     shellPrompt,
     pprintConfig.copy(maxWidth = frontEnd.width),

@@ -6,7 +6,7 @@ import utest._
 
 class Checker {
   var allOutput = ""
-  val interp = ReplInterpreter(
+  val interp = IvyPPrintInterpreter(
     (_, _) => (),
     Ref[String](""),
     stdout = allOutput += _,
