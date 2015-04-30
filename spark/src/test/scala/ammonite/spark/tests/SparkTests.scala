@@ -18,7 +18,8 @@ class SparkTests(master: String) extends TestSuite {
         res1: Unit = ()
 
         @ @transient val sc = h.sc
-        sc: org.apache.spark.SparkContext
+        sc: org.apache.spark.SparkContext = org.apache.spark.SparkContext
+
       """
 
     'simpleForeachWithAccum{
