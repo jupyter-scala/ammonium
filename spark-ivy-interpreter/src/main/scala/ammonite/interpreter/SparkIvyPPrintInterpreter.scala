@@ -16,16 +16,31 @@ object SparkIvyPPrintInterpreter {
       "ReplBridge",
       {
         _ =>
-          var replApi: ReplAPI = null
+          var replApi: ReplAPIImpl[Iterator[String]] with ReplAPISparkImpl = null
 
           (intp, cls, stdout) =>
             if (replApi == null)
-              replApi = new ReplAPIImpl[Iterator[String]](intp, _.foreach(stdout), colors0, shellPrompt0, pprintConfig0) with ReplAPISparkImpl
+              replApi = new ReplAPIImpl[Iterator[String]](intp, _.foreach(stdout), colors0, shellPrompt0, pprintConfig0) with ReplAPISparkImpl { api =>
+                override lazy val power: Power =
+                  new Power {
+                    // FIXME These two are also in ReplAPIImpl
+                    def jars = intp.jarDeps ++ intp.extraJars
+                    def classes = intp.eval.classes
+
+                    def host = api.host
+                    def classServerURI = api.classServerURI
+                    def setConfDefaults() = api.setConfDefaults(api.sparkConf)
+                  }
+              }
 
             ReplAPI.initReplBridge(
               cls.asInstanceOf[Class[ReplAPIHolder]],
               replApi
             )
+
+          BridgeHandle {
+            replApi.stop()
+          }
       },
       Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
         Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.bridge.IvyConstructor")).toSeq ++

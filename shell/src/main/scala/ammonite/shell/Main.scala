@@ -48,6 +48,7 @@ class Main(input: InputStream,
     @tailrec def loop(): Unit = {
       val res = action()
       if (interp.handleOutput(res)) loop()
+      else interp.stop()
     }
     loop()
   }

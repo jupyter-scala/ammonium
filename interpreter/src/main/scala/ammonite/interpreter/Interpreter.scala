@@ -9,9 +9,20 @@ import scala.tools.nsc.Global
 case class BridgeConfig[A,B](
   init: String,
   name: String,
-  initClass: Unit => (Interpreter[A,B], Class[_], String => Unit) => Unit,
+  initClass: Unit => (Interpreter[A,B], Class[_], String => Unit) => BridgeHandle,
   imports: Seq[(String, ImportData)]
 )
+
+trait BridgeHandle {
+  def stop(): Unit
+}
+
+object BridgeHandle {
+  def apply(onStop: => Unit): BridgeHandle =
+    new BridgeHandle {
+      def stop() = onStop
+    }
+}
 
 /**
  * A convenient bundle of all the functionality necessary
@@ -83,7 +94,10 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
 
   var compiler: Compiler = _
   var pressy: Pressy = _
+  var handle: BridgeHandle = _
   def init() = {
+    if (handle != null) handle.stop()
+
     compiler = Compiler(
       jarDeps ++ extraJars,
       dirDeps,
@@ -97,7 +111,11 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     )
 
     val cls = eval.evalClass(bridgeConfig.init, bridgeConfig.name)
-    bridgeInitClass(interp, cls.map(_._1).asInstanceOf[Res.Success[Class[_]]].s, stdout)
+    handle = bridgeInitClass(interp, cls.map(_._1).asInstanceOf[Res.Success[Class[_]]].s, stdout)
+  }
+
+  def stop() = {
+    if (handle != null) handle.stop()
   }
 
   val mainThread = Thread.currentThread()
