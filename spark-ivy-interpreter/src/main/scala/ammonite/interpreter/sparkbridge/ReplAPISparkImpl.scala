@@ -11,4 +11,6 @@ trait ReplAPISparkImpl extends ReplAPI {
   lazy val sc = {
     ???
   }
+
+  def resetSpark() = ???
 }
