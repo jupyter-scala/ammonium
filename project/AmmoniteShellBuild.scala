@@ -63,6 +63,7 @@ object AmmoniteShellBuild extends Build {
       "com.lihaoyi" %% "utest" % "0.3.0" % "test"
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
+    parallelExecution in Test := false,
     fork in (Test, testOnly) := true // Makes some tests fail in 2.10?
   )
 
