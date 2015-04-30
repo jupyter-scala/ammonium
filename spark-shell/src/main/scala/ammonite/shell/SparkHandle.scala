@@ -101,7 +101,6 @@ class SparkHandle(power: Power) { api =>
       .setIfMissing("spark.app.name", "Ammonite Shell")
       .setIfMissingLazy("spark.jars", power.classes.jars.map(_.toURI.toString) mkString ",")
       .setIfMissingLazy("spark.repl.class.uri", classServerURI.toString)
-      .setIfMissing("spark.driver.allowMultipleContexts", "true")
       .setIfMissingLazy("spark.ui.port", availablePort(4040).toString)
 
     if (conf.getOption("spark.executor.uri").isEmpty)
