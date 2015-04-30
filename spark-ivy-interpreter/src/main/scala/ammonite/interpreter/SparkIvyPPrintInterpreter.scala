@@ -1,6 +1,8 @@
 package ammonite.interpreter
 
 import acyclic.file
+import ammonite.interpreter.bridge.{ ColorSet, DefaultReplAPI, IvyConstructor }
+import ammonite.interpreter.sparkbridge._
 import ammonite.pprint
 
 object SparkIvyPPrintInterpreter {
@@ -10,7 +12,7 @@ object SparkIvyPPrintInterpreter {
     colors0: ColorSet = ColorSet.BlackWhite
   ): BridgeConfig[Preprocessor.Output, Iterator[String]] =
     BridgeConfig(
-      "object ReplBridge extends ammonite.interpreter.ReplAPIHolder{}",
+      "object ReplBridge extends ammonite.interpreter.bridge.ReplAPIHolder{}",
       "ReplBridge",
       {
         _ =>
@@ -18,7 +20,7 @@ object SparkIvyPPrintInterpreter {
 
           (intp, cls, stdout) =>
             if (replApi == null)
-              replApi = new DefaultReplAPI[Iterator[String]](intp, _.foreach(stdout), colors0, shellPrompt0, pprintConfig0)
+              replApi = new DefaultReplAPI[Iterator[String]](intp, _.foreach(stdout), colors0, shellPrompt0, pprintConfig0) with ReplAPISparkImpl
 
             ReplAPI.initReplBridge(
               cls.asInstanceOf[Class[ReplAPIHolder]],
@@ -26,7 +28,7 @@ object SparkIvyPPrintInterpreter {
             )
       },
       Evaluator.namesFor[ReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-        Evaluator.namesFor[ammonite.interpreter.IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.IvyConstructor")).toSeq
+        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.interpreter.bridge.IvyConstructor")).toSeq
     )
 
   def preprocessor = IvyPPrintInterpreter.preprocessor

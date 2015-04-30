@@ -96,6 +96,7 @@ object AmmoniteShellBuild extends Build {
     .settings(
       name := "ammonite-spark-ivy-interpreter",
       libraryDependencies ++= Seq(
+        "org.apache.spark" %% "spark-core" % "1.3.0"
       )
     )
 
