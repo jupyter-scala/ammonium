@@ -46,8 +46,13 @@ class AutocompleteTests(check0: => Checker) extends TestSuite{
       complete("""Seq(1, 2, 3).map(argNameLol => <caret>)""", Set("argNameLol") -- _)
       complete("""object Zomg{ <caret> }""", Set("Zomg") -- _)
       complete(
-        "println<caret>",
+        "printl<caret>",
         Set("println") ^,
+        Set[String]() ^
+      )
+      complete(
+        "println<caret>",
+        Set[String]() ^,
         Set("def println(x: Any): Unit", "def println(): Unit") ^
       )
     }
