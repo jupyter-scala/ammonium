@@ -40,16 +40,11 @@ trait IvyConstructor{
 
 object IvyHelper {
 
+  var maxLevel = 2
   Message setDefaultLogger new AbstractMessageLogger {
-    val maxLevel = 1
     def doEndProgress(msg: String) = Console.err println "Done"
-    def doProgress()               = Console.err print "."
-    def log(msg: String, level: Int)    =
-      if (level <= maxLevel &&
-          msg != ":: problems summary ::" &&
-          msg.trim.nonEmpty &&
-          !msg.trim.startsWith("unknown resolver "))
-        Console.err.println(msg)
+    def doProgress() = Console.err print "."
+    def log(msg: String, level: Int) = if (level <= maxLevel) Console.err.println(msg)
     def rawlog(msg: String, level: Int) = log(msg, level)
   }
 
@@ -59,7 +54,8 @@ object IvyHelper {
     settings.setDefaultResolver(chain.getName)
   }
 
-  def resolve(artifacts: Seq[(String, String, String)], resolvers: Seq[DependencyResolver]) = {
+  def resolve(artifacts: Seq[(String, String, String)], resolvers: Seq[DependencyResolver], verbosity: Int = 2) = {
+    maxLevel = verbosity
     val ivy = Ivy.newInstance {
       val ivySettings = new IvySettings()
       ivySettings.setBaseDir(ResolverHelpers.ivyHome)
