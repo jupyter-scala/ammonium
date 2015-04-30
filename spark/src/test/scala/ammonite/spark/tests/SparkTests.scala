@@ -118,13 +118,15 @@ class SparkTests(master: String) extends TestSuite {
 
     // TODO? interacting with files
 
-    // Fails, similar to https://github.com/lihaoyi/Ammonite/issues/47 ?
+    // Fails
     'sparkIssue1199{
       check.session(preamble +
         """
           @ case class Sum(exp: String, exp2: String)
+          defined class Sum
 
           @ val a = Sum("A", "B")
+          a: line4$Main.INSTANCE.$ref1.Sum = Sum("A", "B")
 
           @ def b(a: Sum): String = a match { case Sum(_, _) => "Found Sum" }
 
@@ -140,6 +142,54 @@ class SparkTests(master: String) extends TestSuite {
 
           @ f()
           res2: Int = 4
+        """)
+    }
+
+    'sparkIssue2576{
+      check.session(preamble +
+        """
+          @ @transient val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+
+          @ import sqlContext.implicits._
+
+          @ case class TestCaseClass(value: Int)
+
+          @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).toDF().collect()
+        """)
+    }
+
+    'sparkIssue2632{
+      check.session(preamble +
+        """
+          @ class TestClass() { def testMethod = 3 }
+
+          @ val t = new TestClass
+
+          @ import t.testMethod
+
+          @ case class TestCaseClass(value: Int)
+
+          @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
+        """)
+    }
+
+    'collectingObjClsDefinedInRepl{
+      check.session(preamble +
+        """
+          @ case class Foo(i: Int)
+
+          @ val ret = sc.parallelize((1 to 100).map(Foo), 10).collect()
+        """)
+    }
+
+    'collectingObjClsDefinedInReplShuffling{
+      check.session(preamble +
+        """
+          @ case class Foo(i: Int)
+
+          @ val list = List((1, Foo(1)), (1, Foo(2)))
+
+          @ val ret = sc.parallelize(list).groupByKey().collect()
         """)
     }
   }
