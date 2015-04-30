@@ -146,4 +146,7 @@ class SparkHandle(power: Power) { api =>
     if (_classServerURI != null)
       _classServerURI = null
   }
+
+  override def toString: String =
+    "SparkHandle" + (if (_sc == null) "(uninitialized)" else "")
 }
