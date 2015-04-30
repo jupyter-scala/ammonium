@@ -39,7 +39,7 @@ object ShellInterpreter {
                 def pprintConfig = _pprintConfig
               }
 
-            ReplAPI.initReplBridge(
+            ReplAPIHolder.initReplBridge(
               cls.asInstanceOf[Class[ReplAPIHolder]],
               replApi
             )

@@ -9,30 +9,8 @@ import scala.reflect.runtime.universe._
 import acyclic.file
 
 import ammonite.interpreter.{ Classes => _, _ }, Evaluator.Exit
-import ammonite.pprint
 import ammonite.shell.util._
 
-trait ShellReplAPIImpl extends FullShellReplAPI {
-  def colors: ColorSet
-  def shellPrompt0: Ref[String]
-
-
-  def clear = ()
-
-  def shellPrompt: String = shellPrompt0()
-  def shellPrompt_=(s: String) = shellPrompt0() = s
-
-  def shellPPrint[T: WeakTypeTag](value: => T, ident: String) = {
-    colors.ident + ident + colors.reset + ": " +
-      colors.`type` + weakTypeOf[T].toString + colors.reset
-  }
-  def shellPrintDef(definitionLabel: String, ident: String) = {
-    s"defined ${colors.`type`}$definitionLabel ${colors.ident}$ident${colors.reset}"
-  }
-  def shellPrintImport(imported: String) = {
-    s"${colors.`type`}import ${colors.ident}$imported${colors.reset}"
-  }
-}
 
 class ReplAPIImpl[B](
   intp: Interpreter[_, B],
@@ -122,5 +100,27 @@ trait IvyConstructor{
 
   object Resolvers {
     case class Resolver(underlying: DependencyResolver) extends ammonite.shell.Resolver
+  }
+}
+
+trait ShellReplAPIImpl extends FullShellReplAPI {
+  def colors: ColorSet
+  def shellPrompt0: Ref[String]
+
+
+  def clear = ()
+
+  def shellPrompt: String = shellPrompt0()
+  def shellPrompt_=(s: String) = shellPrompt0() = s
+
+  def shellPPrint[T: WeakTypeTag](value: => T, ident: String) = {
+    colors.ident + ident + colors.reset + ": " +
+      colors.`type` + weakTypeOf[T].toString + colors.reset
+  }
+  def shellPrintDef(definitionLabel: String, ident: String) = {
+    s"defined ${colors.`type`}$definitionLabel ${colors.ident}$ident${colors.reset}"
+  }
+  def shellPrintImport(imported: String) = {
+    s"${colors.`type`}import ${colors.ident}$imported${colors.reset}"
   }
 }
