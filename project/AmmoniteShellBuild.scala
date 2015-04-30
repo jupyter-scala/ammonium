@@ -76,7 +76,9 @@ object AmmoniteShellBuild extends Build {
         case Some("0") => Seq(Tests.Filter(s => !s.startsWith("ammonite.spark.localcluster") && !s.startsWith("ammonite.spark.standalonecluster")))
         case _ => Seq()
       }
-    }
+    },
+    publishArtifact in (Test, packageBin) := true,
+    publishArtifact in (Test, packageSrc) := true
   )
 
   lazy val interpreter = Project(id = "interpreter", base = file("interpreter"))
