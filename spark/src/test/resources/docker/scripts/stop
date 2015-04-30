@@ -1,9 +1,14 @@
 #!/bin/bash
 
-docker stop sbt
+if [ "$SPARK_VERSION" = "" ]; then
+  echo "SPARK_VERSION not set" 1>&2
+  exit 255
+fi
+
+docker stop "sbt-$SPARK_VERSION"
 
 for i in $(seq 3 -1 1); do
-  docker stop "slave$i"
+  docker stop "slave${i}-$SPARK_VERSION"
 done
 
-docker stop master
+docker stop "master-$SPARK_VERSION"

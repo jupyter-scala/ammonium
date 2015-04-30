@@ -1,8 +1,13 @@
 #!/bin/bash
 
+if [ "$SPARK_VERSION" = "" ]; then
+  echo "SPARK_VERSION not set" 1>&2
+  exit 255
+fi
+
 for i in $(seq 1 3); do
-  docker rm "slave$i"
+  docker rm "slave${i}-$SPARK_VERSION"
 done
 
-docker rm master
-docker rm sbt
+docker rm "master-$SPARK_VERSION"
+docker rm "sbt-$SPARK_VERSION"

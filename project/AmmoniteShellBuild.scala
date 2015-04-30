@@ -73,8 +73,8 @@ object AmmoniteShellBuild extends Build {
     fork in (Test, testOnly) := true,
     testOptions in Test := {
       sys.env.get("AMM_SPARK_CLUSTER_TESTS") match {
-        case Some("1") => Seq()
-        case _ => Seq(Tests.Filter(s => !s.startsWith("ammonite.spark.localcluster") && !s.startsWith("ammonite.spark.standalonecluster")))
+        case Some("0") => Seq(Tests.Filter(s => !s.startsWith("ammonite.spark.localcluster") && !s.startsWith("ammonite.spark.standalonecluster")))
+        case _ => Seq()
       }
     }
   )
