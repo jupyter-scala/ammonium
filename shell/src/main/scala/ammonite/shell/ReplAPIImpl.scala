@@ -75,6 +75,9 @@ class ReplAPIImpl[B](
     def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
     def stop() = onStopHooks.foreach(_())
 
+    def complete(snippetIndex: Int, snippet: String) =
+      intp.pressy.complete(snippetIndex, intp.eval.previousImportBlock, snippet)
+
     def getShow = intp.eval.getShow
     def setShow(v: Boolean) = intp.eval.setShow(v)
 

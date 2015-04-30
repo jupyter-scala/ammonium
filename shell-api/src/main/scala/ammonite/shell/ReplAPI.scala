@@ -98,6 +98,8 @@ trait Power {
    *
    */
   def stop(): Unit
+
+  def complete(snippetIndex: Int, snippet: String): (Int, Seq[String], Seq[String])
 }
 
 trait Classes {
