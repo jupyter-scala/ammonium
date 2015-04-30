@@ -161,6 +161,7 @@ object AmmoniteShellBuild extends Build {
     .settings(
       publish := {},
       publishLocal := {},
+      moduleName := "ammonite-shell-root",
       (unmanagedSourceDirectories in Compile) := Nil,
       (unmanagedSourceDirectories in Test) := Nil
     )
