@@ -11,6 +11,10 @@ trait Classes {
   def addClassMap(classMap: String => Option[Array[Byte]]): Unit
 }
 
+trait AddJarClassLoader extends URLClassLoader {
+  def add(url: URL): Unit
+}
+
 class DefaultClassesImpl(
   startClassLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
   startJars: Seq[File] = Classpath.jarDeps,
@@ -32,14 +36,10 @@ class DefaultClassesImpl(
    * re-defining the core (pre-REPL) classes. I'm still not sure
    * where those come from.
    */
-  var classLoader =
-    new URLClassLoader(Array(), startClassLoader) {
-      // Public access to addURL - a visibility-changing override fails here
-      def add(url: URL) = addURL(url)
-    }
+  var classLoader: AddJarClassLoader = _
 
   def newClassLoader() = {
-    classLoader = new URLClassLoader(Array(), classLoader){
+    classLoader = new URLClassLoader(Array(), Option(classLoader) getOrElse startClassLoader) with AddJarClassLoader {
       def add(url: URL) = addURL(url)
 
       override def loadClass(name: String, resolve: Boolean) =
@@ -55,7 +55,6 @@ class DefaultClassesImpl(
               }
             }
         }
-
     }
   }
 
