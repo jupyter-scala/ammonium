@@ -7,7 +7,7 @@ object Wrap {
 
         object $wrapperName{
           $code
-          def $$main() = {$displayCode}
+          def $$main() = {val $$user = this; $displayCode}
         }
      """
 
