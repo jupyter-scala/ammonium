@@ -42,6 +42,7 @@ class AmmonitePlugin(g: scala.tools.nsc.Global, output: Seq[ImportData] => Unit)
                 expr match {
                   case g.Select(lhs, name) => name :: rec(lhs)
                   case g.Ident(name) => List(name)
+                  case g.This(pkg) => List(pkg)
                 }
               }
               val prefix = rec(expr).reverse

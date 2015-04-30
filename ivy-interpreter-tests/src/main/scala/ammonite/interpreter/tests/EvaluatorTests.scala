@@ -146,6 +146,24 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
           res2: Long = 123L
         """)
       }
+      'java {
+        check.session("""
+        @ import Thread._
+        import Thread._
+
+        @ currentThread.isAlive
+        res1: Boolean = true
+
+        @ import java.lang.Runtime.getRuntime
+        import java.lang.Runtime.getRuntime
+
+        @ getRuntime.isInstanceOf[Boolean]
+        res3: Boolean = false
+
+        @ getRuntime.isInstanceOf[java.lang.Runtime]
+        res4: Boolean = true
+        """)
+      }
       'shadowing{
         check.session("""
           @ val abs = 'a'
