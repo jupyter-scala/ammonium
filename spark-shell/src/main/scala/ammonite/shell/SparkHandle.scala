@@ -4,7 +4,7 @@ import java.io.IOException
 import java.net._
 import java.util.concurrent.Executors
 
-import ammonite.interpreter.bridge.Classes
+import ammonite.interpreter.bridge.Power
 import org.apache.spark.{ SparkContext, SparkConf }
 
 import org.http4s.dsl._
@@ -13,7 +13,7 @@ import org.http4s.server.blaze.BlazeBuilder
 
 import scala.concurrent.duration.Duration
 
-class SparkHandle(classes: Classes) { api =>
+class SparkHandle(power: Power) { api =>
 
   lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
@@ -56,7 +56,7 @@ class SparkHandle(classes: Classes) { api =>
           HttpService {
             case GET -> Root / _item =>
               val item = URLDecoder.decode(_item, "UTF-8")
-              classes.fromClassMaps(item.stripSuffix(".class")).fold(NotFound())(Ok(_))
+              power.classes.fromClassMaps(item.stripSuffix(".class")).fold(NotFound())(Ok(_))
           },
           ""
         )
@@ -99,7 +99,7 @@ class SparkHandle(classes: Classes) { api =>
     conf
       .setIfMissing("spark.master", defaultMaster)
       .setIfMissing("spark.app.name", "Ammonite Shell")
-      .setIfMissingLazy("spark.jars", classes.jars.map(_.toURI.toString) mkString ",")
+      .setIfMissingLazy("spark.jars", power.classes.jars.map(_.toURI.toString) mkString ",")
       .setIfMissingLazy("spark.repl.class.uri", classServerURI.toString)
       .setIfMissing("spark.driver.allowMultipleContexts", "true")
       .setIfMissingLazy("spark.ui.port", availablePort(4040).toString)
@@ -117,9 +117,13 @@ class SparkHandle(classes: Classes) { api =>
 
   var _sc: SparkContext = null
 
-  classes.onJarsAdded { newJars =>
+  power.classes.onJarsAdded { newJars =>
     if (_sc != null)
       newJars.foreach(_sc addJar _.toURI.toURL.toString)
+  }
+
+  power.onStop {
+    stop()
   }
 
   def sc: SparkContext = {
