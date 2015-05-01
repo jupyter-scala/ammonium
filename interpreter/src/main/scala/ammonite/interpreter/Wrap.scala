@@ -38,12 +38,14 @@ object Wrap {
         }
      """
 
-  def classWrapImportsTransform(instanceSymbol: String)(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
+  def classWrapImportsTransform(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
     r .map { ev =>
       ev.copy(imports = ev.imports.map{ d =>
-        if (d.wrapperName == d.prefix) // Assuming this is an import of REPL variables
-          d.copy(prefix = d.prefix + "." + instanceSymbol + ".$user")
-        else
+        if (d.prefix.startsWith(d.wrapperName + ".$ref$")) {
+          // Assuming this is an import through previous REPL variables
+          val stripped = d.prefix.stripPrefix(d.wrapperName + ".$ref$")
+          d.copy(prefix = stripped, wrapperName = stripped.takeWhile(_ != '.'))
+        } else
           d
       })
     }

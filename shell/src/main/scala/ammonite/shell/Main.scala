@@ -78,9 +78,9 @@ object Main{
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
-      ShellInterpreter.classWrap(classWrapperInstanceSymbol),
+      ShellInterpreter.classWrap,
       handleResult = {
-        val transform = Wrap.classWrapImportsTransform(classWrapperInstanceSymbol) _
+        val transform = Wrap.classWrapImportsTransform _
         (buf, r0) => val r = transform(r0); main.frontEnd.update(buf, r); r
       },
       printer = _.foreach(print),
@@ -88,8 +88,7 @@ object Main{
       initialHistory = main.initialHistory,
       predef = main.predef,
       classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs),
-      useClassWrapper = true,
-      classWrapperInstance = Some(classWrapperInstanceSymbol)
+      useClassWrapper = true
     )
 
   val defaultPredef = """"""

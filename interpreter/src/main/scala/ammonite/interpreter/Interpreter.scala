@@ -39,8 +39,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
                        initialHistory: Seq[String] = Nil,
                        predef: String = "",
                        val classes: Classes = new DefaultClassesImpl(),
-                       useClassWrapper: Boolean = false,
-                       classWrapperInstance: Option[String] = None){ interp =>
+                       useClassWrapper: Boolean = false){ interp =>
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
 
@@ -59,7 +58,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     oldClassloader = Thread.currentThread().getContextClassLoader
     out <- try{
       Thread.currentThread().setContextClassLoader(classes.currentClassLoader)
-      eval.processLine(p, printer, useClassWrapper, classWrapperInstance)
+      eval.processLine(p, printer)
     } finally Thread.currentThread().setContextClassLoader(oldClassloader)
   } yield out
 
@@ -133,7 +132,8 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
     wrap,
     compiler.compile,
     classes.addClass,
-    if (predef != "") -1 else 0
+    if (predef != "") -1 else 0,
+    useClassWrapper = useClassWrapper
   )
 
   init()

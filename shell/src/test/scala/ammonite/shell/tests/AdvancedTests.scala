@@ -6,8 +6,7 @@ import utest._
 
 import scala.collection.{immutable => imm}
 
-class AdvancedTests(check0: => AmmoniteChecker, wrapperInstance: Option[String] = None) extends TestSuite{
-  val wrapperStr = wrapperInstance.map(".".+).mkString
+class AdvancedTests(check0: => AmmoniteChecker, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
 
   val tests = TestSuite{
     val check = check0
@@ -135,10 +134,10 @@ class AdvancedTests(check0: => AmmoniteChecker, wrapperInstance: Option[String] 
         defined class Foo
 
         @ Foo(1, "", Nil)
-        res2: cmd1$wrapperStr.Foo = Foo(1, "", List())
+        res2: ${wrapperInstance(1, 2)}.Foo = Foo(1, "", List())
 
         @ Foo(1234567, "I am a cow, hear me moo", Seq("I weigh twice as much as you", "and I look good on the barbecue"))
-        res3: cmd1$wrapperStr.Foo = Foo(
+        res3: ${wrapperInstance(1, 3)}.Foo = Foo(
           1234567,
           "I am a cow, hear me moo",
           List("I weigh twice as much as you", "and I look good on the barbecue")
@@ -181,7 +180,7 @@ class AdvancedTests(check0: => AmmoniteChecker, wrapperInstance: Option[String] 
         defined function pprint
 
         @ new C
-        res2: cmd0$wrapperStr.C = INSTANCE OF CLASS C
+        res2: ${wrapperInstance(0, 2)}.C = INSTANCE OF CLASS C
       """)
     }
 

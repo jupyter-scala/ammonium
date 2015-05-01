@@ -62,8 +62,8 @@ object ShellInterpreter {
     (p, previousImportBlock, wrapperName) =>
       Wrap.obj(p.code, mergePrinters(p.printer), previousImportBlock, wrapperName)
 
-  def classWrap(instanceSymbol: String): (Preprocessor.Output, String, String) => String =
+  val classWrap: (Preprocessor.Output, String, String) => String =
     (p, previousImportBlock, wrapperName) =>
-      Wrap.cls(p.code, mergePrinters(p.printer), previousImportBlock, wrapperName, instanceSymbol)
+      Wrap.cls(p.code, mergePrinters(p.printer), previousImportBlock, wrapperName, "INSTANCE")
 
 }
