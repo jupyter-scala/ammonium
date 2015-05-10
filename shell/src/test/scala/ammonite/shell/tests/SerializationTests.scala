@@ -46,30 +46,32 @@ class SerializationTests(check0: => Checker,
           Seq("*** func ***")
 
       check.session(s"""
+        @ load.ivy("com.github.alexarchambault" % "ammonite-spark_1.3_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")
+
         @ $longSingleLine
         *** decl ***
         *** field ***
-        res0_0: Unit = ()
+        res1_0: Unit = ()
         a: scala.Option[Int] = Some(2)
         defined function f
         defined class C
 
         @ val c = new C
-        c: ${wrapperInstance(0, 1)}.C = C
+        c: ${wrapperInstance(1, 2)}.C = C
 
         @ val b = ammonite.spark.util.Serialize.to(c)
 
-        @ val loader = interpreter.classes.classLoaderClone
+        @ val loader = interpreter.classes.classLoaderClone()
 
         @ val c2 = ammonite.spark.util.Serialize.from(b, loader)
         c2: AnyRef = C
 
         @ c2.getClass.getMethod("get").invoke(c2)
         ${lastOutput mkString "\n        "}
-        res5: java.lang.Object = Some(2)
+        res6: java.lang.Object = Some(2)
 
         @ c2.getClass.getMethod("getField").invoke(c2) // either `a` is just initialized, or was serialized already calculated - nothing should be printed here
-        res6: java.lang.Object = Some(2)
+        res7: java.lang.Object = Some(2)
       """)
     }
   }
