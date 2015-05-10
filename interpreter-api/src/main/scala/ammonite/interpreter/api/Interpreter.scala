@@ -1,28 +1,15 @@
 package ammonite.interpreter.api
 
-trait BridgeHandle {
-  def stop(): Unit
-}
-
-object BridgeHandle {
-  def apply(onStop: => Unit): BridgeHandle =
-    new BridgeHandle {
-      def stop() = onStop
-    }
-
-  val empty = apply(())
-}
-
 case class BridgeConfig(init: String,
                         name: String,
                         imports: Seq[ImportData],
                         defaultPrinter: AnyRef => Unit
                          )(
-                         val initClass: (Interpreter, Class[_]) => BridgeHandle
+                         val initClass: (Interpreter, Class[_]) => Unit
                          )
 
 object BridgeConfig {
-  val empty = BridgeConfig("object Bridge", "Bridge", Nil, _ => ())((_, _) => BridgeHandle.empty)
+  val empty = BridgeConfig("object Bridge", "Bridge", Nil, _ => ())((_, _) => ())
 }
 
 sealed trait DisplayItem
@@ -44,7 +31,6 @@ trait Interpreter {
   def imports: Imports
   def classes: Classes
 
-  def handle: BridgeHandle
   def getCurrentLine: String
   def buffered: String
   def history: Seq[String]

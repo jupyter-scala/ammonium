@@ -9,7 +9,7 @@ import scala.reflect.io.VirtualDirectory
 import scala.util.Try
 import scala.util.control.ControlThrowable
 
-import ammonite.interpreter.api.{ DisplayItem, Decl, BridgeConfig, BridgeHandle, ImportData }
+import ammonite.interpreter.api.{ DisplayItem, Decl, BridgeConfig, ImportData }
 
 
 object Wrap {
@@ -270,7 +270,6 @@ class Interpreter(
 
   var compiler: Compiler = _
   var pressy: Pressy = _
-  var handle: BridgeHandle = _
   def init() = {
     compiler = Compiler(
       classes.jars,
@@ -292,7 +291,6 @@ class Interpreter(
 
   def stop() = {
     onStopHooks.foreach(_())
-    if (handle != null) handle.stop()
   }
 
   var onStopHooks = Seq.empty[() => Unit]
@@ -300,7 +298,7 @@ class Interpreter(
 
   init()
 
-  handle = bridgeConfig.initClass(this,
+  bridgeConfig.initClass(this,
     evalClass(bridgeConfig.init, bridgeConfig.name).map(_._1) match {
       case Res.Success(s) => s
       case other => throw new Exception(s"Error while initializing REPL API: $other")

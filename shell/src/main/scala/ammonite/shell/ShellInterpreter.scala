@@ -5,7 +5,7 @@ import java.io.File
 import acyclic.file
 import org.apache.ivy.plugins.resolver.DependencyResolver
 import com.github.alexarchambault.ivylight.ResolverHelpers
-import ammonite.interpreter.api.{ DisplayItem, ImportData, BridgeConfig, BridgeHandle }, DisplayItem._
+import ammonite.interpreter.api.{ DisplayItem, ImportData, BridgeConfig }, DisplayItem._
 import ammonite.interpreter._
 import ammonite.pprint
 import ammonite.shell.util._
@@ -66,8 +66,6 @@ object ShellInterpreter {
              cls.asInstanceOf[Class[ReplAPIHolder]],
              replApi
            )
-
-           BridgeHandle.empty
     }
 
   def wrap(classWrap: Boolean) =
