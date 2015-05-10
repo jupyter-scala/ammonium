@@ -21,8 +21,7 @@ class SparkTests(checker: => Checker,
   val margin = "          "
 
   val preamble = s"""
-          @ $requisite
-          $requisiteResult
+          @ $requisite${Some(requisiteResult).filter(_.nonEmpty).map("\n" + margin + _).mkString}
 
           @ import ammonite.spark.Spark ${if (importSparkContextContent) "; import org.apache.spark.SparkContext._" else ""}
           import ammonite.spark.Spark${if (importSparkContextContent) s"\n${margin}import org.apache.spark.SparkContext._" else ""}
