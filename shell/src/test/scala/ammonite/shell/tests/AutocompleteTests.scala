@@ -3,7 +3,7 @@ package tests
 
 import utest._
 
-class AutocompleteTests(check0: => Checker) extends TestSuite{
+class AutocompleteTests(check0: => Checker, checkSignatures: Boolean = true) extends TestSuite{
 
   val tests = TestSuite{
     val check = check0
@@ -17,8 +17,10 @@ class AutocompleteTests(check0: => Checker) extends TestSuite{
 
       val left = cmp(completions.toSet)
       assert(left == Set())
-      val sigLeft = sigs(signatures.toSet)
-      assert(sigLeft == Set())
+      if (checkSignatures) {
+        val sigLeft = sigs(signatures.toSet)
+        assert(sigLeft == Set())
+      }
     }
 
     // Not sure why clone and finalize don't appear in this list
