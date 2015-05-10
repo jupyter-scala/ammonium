@@ -1,26 +1,35 @@
 package ammonite.spark
 package tests
 
+import org.apache.spark.SPARK_VERSION
+
 import ammonite.shell.Checker
 import utest._
 
-class SparkTests(checker: => Checker, master: String, broadcastOk: Boolean = true) extends TestSuite {
+class SparkTests(
+  checker: => Checker,
+  master: String,
+  broadcastOk: Boolean = true,
+  hasDataFrames: Boolean = SPARK_VERSION.split('.').take(2).map(_.toInt) match { case Array(m0, m1) => m0 > 1 || (m0 == 1 && m1 >= 3) },
+  wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$cur.INSTANCE.$$ref$$cmd$ref"
+) extends TestSuite {
 
   val preamble = s"""
-          @ @transient val h = new ammonite.spark.SparkHandle
-          h: ammonite.spark.SparkHandle = SparkHandle(uninitialized)
+          @ import ammonite.spark.Spark
+          import ammonite.spark.Spark
 
-          @ { h.sparkConf.setMaster("$master"); () }
+          @ Spark.withConf(_.setMaster("$master"))
           res1: Unit = ()
 
-          @ @transient val sc = h.sc
-          sc: org.apache.spark.SparkContext = org.apache.spark.SparkContext
+          @ import Spark.sc; Spark.start()
+          import Spark.sc
+          res2_1: Unit = ()
 
       """
 
   val postamble =
     """
-          @ sc.stop()
+          @ Spark.stop()
     """
 
   val tests = TestSuite {
@@ -125,12 +134,12 @@ class SparkTests(checker: => Checker, master: String, broadcastOk: Boolean = tru
 
     'sparkIssue1199{
       check.session(preamble +
-        """
+       s"""
           @ case class Sum(exp: String, exp2: String)
           defined class Sum
 
           @ val a = Sum("A", "B")
-          a: cmd4.INSTANCE.$ref2.Sum = Sum("A", "B")
+          a: ${wrapperInstance(3, 4)}.Sum = Sum("A", "B")
 
           @ def b(a: Sum): String = a match { case Sum(_, _) => "Found Sum" }
           defined function b
@@ -153,57 +162,67 @@ class SparkTests(checker: => Checker, master: String, broadcastOk: Boolean = tru
     }
 
     'sparkIssue2576{
-      check.session(preamble +
-        """
-          @ @transient val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+      val imp = if (hasDataFrames) "sqlContext.implicits._" else "sqlContext.createSchemaRDD"
+      val toFrameMethod = if (hasDataFrames) "toDF()" else "toSchemaRDD"
 
-          @ import sqlContext.implicits._
+      check.session(preamble +
+       s"""
+          @ import Spark.sqlContext
+          import Spark.sqlContext
+
+          @ import $imp
+          import $imp
 
           @ case class TestCaseClass(value: Int)
+          defined class TestCaseClass
 
-          @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).toDF().collect()
-
-          @ sqlContext.stop()
+          @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).$toFrameMethod.collect()
+          res6: scala.Array[org.apache.spark.sql.Row] = Array([1], [2], [3], [4], [5], [6], [7], [8], [9], [10])
         """, postamble)
     }
 
-//    'sparkIssue2632{
-//      check.session(preamble +
-//        """
-//          @ class TestClass() { def testMethod = 3; override def toString = "TestClass" }
-//          defined class TestClass
-//
-//          @ val t = new TestClass
-//          t: cmd4$Main.INSTANCE.$ref3.TestClass = TestClass
-//
-//          @ import t.testMethod
-//          import t.testMethod
-//
-//          @ case class TestCaseClass(value: Int)
-//          defined class TestCaseClass
-//
-//          @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
-//          res7: Unit = ()
-//        """, postamble)
-//    }
+    'sparkIssue2632{
+      check.session(preamble +
+       s"""
+          @ class TestClass() { def testMethod = 3; override def toString = "TestClass" }
+          defined class TestClass
+
+          @ val t = new TestClass
+          t: ${wrapperInstance(3, 4)}.TestClass = TestClass
+
+          @ import t.testMethod
+          import t.testMethod
+
+          @ case class TestCaseClass(value: Int)
+          defined class TestCaseClass
+
+          @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
+          res7: scala.Array[${wrapperInstance(6, 7)}.TestCaseClass] = Array(${(1 to 10).map(i => s"  TestCaseClass($i)").mkString("\n", ",\n", "\n")})
+        """, postamble)
+    }
 
     'collectingObjClsDefinedInRepl{
       check.session(preamble +
-        """
+       s"""
           @ case class Foo(i: Int)
+          defined class Foo
 
-          @ val ret = sc.parallelize((1 to 100).map(Foo), 10).collect()
+          @ sc.parallelize((1 to 100).map(Foo), 10).collect()
+          res4: scala.Array[${wrapperInstance(3, 4)}.Foo] = Array(${(1 to 100).map(i => s"  Foo($i)").mkString("\n", ",\n", "\n")})
         """, postamble)
     }
 
     'collectingObjClsDefinedInReplShuffling{
       check.session(preamble +
-        """
+       s"""
           @ case class Foo(i: Int)
+          defined class Foo
 
           @ val list = List((1, Foo(1)), (1, Foo(2)))
+          list: List[(Int, ${wrapperInstance(3, 4)}.Foo)] = List((1, Foo(1)), (1, Foo(2)))
 
-          @ val ret = sc.parallelize(list).groupByKey().collect()
+          @ sc.parallelize(list).groupByKey().collect()
+          res5: scala.Array[(Int, scala.Iterable[${wrapperInstance(3, 4)}.Foo])] = Array((1, CompactBuffer(Foo(1), Foo(2))))
         """, postamble)
     }
   }

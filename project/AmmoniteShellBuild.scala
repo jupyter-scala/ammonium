@@ -60,7 +60,10 @@ object AmmoniteShellBuild extends Build {
     },
     publishMavenStyle := true,
     ReleaseKeys.versionBump := sbtrelease.Version.Bump.Bugfix,
-    ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value
+    ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value,
+    fork in test := true,
+    fork in (Test, test) := true,
+    fork in (Test, testOnly) := true
   ) ++ releaseSettings
 
   private lazy val testSettings = Seq(
@@ -68,9 +71,6 @@ object AmmoniteShellBuild extends Build {
       "com.lihaoyi" %% "utest" % "0.3.0" % "test"
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
-    fork in test := true,
-    fork in (Test, test) := true,
-    fork in (Test, testOnly) := true,
     testOptions in Test := {
       sys.env.get("AMM_SPARK_CLUSTER_TESTS") match {
         case Some("0") => Seq(Tests.Filter(s => !s.startsWith("ammonite.spark.localcluster") && !s.startsWith("ammonite.spark.standalonecluster")))
@@ -114,6 +114,7 @@ object AmmoniteShellBuild extends Build {
         target := target.value / s"spark-$binaryVersion",
         libraryDependencies ++= Seq(
           "org.apache.spark" %% "spark-core" % sparkVersion,
+          "org.apache.spark" %% "spark-sql" % sparkVersion,
           "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
         )
       )

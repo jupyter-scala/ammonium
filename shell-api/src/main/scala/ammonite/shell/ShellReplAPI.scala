@@ -43,4 +43,12 @@ object ReplAPIHolder{
       .get
     method.invoke(null, api)
   }
+
+  def currentReplAPI: Option[ReplAPI with FullShellReplAPI] =
+    try {
+      val cls = Class.forName("ReplBridge$", true, Thread.currentThread().getContextClassLoader)
+      Option(cls.getField("MODULE$").get(null).asInstanceOf[ReplAPIHolder].shell)
+    } catch {
+      case _: ClassNotFoundException => None
+    }
 }

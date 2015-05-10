@@ -8,32 +8,27 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
 import ammonite.shell.Power
 import org.apache.spark.{ SparkContext, SparkConf }
+import org.apache.spark.sql.SQLContext
 
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 
-class SparkHandle(implicit power: Power) extends Serializable { api =>
+class Spark(implicit power: Power) extends Serializable { api =>
 
-  lazy val host =
+  private lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
 
-  var _classServerURI: URI = null
-  @transient var _classServer: Server = null
+  private var _classServerURI: URI = null
+  @transient private var _classServer: Server = null
 
-  def classServerURI = {
+  private def classServerURI = {
     if (_classServerURI == null)
       initClassServer()
     _classServerURI
   }
 
-  def classServer = {
-    if (_classServer == null)
-      initClassServer()
-    _classServer
-  }
-
-  def initClassServer() = {
+  private def initClassServer() = {
     val socketAddress = InetSocketAddress.createUnresolved(host, {
       val s = new ServerSocket(0)
       val port = s.getLocalPort
@@ -80,13 +75,13 @@ class SparkHandle(implicit power: Power) extends Serializable { api =>
     _classServer = server
   }
 
-  def defaultMaster = {
+  private def defaultMaster = {
     val envMaster = sys.env.get("MASTER")
     val propMaster = sys.props.get("spark.master")
     propMaster.orElse(envMaster).getOrElse("local[*]")
   }
 
-  def availablePort(from: Int): Int = {
+  private def availablePort(from: Int): Int = {
     var socket: ServerSocket = null
     try {
       socket = new ServerSocket(from)
@@ -126,9 +121,18 @@ class SparkHandle(implicit power: Power) extends Serializable { api =>
         conf.set("spark.home", sparkHome)
   }
 
-  lazy val sparkConf: SparkConf = new SparkConf()
+  @transient private var _sparkConf: SparkConf = null
+  @transient private var _sc: SparkContext = null
 
-  @transient var _sc: SparkContext = null
+  def sparkConf: SparkConf = {
+    if (_sparkConf == null)
+      _sparkConf = new SparkConf()
+
+    _sparkConf
+  }
+
+  def withConf(f: SparkConf => SparkConf): Unit =
+    _sparkConf = f(sparkConf)
 
   power.classes.onJarsAdded { newJars =>
     if (_sc != null)
@@ -154,6 +158,11 @@ class SparkHandle(implicit power: Power) extends Serializable { api =>
     _sc
   }
 
+  /** Helper to force the initialization of the SparkContext */
+  def start(): Unit = {
+    sc
+  }
+
   def stop() = {
     if (_sc != null) {
       _sc.stop()
@@ -167,6 +176,20 @@ class SparkHandle(implicit power: Power) extends Serializable { api =>
       _classServerURI = null
   }
 
+  lazy val sqlContext: SQLContext = new SQLContext(sc)
+
   override def toString: String =
-    "SparkHandle" + (if (_sc == null) "(uninitialized)" else "")
+    "Spark" + (if (_sc == null) "(uninitialized)" else "")
 }
+
+/** Default global Spark instance - available only from Ammonite */
+object Spark extends Spark()({
+  ammonite.shell.ReplAPIHolder.currentReplAPI match {
+    case None =>
+      throw new NoSuchElementException(
+        "Ammonite Spark does not seem to be running in from an Ammonite kernel.\n" +
+        "The global instance ammonite.spark.Spark cannot be used out of Ammonite.")
+
+    case Some(api) => api.power
+  }
+})
