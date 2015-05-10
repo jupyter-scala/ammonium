@@ -64,7 +64,12 @@ case class Ammonite(shellPrompt: String = "@",
   val resolvers = Seq(
     Resolver.localRepo,
     Resolver.defaultMaven
-  )
+  ) ++ {
+    if (BuildInfo.version endsWith "-SNAPSHOT")
+      Seq(Resolver.sonatypeRepo("snapshots"))
+    else
+      Seq()
+  }
 
   /*
    * Hackish workaround for when we're launched from an sbt-pack package:
