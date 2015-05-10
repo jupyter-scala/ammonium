@@ -59,9 +59,9 @@ object Sbt {
 
   private val projectsBuilder = new ProcessBuilder("sbt", "projects")
 
-  def projects(dir: File) = {
+  def projects(dir: File): Seq[String] = {
     val proc = projectsBuilder.directory(dir).start()
-    Source.fromInputStream(proc.getInputStream).getLines().toList
+    parseProjects(Source.fromInputStream(proc.getInputStream).getLines().toList)
   }
 
   case class ProjectInfo(module: Module, dependencies: Seq[Module], exportedProducts: Seq[String], unmanagedClasspath: Seq[String])
