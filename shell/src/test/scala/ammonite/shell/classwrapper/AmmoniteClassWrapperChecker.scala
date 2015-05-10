@@ -9,11 +9,6 @@ class AmmoniteClassWrapperChecker extends AmmoniteChecker {
       ShellInterpreter.bridgeConfig(),
       ShellInterpreter.preprocessor,
       ShellInterpreter.classWrap,
-      handleResult = {
-        val transform = Wrap.classWrapImportsTransform _
-        (buf, r) => transform(r)
-      },
-      stdout = allOutput += _,
       useClassWrapper = true
     )
 }

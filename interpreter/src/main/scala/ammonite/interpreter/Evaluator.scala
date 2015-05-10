@@ -205,11 +205,21 @@ object Evaluator{
     }
 
     def update(newImports: Seq[ImportData]) = {
-      for(i <- newImports)
-        if (!i.prefix.matches("cmd.*" + java.util.regex.Pattern.quote(".$ref") + "[0-9]*$"))
-          previousImports(i.toName) = i
-        else
-          Console.err println s"Filtered import $i"
+      val newImports0 =
+        if (useClassWrapper) {
+          newImports.map { d =>
+            if (d.prefix.startsWith(d.wrapperName + ".$ref$")) {
+              // Assuming this is an import through previous REPL variables
+              val stripped = d.prefix.stripPrefix(d.wrapperName + ".$ref$")
+              d.copy(prefix = stripped, wrapperName = stripped.takeWhile(_ != '.'))
+            } else
+              d
+          }
+        } else
+          newImports
+
+      for(i <- newImports0)
+        previousImports(i.toName) = i
     }
   }
 

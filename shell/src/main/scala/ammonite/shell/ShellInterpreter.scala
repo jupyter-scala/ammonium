@@ -31,9 +31,9 @@ object ShellInterpreter {
           val _pprintConfig = pprintConfig
           var replApi: ReplAPI with FullShellReplAPI = null
 
-          (intp, cls, stdout) =>
+          (intp, cls) =>
             if (replApi == null)
-              replApi = new ReplAPIImpl(intp, s => stdout(s + "\n"), startJars, startIvys, startResolvers) with ShellReplAPIImpl {
+              replApi = new ReplAPIImpl(intp, startJars, startIvys, startResolvers) with ShellReplAPIImpl {
                 def colors = _colors
                 def shellPrompt0 = _shellPrompt
                 def pprintConfig = _pprintConfig

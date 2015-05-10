@@ -21,7 +21,6 @@ class AmmoniteChecker extends Checker {
       ShellInterpreter.bridgeConfig(),
       ShellInterpreter.preprocessor,
       ShellInterpreter.wrap,
-      stdout = allOutput += _,
       startingLine = if (predef.nonEmpty) -1 else 0
     )
 
@@ -50,8 +49,6 @@ class AmmoniteChecker extends Checker {
         if (!line.startsWith("//")) {
           failLoudly(assert(processed.isInstanceOf[Res.Buffer]))
         }
-
-        interp.handleOutput(processed)
       }
       if (expected.startsWith("error: ")){
         fail(commandText.last, _.contains(expected.drop("error: ".length)))

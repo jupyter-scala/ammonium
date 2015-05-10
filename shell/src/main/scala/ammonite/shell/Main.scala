@@ -1,6 +1,6 @@
 package ammonite.shell
 
-import java.io._
+import java.io.{ Console => _, _ }
 import ammonite.interpreter._
 import ammonite.pprint
 import ammonite.shell.util._
@@ -50,8 +50,19 @@ class Main(input: InputStream,
   def run() = {
     @tailrec def loop(): Unit = {
       val res = action()
+
+      res match {
+        case Res.Failure(msg) => println(Console.RED + msg + Console.RESET)
+        case _ =>
+      }
+
+      frontEnd.update(interp.buffered, res)
+
       if (interp.handleOutput(res)) loop()
-      else interp.stop()
+      else {
+        println("Bye!")
+        interp.stop()
+      }
     }
     loop()
   }
@@ -63,8 +74,6 @@ object Main{
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
       ShellInterpreter.wrap,
-      handleResult = { (buf, r) => main.frontEnd.update(buf, r); r },
-      stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
       startingLine = if (hasPredef) -1 else 0,
       classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs)
@@ -77,11 +86,6 @@ object Main{
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
       ShellInterpreter.classWrap,
-      handleResult = {
-        val transform = Wrap.classWrapImportsTransform _
-        (buf, r0) => val r = transform(r0); main.frontEnd.update(buf, r); r
-      },
-      stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
       startingLine = if (hasPredef) -1 else 0,
       classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs),

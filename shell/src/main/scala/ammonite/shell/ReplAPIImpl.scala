@@ -14,7 +14,6 @@ import ammonite.shell.util._
 
 class ReplAPIImpl(
   intp: Interpreter,
-  println: String => Unit,
   startJars: Seq[File],
   startIvys: Seq[(String, String, String)],
   startResolvers: Seq[DependencyResolver]
@@ -27,11 +26,20 @@ class ReplAPIImpl(
 
   object load extends Load{
 
-    def apply(line: String) = intp.handleOutput(intp.processLine(
-      line,
-      (_, _) => (), // Discard history of load-ed lines,
-      print
-    ))
+    def apply(line: String) = {
+      val res = intp.processLine(
+        line,
+        (_, _) => (), // Discard history of load-ed lines,
+        print
+      )
+
+      res match {
+        case Res.Failure(msg) => println(Console.RED + msg + Console.RESET)
+        case _ =>
+      }
+
+      intp.handleOutput(res)
+    }
 
     private var userJars = startJars
     private var userIvys = startIvys

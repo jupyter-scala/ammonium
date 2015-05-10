@@ -9,7 +9,7 @@ import scala.tools.nsc.Global
 case class BridgeConfig(
   init: String,
   name: String,
-  initClass: Unit => (Interpreter, Class[_], String => Unit) => BridgeHandle,
+  initClass: Unit => (Interpreter, Class[_]) => BridgeHandle,
   imports: Seq[(String, ImportData)]
 )
 
@@ -32,8 +32,6 @@ object BridgeHandle {
 class Interpreter(bridgeConfig: BridgeConfig,
                   preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output],
                   wrap: (Preprocessor.Output, String, String) => String,
-                  handleResult: => (String, Res[Evaluated[_]]) => Res[Evaluated[_]] = (_, r) => r,
-                  stdout: String => Unit = print, // should be removed
                   startingLine: Int = 0,
                   initialImports: Seq[(String, ImportData)] = Nil,
                   initialHistory: Seq[String] = Nil,
@@ -61,9 +59,7 @@ class Interpreter(bridgeConfig: BridgeConfig,
     } finally Thread.currentThread().setContextClassLoader(oldClassloader)
   } yield out
 
-  def handleOutput(res0: Res[Evaluated[_]]) = {
-    val res = handleResult(buffered, res0)
-
+  def handleOutput(res: Res[Evaluated[_]]) = {
     res match{
       case Res.Skip =>
         buffered = ""
@@ -76,7 +72,6 @@ class Interpreter(bridgeConfig: BridgeConfig,
         buffered = line + "\n"
         true
       case Res.Exit =>
-        stdout("Bye!\n")
         pressy.shutdownPressy()
         false
       case Res.Success(ev) =>
@@ -85,7 +80,6 @@ class Interpreter(bridgeConfig: BridgeConfig,
         true
       case Res.Failure(msg) =>
         buffered = ""
-        stdout(Console.RED + msg + Console.RESET + "\n")
         true
     }
   }
@@ -116,7 +110,7 @@ class Interpreter(bridgeConfig: BridgeConfig,
       case Res.Success(s) => s
       case other => throw new Exception(s"Error while initializing REPL API: $other")
     }
-    handle = bridgeInitClass(interp, cls, stdout)
+    handle = bridgeInitClass(interp, cls)
   }
 
   def stop() = {
