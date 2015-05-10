@@ -67,12 +67,7 @@ object ShellInterpreter {
            }
     }
 
-  def wrap(classWrap: Boolean): (Seq[Decl], String, String) => String = {
-    def merge(disp: Seq[DisplayItem]) =
-      disp.map(ShellDisplay(_)).reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")
-
-    (p, previousImportBlock, wrapperName) =>
-      Wrap(p.map(_.code) mkString " ; ", merge(p.flatMap(_.display)), previousImportBlock, wrapperName, classWrap)
-  }
+  def wrap(classWrap: Boolean) =
+    Wrap(_.map(ShellDisplay(_)).reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()"), classWrap)
 
 }

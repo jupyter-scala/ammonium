@@ -19,8 +19,7 @@ class Main(input: InputStream,
            classWrap: Boolean = false) {
 
   val startClassLoader = Thread.currentThread().getContextClassLoader
-  val startJars = Classpath.jarDeps
-  val startDirs = Classpath.dirDeps
+  val (startJars, startDirs) = Classes.default(startClassLoader)
 
   val startIvys = Seq.empty[(String, String, String)]
 
@@ -39,7 +38,7 @@ class Main(input: InputStream,
       ShellInterpreter.bridgeConfig(startJars = startJars, startIvys = startIvys, shellPrompt = shellPrompt, pprintConfig = pprintConfig.copy(maxWidth = frontEnd.width), colors = colorSet),
       ShellInterpreter.wrap(classWrap),
       imports = new Imports(useClassWrapper = true),
-      classes = new DefaultClassesImpl(startClassLoader, startJars, startDirs),
+      classes = new DefaultClassesImpl(startClassLoader, (startJars, startDirs)),
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory
     )

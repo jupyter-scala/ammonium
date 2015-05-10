@@ -17,6 +17,10 @@ case class BridgeConfig(
   val initClass: (Interpreter, Class[_]) => BridgeHandle
 )
 
+object BridgeConfig {
+  val empty = BridgeConfig("object Bridge", "Bridge", Nil)((_, _) => BridgeHandle.empty)
+}
+
 trait BridgeHandle {
   def stop(): Unit
 }
@@ -26,7 +30,64 @@ object BridgeHandle {
     new BridgeHandle {
       def stop() = onStop
     }
+
+  val empty = apply(())
 }
+
+
+object Wrap {
+  val default = apply(_.map {
+    case DisplayItem.Definition(label, name) => s"""println("defined $label $name")"""
+    case DisplayItem.Import(imported) => s"""println("import $imported")"""
+    case DisplayItem.Identity(ident) => s"""println("$ident = " + $$user.$ident)"""
+    case DisplayItem.LazyIdentity(ident) => s"""println("$ident = <lazy>")"""
+  } .mkString(" ; "))
+
+  def apply(displayCode: Seq[DisplayItem] => String, classWrap: Boolean = false) = {
+    (decls: Seq[Decl], previousImportBlock: String, wrapperName: String) =>
+      val code = decls.map(_.code) mkString " ; "
+      val mainCode = displayCode(decls.flatMap(_.display))
+
+      if (classWrap)
+        s"""object $wrapperName extends AnyRef {
+            val INSTANCE = new $wrapperName
+          }
+
+          object $wrapperName$$Main extends AnyRef {
+            $previousImportBlock
+
+            def $$main() = {
+              val $$execute = $wrapperName.INSTANCE
+              import $wrapperName.INSTANCE.$$user
+              $mainCode
+            }
+          }
+
+
+          class $wrapperName extends Serializable {
+            $previousImportBlock
+
+            class $$user extends Serializable {
+              $code
+            }
+
+            val $$user = new $$user
+          }
+       """
+      else
+        s"""$previousImportBlock
+
+            object $wrapperName$$Main {
+              def $$main() = {val $$user = $wrapperName; $mainCode}
+            }
+
+            object $wrapperName{
+              $code
+            }
+         """
+  }
+}
+
 
 /**
  * Thrown to exit the interpreter cleanly
@@ -39,8 +100,8 @@ case object Exit extends ControlThrowable
  * real encapsulation for now.
  */
 class Interpreter(
-  bridgeConfig: BridgeConfig,
-  wrap: (Seq[Decl], String, String) => String,
+  bridgeConfig: BridgeConfig = BridgeConfig.empty,
+  wrap: (Seq[Decl], String, String) => String = Wrap.default,
   val imports: Imports = new Imports(),
   val classes: Classes = new DefaultClassesImpl(),
   startingLine: Int = 0,
