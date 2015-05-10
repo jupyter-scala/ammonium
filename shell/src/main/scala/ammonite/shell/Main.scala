@@ -10,12 +10,13 @@ import scala.annotation.tailrec
 
 class Main(input: InputStream,
            val output: OutputStream,
-           createInterpreter: Main => Interpreter,
            val colorSet: ColorSet = ColorSet.Default,
            val pprintConfig: pprint.Config = pprint.Config.Colors.PPrintConfig,
            shellPrompt0: String = "@",
            val initialHistory: Seq[String] = Nil,
-           saveHistory: String => Unit = _ => ()) {
+           saveHistory: String => Unit = _ => (),
+           predef: String = "",
+           classWrap: Boolean = false) {
 
   val startClassLoader = Thread.currentThread().getContextClassLoader
   val startJars = Classpath.jarDeps
@@ -33,7 +34,21 @@ class Main(input: InputStream,
     initialHistory
   )
 
-  val interp = createInterpreter(this)
+  val interp: Interpreter =
+    new Interpreter(
+      ShellInterpreter.bridgeConfig(startJars = startJars, startIvys = startIvys, shellPrompt = shellPrompt, pprintConfig = pprintConfig.copy(maxWidth = frontEnd.width), colors = colorSet),
+      if (classWrap) ShellInterpreter.classWrap(ShellInterpreter.mergePrinters) else ShellInterpreter.wrap(ShellInterpreter.mergePrinters),
+      imports = new Imports(useClassWrapper = true),
+      classes = new DefaultClassesImpl(startClassLoader, startJars, startDirs),
+      startingLine = if (predef.nonEmpty) -1 else 0,
+      initialHistory = initialHistory
+    )
+
+  if (predef.nonEmpty) {
+    val res1 = interp.processLine(predef, (_, _) => (), (it: Iterator[String]) => it.foreach(print))
+    val res2 = interp.handleOutput(res1)
+    print("\n")
+  }
 
   def action() = for{
     // Condition to short circuit early if `interp` hasn't finished evaluating
@@ -68,37 +83,22 @@ class Main(input: InputStream,
 }
 
 object Main{
-  def shellInterpreter(main: Main, hasPredef: Boolean): Interpreter =
-    new Interpreter(
-      ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
-      ShellInterpreter.wrap(ShellInterpreter.mergePrinters),
-      classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs),
-      startingLine = if (hasPredef) -1 else 0,
-      initialHistory = main.initialHistory
-    )
+  def main(args: Array[String]) = {
+    val classWrap =
+      Option(args) match {
+        case Some(Array("--class-wrap")) => true
+        case _ => false
+      }
 
-  val classWrapperInstanceSymbol = "INSTANCE"
+    // FIXME predef is ignored
+    val predef = ""
 
-  def shellClassWrapInterpreter(main: Main, hasPredef: Boolean): Interpreter =
-    new Interpreter(
-      ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
-      ShellInterpreter.classWrap(ShellInterpreter.mergePrinters),
-      imports = new Imports(useClassWrapper = true),
-      classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs),
-      startingLine = if (hasPredef) -1 else 0,
-      initialHistory = main.initialHistory
-    )
-
-  def apply(
-    interpreter: Main => Interpreter
-  ): Unit = {
     println("Loading Ammonite Shell...")
 
     val saveFile = new java.io.File(System.getProperty("user.home")) + "/.amm"
     val delimiter = "\n\n\n"
     val shell = new Main(
       System.in, System.out,
-      interpreter,
       initialHistory = try{
         scala.io.Source.fromFile(saveFile).mkString.split(delimiter)
       }catch{case e: FileNotFoundException =>
@@ -108,28 +108,10 @@ object Main{
         val fw = new FileWriter(saveFile, true)
         try fw.write(delimiter + s)
         finally fw.close()
-      }
+      },
+      predef = predef,
+      classWrap = classWrap
     )
     shell.run()
   }
-
-  def main(args: Array[String]) = {
-    val classWrap =
-      Option(args) match {
-        case Some(Array("--class-wrap")) => true
-        case _ => false
-      }
-
-    run(classWrap = classWrap)
-  }
-  def run(predef: String = "", classWrap: Boolean = false) =
-    apply({ m =>
-      val intp = if (classWrap) shellClassWrapInterpreter(m, predef.nonEmpty) else shellInterpreter(m, predef.nonEmpty)
-      if (predef.nonEmpty) {
-        val res1 = intp.processLine(predef, (_, _) => (), (it: Iterator[String]) => it.foreach(print))
-        val res2 = intp.handleOutput(res1)
-        print("\n")
-      }
-      intp
-    })
 }
