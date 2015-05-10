@@ -101,7 +101,7 @@ class DefaultClassesImpl(
   def addJars(jars: File*) = {
     newClassLoader()
     var newJars = Seq.empty[File]
-    for (jar <- jars if !startDeps._1.contains(jar) && !extraJars.contains(jar)) {
+    for (jar <- jars if !startDeps._1.contains(jar) && !extraJars.contains(jar) && jar.getName.endsWith(".jar")) {
       classLoader addURL jar.toURI.toURL
       newJars = newJars :+ jar
     }

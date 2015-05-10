@@ -1,10 +1,12 @@
 package ammonite.shell
 
 import java.io.{ Console => _, _ }
+import java.util.UUID
 import ammonite.interpreter._
 import ammonite.pprint
 import ammonite.shell.util._
 import acyclic.file
+import com.github.alexarchambault.ivylight.{ResolverHelpers, IvyHelper, ClassLoaderUtil}
 
 import scala.annotation.tailrec
 
@@ -18,10 +20,32 @@ class Main(input: InputStream,
            predef: String = "",
            classWrap: Boolean = false) {
 
-  val startClassLoader = Thread.currentThread().getContextClassLoader
-  val (startJars, startDirs) = Classes.default(startClassLoader)
+  val startIvys = Seq(
+    ("org.scala-lang", "scala-library", scala.util.Properties.versionNumberString),
+    ("com.github.alexarchambault", "ammonite-shell-api_2.11.6", "0.3.0-SNAPSHOT")
+  )
 
-  val startIvys = Seq.empty[(String, String, String)]
+  val resolvers = Seq(
+    ResolverHelpers.localRepo,
+    ResolverHelpers.defaultMaven
+  )
+
+  val (startJars0, startDirs) = {
+    System.getProperty("sun.boot.class.path").split(File.pathSeparatorChar).map(new java.io.File(_)) ++
+      IvyHelper.resolve(startIvys, resolvers)
+  } .filter(_.exists()) .partition(_.getName.endsWith(".jar"))
+
+  val m = Classes.default()._1.map(f => f.getName -> f).toMap
+  val startJars = startJars0.map(f => m.getOrElse(f.getName, f))
+  println(s"start jars:\n${startJars mkString "\n"}")
+
+  val startClassLoader = ClassLoaderUtil.makeLoader(
+    startJars ++ startDirs,
+    null,
+    getClass.getClassLoader,
+    Nil,
+    { val dir = new File(new File(System.getProperty("java.io.tmpdir")), s"ammonite-${UUID.randomUUID()}"); dir.mkdirs(); dir.deleteOnExit(); dir }
+  )
 
   val shellPrompt = Ref(shellPrompt0)
 

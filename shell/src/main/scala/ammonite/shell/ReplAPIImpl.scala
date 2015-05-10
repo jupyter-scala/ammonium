@@ -2,8 +2,9 @@ package ammonite.shell
 
 import java.io.File
 
+import ammonite.shell.IvyConstructor.Resolvers
 import org.apache.ivy.plugins.resolver.DependencyResolver
-import com.github.alexarchambault.ivylight.IvyHelper
+import com.github.alexarchambault.ivylight.{ResolverHelpers, IvyHelper}
 
 import scala.reflect.runtime.universe._
 import acyclic.file
@@ -43,6 +44,7 @@ class ReplAPIImpl(
 
     private var userJars = startJars
     private var userIvys = startIvys
+    private var warnedJars = Set.empty[File]
     private var userResolvers = startResolvers
 
     def jar(jar: File*): Unit = {
@@ -52,21 +54,28 @@ class ReplAPIImpl(
     }
     def ivy(coordinates: (String, String, String)*): Unit = {
       userIvys = userIvys ++ coordinates
-      val newJars = IvyHelper.resolve(userIvys, userResolvers).filter(null.!=) ++ userJars
+      val newIvyJars = IvyHelper.resolve(userIvys, userResolvers)
+      val newJars = newIvyJars ++ userJars
 
       val removedJars = intp.classes.jars.toSet -- newJars
-      if (removedJars.nonEmpty) {
+      if ((removedJars -- warnedJars).nonEmpty) {
         println(
           s"Warning: the following JARs were previously added and are no more required:" +
-          removedJars.toList.sorted.map("  ".+).mkString("\n", "\n", "\n") +
+          (removedJars -- warnedJars).toList.sorted.map("  ".+).mkString("\n", "\n", "\n") +
           "It is likely they were updated, which may lead to instabilities in the REPL.")
       }
+      warnedJars = removedJars
 
       intp.classes.addJars(newJars: _*)
       intp.init()
     }
     def resolver(resolver: Resolver*): Unit = {
-      userResolvers = userResolvers ++ resolver.map(_.asInstanceOf[IvyConstructor.Resolvers.Resolver].underlying)
+      userResolvers = userResolvers ++ resolver.map {
+        case Resolvers.Local =>
+          ResolverHelpers.localRepo
+        case Resolvers.Central =>
+          ResolverHelpers.defaultMaven
+      }
     }
   }
   lazy val power: Power = new Power with Serializable {
@@ -96,23 +105,6 @@ class ReplAPIImpl(
 }
 
 // From Ammonite's IvyThing
-
-object IvyConstructor extends IvyConstructor
-trait IvyConstructor{
-  val scalaBinaryVersion = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
-
-  implicit class GroupIdExt(groupId: String){
-    def %(artifactId: String) = (groupId, artifactId)
-    def %%(artifactId: String) = (groupId, artifactId + "_" + scalaBinaryVersion)
-  }
-  implicit class ArtifactIdExt(t: (String, String)){
-    def %(version: String) = (t._1, t._2, version)
-  }
-
-  object Resolvers {
-    case class Resolver(underlying: DependencyResolver) extends ammonite.shell.Resolver
-  }
-}
 
 trait ShellReplAPIImpl extends FullShellReplAPI {
   def colors: ColorSet

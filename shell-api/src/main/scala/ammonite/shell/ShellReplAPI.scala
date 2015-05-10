@@ -24,19 +24,19 @@ trait ShellReplAPI {
 /**
  * Things that are part of the ReplAPI that aren't really "public"
  */
-trait FullShellReplAPI extends ShellReplAPI {
+trait FullShellReplAPI extends ReplAPI with ShellReplAPI {
   def shellPPrint[T: WeakTypeTag](value: => T, ident: String): String
   def shellPrintDef(definitionLabel: String, ident: String): String
   def shellPrintImport(imported: String): String
 }
 
 class ReplAPIHolder {
-  var shell0: ReplAPI with FullShellReplAPI = null
+  var shell0: FullShellReplAPI = null
   lazy val shell = shell0
 }
 
 object ReplAPIHolder{
-  def initReplBridge(holder: Class[ReplAPIHolder], api: ReplAPI with FullShellReplAPI) = {
+  def initReplBridge(holder: Class[ReplAPIHolder], api: FullShellReplAPI) = {
     val method = holder
       .getDeclaredMethods
       .find(_.getName == "shell0_$eq")

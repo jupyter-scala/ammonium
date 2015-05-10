@@ -5,7 +5,8 @@ import java.net.{URISyntaxException, URL}
 import java.util.Collections
 
 import org.apache.ivy.Ivy
-import org.apache.ivy.core.module.descriptor.{Artifact => IArtifact, DependencyDescriptor, DefaultDependencyDescriptor, DefaultModuleDescriptor}
+import org.apache.ivy.core.module.descriptor.Configuration.Visibility
+import org.apache.ivy.core.module.descriptor.{Artifact => IArtifact, Configuration, DependencyDescriptor, DefaultDependencyDescriptor, DefaultModuleDescriptor}
 import org.apache.ivy.core.module.id.ModuleRevisionId
 import org.apache.ivy.core.resolve.{ResolveData, ResolveOptions}
 import org.apache.ivy.core.settings.IvySettings
@@ -39,23 +40,30 @@ object IvyHelper {
 
   def resolve(artifacts: Seq[(String, String, String)], resolvers: Seq[DependencyResolver], verbosity: Int = 2) = {
     maxLevel = verbosity
-    val ivy = Ivy.newInstance {
+    val ivy = new Ivy()
+    ivy.setSettings {
       val ivySettings = new IvySettings()
       ivySettings.setBaseDir(ResolverHelpers.ivyHome)
       setResolvers(ivySettings, resolvers)
       ivySettings
     }
+    ivy.bind()
 
-    val ivyfile = File.createTempFile("ivy", ".xml")
-    ivyfile.deleteOnExit()
-
-    val md = DefaultModuleDescriptor.newDefaultInstance(
-      ModuleRevisionId.newInstance(
-        "ammonite",
-        "shell",
-        "working"
-      )
+    val md = new DefaultModuleDescriptor(
+      ModuleRevisionId.newInstance("ammonite", "shell", "working"),
+      "release", null, false
     )
+
+    md.setLastModified(System.currentTimeMillis)
+    md.setDescription("")
+
+    md.addConfiguration(new Configuration("compile", Visibility.PUBLIC, "", Array(), true, null))
+    md.addConfiguration(new Configuration("runtime", Visibility.PUBLIC, "", Array("compile"), true, null))
+    md.addConfiguration(new Configuration("test", Visibility.PUBLIC, "", Array("runtime"), true, null))
+    md.addConfiguration(new Configuration("provided", Visibility.PUBLIC, "", Array(), true, null))
+    md.addConfiguration(new Configuration("optional", Visibility.PUBLIC, "", Array(), true, null))
+
+    md.setDefaultConfMapping("*->default(compile)")
 
     for ((groupId, artifactId, version) <- artifacts)
       md.addDependency {
@@ -66,18 +74,27 @@ object IvyHelper {
           false,
           true
         )
-        desc.addDependencyConfiguration("*", "*")
+        desc.addDependencyConfiguration("compile", "default(compile)")
         desc
       }
 
     //creates an ivy configuration file
+    val ivyfile = File.createTempFile("ivy", ".xml")
+    ivyfile.deleteOnExit()
     XmlModuleDescriptorWriter.write(md, ivyfile)
 
+    val resolveOptions = new ResolveOptions()
+    val resolveId = ResolveOptions.getDefaultResolveId(md)
+    resolveOptions.setResolveId(resolveId)
+    resolveOptions.setRefresh(true).setOutputReport(false)
+
     //init resolve report
-    val report = ivy.resolve(
-      ivyfile.toURI.toURL,
-      new ResolveOptions().setConfs(Array("default")).setRefresh(true).setOutputReport(false)
-    )
+    val report = ivy.resolve(ivyfile.toURI.toURL, resolveOptions)
+
+    // TODO Use these:
+    // report.getAllProblemMessages
+    // report.getUnresolvedDependencies
+
     //so you can get the jar libraries
     report.getAllArtifactsReports.map(_.getLocalFile)
   }
