@@ -4,11 +4,6 @@ import scala.reflect.runtime.universe._
 
 trait ShellReplAPI {
   /**
-   * Clears the screen of the REPL
-   */
-  def clear: Unit
-
-  /**
    *
    */
   def reset(): Unit

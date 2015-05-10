@@ -70,7 +70,7 @@ object IvyConstructor {
   }
 }
 
-trait Load extends (String => Unit){
+trait Load {
   /**
    * Load a `.jar` file
    */
