@@ -3,17 +3,15 @@ package ammonite.interpreter
 
 import acyclic.file
 import scala.collection.mutable
-import scala.reflect.internal.util.{BatchSourceFile, OffsetPosition, Position}
+import scala.reflect.internal.util.Position
 import scala.reflect.io
 import scala.reflect.io._
 import scala.tools.nsc
-import scala.tools.nsc.{Phase, Global, Settings}
+import scala.tools.nsc.{Global, Settings}
 import scala.tools.nsc.backend.JavaPlatform
 import scala.tools.nsc.interactive.Response
-import scala.tools.nsc.plugins.{PluginComponent, Plugin}
 
 import scala.tools.nsc.reporters.AbstractReporter
-import scala.tools.nsc.typechecker.Analyzer
 import scala.tools.nsc.util.ClassPath.JavaContext
 import scala.tools.nsc.util._
 
@@ -162,6 +160,27 @@ object Compiler{
         (files, imports)
       }
     }
+
+    def referencedNames(member: compiler.Tree): List[compiler.Name] = {
+      val importVars = new scala.collection.mutable.HashSet[compiler.Name]()
+
+      val tvs =
+        new compiler.Traverser {
+          override def traverse(ast: compiler.Tree) = ast match {
+            case compiler.Ident(name) =>
+              // Comments from scalac (or Spark?) say:
+              //   XXX this is obviously inadequate but it's going to require some effort to get right.
+              if (!name.toString.startsWith("x$"))
+                importVars += name
+            case _ =>
+              super.traverse(ast)
+          }
+        }
+      tvs traverse member
+
+      importVars.toList
+    }
+
 
     def parse(line: String): Either[String, Seq[Global#Tree]]= {
       val out = mutable.Buffer.empty[String]
