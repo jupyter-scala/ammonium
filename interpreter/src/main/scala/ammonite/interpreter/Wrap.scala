@@ -5,9 +5,12 @@ object Wrap {
   def obj(code: String, displayCode: String, previousImportBlock: String, wrapperName: String): String =
     s"""$previousImportBlock
 
+        object $wrapperName$$Main extends AnyRef {
+          def $$main() = {val $$user = $wrapperName; $displayCode}
+        }
+
         object $wrapperName{
           $code
-          def $$main() = {val $$user = this; $displayCode}
         }
      """
 

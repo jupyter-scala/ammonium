@@ -180,7 +180,7 @@ object Evaluator{
           Console.err println s"Line:\n$l"
         l
       }
-      (cls, newImports) <- evalClass(wrappedLine, if (useClassWrapper) wrapperName + "$Main" else wrapperName)
+      (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")
       _ = currentLine += 1
       _ <- Catching{
         case Ex(_: InitEx, Exit)                => Res.Exit
