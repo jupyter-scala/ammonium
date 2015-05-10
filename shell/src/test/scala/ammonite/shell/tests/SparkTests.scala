@@ -11,7 +11,7 @@ class SparkTests(checker: => Checker,
 
   val atLeastSpark13 = implicitly[Ordering[(Int, Int)]].compare(sparkVersion, (1, 3)) >= 0
 
-  def hasSpark5281 = true // https://issues.apache.org/jira/browse/SPARK-5281
+  def hasSpark5281 = loadAmmoniteSpark // https://issues.apache.org/jira/browse/SPARK-5281
   def hasSpark6299 = !atLeastSpark13 // https://issues.apache.org/jira/browse/SPARK-6299
   def importSparkContextContent = !atLeastSpark13
   def hasDataFrames = atLeastSpark13
