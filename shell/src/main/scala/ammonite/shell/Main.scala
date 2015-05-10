@@ -7,7 +7,6 @@ import ammonite.shell.util._
 import acyclic.file
 
 import scala.annotation.tailrec
-import scala.util.Try
 
 class Main(input: InputStream,
            val output: OutputStream,

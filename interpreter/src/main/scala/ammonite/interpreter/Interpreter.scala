@@ -1,6 +1,5 @@
 package ammonite.interpreter
 
-import java.io.File
 import acyclic.file
 
 import scala.reflect.io.VirtualDirectory

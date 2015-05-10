@@ -1,17 +1,12 @@
 package ammonite.interpreter
 
-import java.io.{File, FileOutputStream}
 import java.lang.reflect.InvocationTargetException
-import java.net.URL
-import java.util.UUID
 
 import acyclic.file
-import java.net.URLClassLoader
 import scala.reflect.runtime.universe._
 import scala.collection.mutable
 import scala.util.Try
 import scala.util.control.ControlThrowable
-import scala.util.matching.Regex
 
 /**
  * Takes source code and, with the help of a compiler and preprocessor,
