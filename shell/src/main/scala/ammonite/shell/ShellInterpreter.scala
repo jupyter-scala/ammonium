@@ -67,9 +67,7 @@ object ShellInterpreter {
              replApi
            )
 
-           BridgeHandle {
-             replApi.interpreter.stop()
-           }
+           BridgeHandle.empty
     }
 
   def wrap(classWrap: Boolean) =
