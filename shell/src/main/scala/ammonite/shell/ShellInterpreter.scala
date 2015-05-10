@@ -48,8 +48,8 @@ object ShellInterpreter {
               replApi.power.stop()
             }
       },
-      Evaluator.namesFor[ReplAPI with ShellReplAPI].map(n => n -> ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-        Evaluator.namesFor[IvyConstructor].map(n => n -> ImportData(n, n, "", "ammonite.shell.IvyConstructor")).toSeq
+      Evaluator.namesFor[ReplAPI with ShellReplAPI].map(n => ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
+        Evaluator.namesFor[IvyConstructor].map(n => ImportData(n, n, "", "ammonite.shell.IvyConstructor")).toSeq
     )
 
   val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output] =

@@ -9,6 +9,6 @@ class AmmoniteClassWrapperChecker extends AmmoniteChecker {
       ShellInterpreter.bridgeConfig(),
       ShellInterpreter.preprocessor,
       ShellInterpreter.classWrap,
-      useClassWrapper = true
+      imports = new Imports(useClassWrapper = true)
     )
 }

@@ -29,7 +29,7 @@ class Main(input: InputStream,
     input,
     output,
     colorSet.prompt + shellPrompt() + scala.Console.RESET,
-    interp.pressy.complete(_, interp.eval.previousImportBlock, _),
+    interp.pressy.complete(_, interp.imports.previousImportBlock, _),
     initialHistory
   )
 
@@ -88,7 +88,7 @@ object Main{
       initialHistory = main.initialHistory,
       startingLine = if (hasPredef) -1 else 0,
       classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs),
-      useClassWrapper = true
+      imports = new Imports(useClassWrapper = true)
     )
 
   def apply(

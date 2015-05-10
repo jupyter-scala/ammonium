@@ -84,13 +84,13 @@ class ReplAPIImpl(
     def stop() = onStopHooks.foreach(_())
 
     def complete(snippetIndex: Int, snippet: String) =
-      intp.pressy.complete(snippetIndex, intp.eval.previousImportBlock, snippet)
+      intp.pressy.complete(snippetIndex, intp.imports.previousImportBlock, snippet)
 
     def getShow = intp.eval.getShow
     def setShow(v: Boolean) = intp.eval.setShow(v)
 
     def newCompiler() = intp.init()
-    def imports = intp.eval.previousImportBlock
+    def imports = intp.imports.previousImportBlock
   }
   def history = intp.history.toVector.dropRight(1)
 }

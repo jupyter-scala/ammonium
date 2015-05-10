@@ -9,7 +9,7 @@ case class BridgeConfig(
   init: String,
   name: String,
   initClass: Unit => (Interpreter, Class[_]) => BridgeHandle,
-  imports: Seq[(String, ImportData)]
+  imports: Seq[ImportData]
 )
 
 trait BridgeHandle {
@@ -32,10 +32,11 @@ class Interpreter(bridgeConfig: BridgeConfig,
                   preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output],
                   wrap: (Preprocessor.Output, String, String) => String,
                   startingLine: Int = 0,
-                  initialImports: Seq[(String, ImportData)] = Nil,
+                  val imports: Imports = new Imports(),
                   initialHistory: Seq[String] = Nil,
-                  val classes: Classes = new DefaultClassesImpl(),
-                  useClassWrapper: Boolean = false){ interp =>
+                  val classes: Classes = new DefaultClassesImpl()){ interp =>
+
+  imports.update(bridgeConfig.imports)
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
 
@@ -75,7 +76,7 @@ class Interpreter(bridgeConfig: BridgeConfig,
         false
       case Res.Success(ev) =>
         buffered = ""
-        eval.update(ev.imports)
+        imports.update(ev.imports)
         true
       case Res.Failure(msg) =>
         buffered = ""
@@ -120,12 +121,11 @@ class Interpreter(bridgeConfig: BridgeConfig,
 
   val eval = Evaluator(
     classes.currentClassLoader,
-    bridgeConfig.imports ++ initialImports,
     wrap,
     compiler.compile,
     classes.addClass,
     startingLine,
-    useClassWrapper = useClassWrapper
+    imports = imports
   )
 
   init()
