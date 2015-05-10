@@ -181,15 +181,3 @@ class Spark(implicit power: Power) extends Serializable { api =>
   override def toString: String =
     "Spark" + (if (_sc == null) "(uninitialized)" else "")
 }
-
-/** Default global Spark instance - available only from Ammonite */
-object Spark extends Spark()({
-  ammonite.shell.ReplAPIHolder.currentReplAPI match {
-    case None =>
-      throw new NoSuchElementException(
-        "Ammonite Spark does not seem to be running in from an Ammonite kernel.\n" +
-        "The global instance ammonite.spark.Spark cannot be used out of Ammonite.")
-
-    case Some(api) => api.power
-  }
-})

@@ -141,7 +141,7 @@ object Evaluator{
         for {
           prefix <- previousImports.values.toList.filter(isReplClassWrapImport).map(_.wrapperName).distinct.sorted
         } yield {
-          s"lazy val $$ref$$$prefix: $prefix.INSTANCE.$$user.type = $prefix.INSTANCE.$$user"
+          s"val $$ref$$$prefix: $prefix.INSTANCE.$$user.type = $prefix.INSTANCE.$$user"
         }
 
       val snippets = for {

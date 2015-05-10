@@ -24,12 +24,12 @@ class SparkTests(
           @ import ammonite.spark.Spark ${if (importSparkContextContent) "; import org.apache.spark.SparkContext._" else ""}
           import ammonite.spark.Spark${if (importSparkContextContent) s"\n${margin}import org.apache.spark.SparkContext._" else ""}
 
-          @ Spark.withConf(_.setMaster("$master"))
-          res1: Unit = ()
+          @ @transient val Spark = new Spark
 
-          @ import Spark.sc; Spark.start()
+          @ Spark.withConf(_.setMaster("$master")); import Spark.sc; Spark.start()
+          res2_0: Unit = ()
           import Spark.sc
-          res2_1: Unit = ()
+          res2_2: Unit = ()
 
       """
 
