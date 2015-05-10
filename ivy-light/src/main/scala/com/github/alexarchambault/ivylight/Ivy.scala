@@ -2,6 +2,7 @@ package com.github.alexarchambault.ivylight
 
 import java.io.File
 
+import org.apache.ivy.core.report.ArtifactDownloadReport
 import org.apache.ivy.{ Ivy => IvyIvy }
 import org.apache.ivy.core.module.descriptor.Configuration.Visibility
 import org.apache.ivy.core.module.descriptor._
@@ -90,7 +91,17 @@ object Ivy {
     // report.getAllProblemMessages
     // report.getUnresolvedDependencies
 
+    def file(report: ArtifactDownloadReport): File = {
+      // Doing this so that we return the same jars as about itself uses.
+      // Required for ClassLoaderFilter to work properly when using artifacts from local repo
+      val localIfFromLocalRepo =
+        if (report.getArtifactOrigin.isLocal) Some(new File(report.getArtifactOrigin.getLocation)).filter(_.exists())
+        else None
+
+      localIfFromLocalRepo getOrElse report.getLocalFile
+    }
+
     //so you can get the jar libraries
-    report.getAllArtifactsReports.map(_.getLocalFile)
+    report.getAllArtifactsReports.map(file)
   }
 }
