@@ -130,29 +130,13 @@ class ReplAPIImpl(
       new ammonite.shell.power.Imports {
         def previousImportBlock(wanted: Option[Set[String]] = None) =
           intp.imports.previousImportBlock(wanted)
-        def update(newImports: Seq[ammonite.shell.power.ImportData]) =
-          intp.imports.update(newImports.map{case ammonite.shell.power.ImportData(fromName, toName, wrapperName, prefix, isImplicit) =>
-            ammonite.interpreter.ImportData(fromName, toName, wrapperName, prefix, isImplicit)
-          })
+        def update(newImports: Seq[ImportData]) =
+          intp.imports.update(newImports)
       }
 
     def decls(code: String) =
       Preprocessor(intp.compiler.parse, code, intp.getCurrentLine) match {
-        case Res.Success(l) => Right(l .map {
-          case Decl(code, display0, refNames) =>
-            val display = display0 .map {
-              case ammonite.interpreter.DisplayItem.Definition(label, name) =>
-                ammonite.shell.power.DisplayItem.Definition(label, name)
-              case ammonite.interpreter.DisplayItem.Identity(ident) =>
-                ammonite.shell.power.DisplayItem.Identity(ident)
-              case ammonite.interpreter.DisplayItem.LazyIdentity(ident) =>
-                ammonite.shell.power.DisplayItem.LazyIdentity(ident)
-              case ammonite.interpreter.DisplayItem.Import(imp) =>
-                ammonite.shell.power.DisplayItem.Import(imp)
-            }
-
-            ammonite.shell.power.Decl(code, display, refNames)
-        })
+        case Res.Success(l) => Right(l)
 
         case Res.Failure(msg) => Left(msg)
         case Res.Buffer(_) => Left("[incomplete]")
@@ -180,10 +164,7 @@ class ReplAPIImpl(
     def compile(code: String) = {
       val output = new StringBuilder
       val res = intp.compiler.compile(code.getBytes, output ++= _)
-      (output.result(), res.map{case (r, l) => (r, l.map{
-        case ammonite.interpreter.ImportData(fromName, toName, wrapperName, prefix, isImplicit) =>
-          ammonite.shell.power.ImportData(fromName, toName, wrapperName, prefix, isImplicit)
-      })})
+      (output.result(), res)
     }
   }
   def history = intp.history.toVector.dropRight(1)

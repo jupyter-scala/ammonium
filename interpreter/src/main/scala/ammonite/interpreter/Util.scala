@@ -75,12 +75,6 @@ case class Evaluated[T](wrapper: String,
                         imports: Seq[ImportData],
                         value: T)
 
-case class ImportData(fromName: String,
-                      toName: String,
-                      wrapperName: String,
-                      prefix: String,
-                      isImplicit: Boolean)
-
 /**
  * Encapsulates a read-write cell that can be passed around
  */

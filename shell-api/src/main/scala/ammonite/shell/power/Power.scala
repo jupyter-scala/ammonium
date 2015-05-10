@@ -2,6 +2,8 @@ package ammonite.shell.power
 
 import java.io.File
 
+import ammonite.interpreter.{Decl, ImportData}
+
 /*
  * TODO
  * Move Power, ..., to a interpreter-api project, and add it as a dependency to interpreter
@@ -63,24 +65,7 @@ trait Classes {
   def underlying: AnyRef
 }
 
-case class ImportData(fromName: String,
-                      toName: String,
-                      wrapperName: String,
-                      prefix: String,
-                      isImplicit: Boolean)
-
 trait Imports {
   def previousImportBlock(wanted: Option[Set[String]] = None): String
   def update(newImports: Seq[ImportData]): Unit
 }
-
-sealed trait DisplayItem
-
-object DisplayItem {
-  case class Definition(definitionLabel: String, name: String) extends DisplayItem
-  case class Identity(ident: String) extends DisplayItem
-  case class LazyIdentity(ident: String) extends DisplayItem
-  case class Import(imported: String) extends DisplayItem
-}
-
-case class Decl(code: String, display: Seq[DisplayItem], referencedNames: Seq[String])
