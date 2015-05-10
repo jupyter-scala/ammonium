@@ -107,7 +107,7 @@ class AmmoniteChecker extends Checker {
   def complete(cursor: Int, buf: String): (Int, Seq[String], Seq[String]) = {
     interp.pressy.complete(
       cursor,
-      interp.imports.previousImportBlock,
+      interp.imports.previousImportBlock(),
       buf
     )
   }

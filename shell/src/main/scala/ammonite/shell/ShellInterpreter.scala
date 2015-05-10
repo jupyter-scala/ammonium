@@ -42,8 +42,8 @@ object ShellInterpreter {
     BridgeConfig(
       "object ReplBridge extends ammonite.shell.ReplAPIHolder{}",
       "ReplBridge",
-       NamesFor[ReplAPI with ShellReplAPI].map(n => ammonite.interpreter.ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-       NamesFor[IvyConstructor.type].map(n => ammonite.interpreter.ImportData(n, n, "", "ammonite.shell.IvyConstructor")).toSeq) {
+       NamesFor[ReplAPI with ShellReplAPI].map{case (n, isImpl) => ammonite.interpreter.ImportData(n, n, "", "ReplBridge.shell", isImpl)}.toSeq ++
+       NamesFor[IvyConstructor.type].map{case (n, isImpl) => ammonite.interpreter.ImportData(n, n, "", "ammonite.shell.IvyConstructor", isImpl)}.toSeq) {
          def _colors = colors
          def _shellPrompt = shellPrompt
          def _pprintConfig = pprintConfig

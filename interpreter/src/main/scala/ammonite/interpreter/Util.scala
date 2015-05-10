@@ -78,7 +78,8 @@ case class Evaluated[T](wrapper: String,
 case class ImportData(fromName: String,
                       toName: String,
                       wrapperName: String,
-                      prefix: String)
+                      prefix: String,
+                      isImplicit: Boolean)
 
 /**
  * Encapsulates a read-write cell that can be passed around
@@ -175,13 +176,12 @@ object BacktickWrap{
 object NamesFor {
   import scala.reflect.runtime.universe._
 
-  def apply(t: scala.reflect.runtime.universe.Type): Set[String] = {
-    val yours = t.members.map(_.name.toString)
-      .filterNot(_ endsWith nme.LOCAL_SUFFIX_STRING) // See http://stackoverflow.com/a/17248174/3714539
-      .toSet
+  def apply(t: scala.reflect.runtime.universe.Type): Map[String, Boolean] = {
+    val yours = t.members.map(s => s.name.toString -> s.isImplicit).toMap
+      .filterKeys(!_.endsWith(nme.LOCAL_SUFFIX_STRING)) // See http://stackoverflow.com/a/17248174/3714539
     val default = typeOf[Object].members.map(_.name.toString)
     yours -- default
   }
 
-  def apply[T: TypeTag]: Set[String] = apply(typeOf[T])
+  def apply[T: TypeTag]: Map[String, Boolean] = apply(typeOf[T])
 }

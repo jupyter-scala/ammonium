@@ -16,7 +16,7 @@ class Imports(
    */
   lazy val previousImports = mutable.Map(initialImports: _*)
 
-  def previousImportBlock = {
+  def previousImportBlock(wanted: Option[Set[String]] = None): String = {
     def isReplClassWrapImport(d: ImportData) =
       useClassWrapper && (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName)
 
@@ -31,15 +31,21 @@ class Imports(
       else
         d
 
+    val previousImports0 =
+      wanted match {
+        case None => previousImports
+        case Some(wanted) => previousImports.filter(d => d._2.isImplicit || wanted(d._2.toName))
+      }
+
     val instanceRefs =
       for {
-        prefix <- previousImports.values.toList.filter(isReplClassWrapImport).map(_.wrapperName).distinct.sorted
+        prefix <- previousImports0.values.toList.filter(isReplClassWrapImport).map(_.wrapperName).distinct.sorted
       } yield {
         s"val $$ref$$$prefix: $prefix.INSTANCE.$$user.type = $prefix.INSTANCE.$$user"
       }
 
     val snippets = for {
-      (prefix, allImports) <- previousImports.values.toList.map(transformIfReplClassWrapImport).groupBy(_.prefix)
+      (prefix, allImports) <- previousImports0.values.toList.map(transformIfReplClassWrapImport).groupBy(_.prefix)
       imports <- transpose(allImports.groupBy(_.fromName).values.toList).reverse
     } yield {
       imports match{

@@ -46,7 +46,7 @@ class Main(input: InputStream,
     input,
     output,
     colorSet.prompt + shellPrompt() + scala.Console.RESET,
-    interp.pressy.complete(_, interp.imports.previousImportBlock, _),
+    interp.pressy.complete(_, interp.imports.previousImportBlock(), _),
     initialHistory
   )
 

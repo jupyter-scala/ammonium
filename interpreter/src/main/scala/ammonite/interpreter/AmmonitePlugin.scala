@@ -32,7 +32,7 @@ object AmmonitePlugin{
 
     def decode(t: g.Tree) = {
       val sym = t.symbol
-      (sym.decodedName, sym.decodedName, "")
+      (sym.decodedName, sym.decodedName, "", sym.isImplicit)
     }
 
     val stats = unit.body.children.last match {
@@ -46,7 +46,7 @@ object AmmonitePlugin{
       case other => throw new IllegalArgumentException(s"Unsupported wrapper definition: $other")
     }
     val symbols = stats.filter(x => !Option(x.symbol).exists(_.isPrivate))
-                       .foldLeft(List.empty[(String, String, String)]){
+                       .foldLeft(List.empty[(String, String, String, Boolean)]){
       // These are all the ways we want to import names from previous
       // executions into the current one. Most are straightforward, except
       // `import` statements for which we make use of the typechecker to
@@ -72,7 +72,7 @@ object AmmonitePlugin{
           if !sym.isSynthetic
           if !sym.isPrivate
           if sym.isPublic
-        } yield sym.decodedName
+        } yield (sym.decodedName, sym.isImplicit)
 
         val syms = for{
           // For some reason `info.allImportedSymbols` does not show imported
@@ -82,9 +82,9 @@ object AmmonitePlugin{
           //
           // As opposed to via import scala.reflect.macros._.
           // Thus we need to combine allImportedSymbols with the renameMap
-          sym <- symNames.toList ++ renameMap.keys
+          (sym, isImplicit) <- symNames.toList ++ renameMap.keys.map(s => (s, false /* ??? */))
         } yield {
-          (renameMap.getOrElse(sym, sym), sym, prefix)
+          (renameMap.getOrElse(sym, sym), sym, prefix, isImplicit)
         }
         syms ::: ctx
       case (ctx, t @ g.DefDef(_, _, _, _, _, _))  => decode(t) :: ctx
@@ -97,14 +97,14 @@ object AmmonitePlugin{
 
     output(
       for {
-        (fromName, toName, importString) <- symbols
+        (fromName, toName, importString, isImplicit) <- symbols
         //              _ = println(fromName + "\t"+ toName)
 
         if !fromName.contains("$")
         if fromName != "<init>"
         if fromName != "<clinit>"
         if fromName != "$main"
-      } yield ImportData(fromName, toName, "", importString)
+      } yield ImportData(fromName, toName, "", importString, isImplicit)
     )
   }
 }

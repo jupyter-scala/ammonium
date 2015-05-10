@@ -122,14 +122,16 @@ class ReplAPIImpl(
     def stop() = onStopHooks.foreach(_())
 
     def complete(snippetIndex: Int, snippet: String) =
-      intp.pressy.complete(snippetIndex, intp.imports.previousImportBlock, snippet)
+      intp.pressy.complete(snippetIndex, intp.imports.previousImportBlock(), snippet)
 
     def newCompiler() = intp.init()
     def imports =
       new Imports {
+        def previousImportBlock(wanted: Option[Set[String]] = None) =
+          intp.imports.previousImportBlock(wanted)
         def update(newImports: Seq[ammonite.shell.ImportData]) =
-          intp.imports.update(newImports.map{case ammonite.shell.ImportData(fromName, toName, wrapperName, prefix) =>
-            ammonite.interpreter.ImportData(fromName, toName, wrapperName, prefix)
+          intp.imports.update(newImports.map{case ammonite.shell.ImportData(fromName, toName, wrapperName, prefix, isImplicit) =>
+            ammonite.interpreter.ImportData(fromName, toName, wrapperName, prefix, isImplicit)
           })
       }
   }
