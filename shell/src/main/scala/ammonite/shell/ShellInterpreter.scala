@@ -5,7 +5,8 @@ import java.io.File
 import acyclic.file
 import org.apache.ivy.plugins.resolver.DependencyResolver
 import com.github.alexarchambault.ivylight.ResolverHelpers
-import ammonite.interpreter._, DisplayItem._
+import ammonite.interpreter.api.{ DisplayItem, ImportData, BridgeConfig, BridgeHandle }, DisplayItem._
+import ammonite.interpreter._
 import ammonite.pprint
 import ammonite.shell.util._
 
@@ -42,8 +43,8 @@ object ShellInterpreter {
     BridgeConfig(
       "object ReplBridge extends ammonite.shell.ReplAPIHolder{}",
       "ReplBridge",
-      NamesFor[ReplAPI with ShellReplAPI].map{case (n, isImpl) => ammonite.interpreter.ImportData(n, n, "", "ReplBridge.shell", isImpl)}.toSeq ++
-      NamesFor[IvyConstructor.type].map{case (n, isImpl) => ammonite.interpreter.ImportData(n, n, "", "ammonite.shell.IvyConstructor", isImpl)}.toSeq,
+      NamesFor[ReplAPI with ShellReplAPI].map{case (n, isImpl) => ImportData(n, n, "", "ReplBridge.shell", isImpl)}.toSeq ++
+      NamesFor[IvyConstructor.type].map{case (n, isImpl) => ImportData(n, n, "", "ammonite.shell.IvyConstructor", isImpl)}.toSeq,
       _.asInstanceOf[Iterator[String]].foreach(print)) {
          def _colors = colors
          def _shellPrompt = shellPrompt

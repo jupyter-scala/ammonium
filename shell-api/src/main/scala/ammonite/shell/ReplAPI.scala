@@ -31,7 +31,7 @@ trait ReplAPI {
   /**
    *
    */
-  implicit def interpreter: ammonite.interpreter.Interpreter
+  implicit def interpreter: ammonite.interpreter.api.Interpreter
 }
 
 trait Resolver

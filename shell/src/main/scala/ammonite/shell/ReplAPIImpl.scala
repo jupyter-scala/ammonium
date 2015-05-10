@@ -13,7 +13,7 @@ import acyclic.file
 import ammonite.interpreter._
 import ammonite.shell.util._
 
-class LoadImpl(intp: Interpreter,
+class LoadImpl(intp: api.Interpreter,
                startJars: Seq[File],
                startIvys: Seq[(String, String, String)],
                startResolvers: Seq[DependencyResolver]) extends Load {
@@ -89,7 +89,7 @@ class LoadImpl(intp: Interpreter,
 }
 
 class ReplAPIImpl(
-  intp: Interpreter,
+  intp: api.Interpreter,
   startJars: Seq[File],
   startIvys: Seq[(String, String, String)],
   startResolvers: Seq[DependencyResolver]

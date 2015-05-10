@@ -9,6 +9,8 @@ import scala.reflect.io.VirtualDirectory
 import scala.util.Try
 import scala.util.control.ControlThrowable
 
+import ammonite.interpreter.api.{ DisplayItem, Decl, BridgeConfig, BridgeHandle, ImportData }
+
 
 object Wrap {
   val default = apply(_.map {
@@ -85,14 +87,14 @@ trait InterpreterInternals {
 
 }
 
-class InterpreterImpl(
+class Interpreter(
   val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   val wrapper: (Seq[Decl], String, String) => String = Wrap.default,
-  val imports: Imports = new ImportsImpl(),
-  val classes: Classes = new ClassesImpl(),
+  val imports: api.Imports = new Imports(),
+  val classes: api.Classes = new Classes(),
   startingLine: Int = 0,
   initialHistory: Seq[String] = Nil
-) extends Interpreter with InterpreterInternals {
+) extends api.Interpreter with InterpreterInternals {
 
   imports.update(bridgeConfig.imports)
 

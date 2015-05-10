@@ -1,4 +1,4 @@
-package ammonite.interpreter
+package ammonite.interpreter.api
 
 case class ImportData(fromName: String,
                       toName: String,

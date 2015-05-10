@@ -65,7 +65,7 @@ class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLCl
 
 }
 
-object ClassesImpl {
+object Classes {
   
   def defaultClassPath(classLoader: ClassLoader = Thread.currentThread().getContextClassLoader): (Seq[File], Seq[File]) = {
     var current = classLoader
@@ -89,10 +89,10 @@ object ClassesImpl {
   
 }
 
-class ClassesImpl(
+class Classes(
   startClassLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
-  startDeps: (Seq[File], Seq[File]) = ClassesImpl.defaultClassPath()
-) extends Classes {
+  startDeps: (Seq[File], Seq[File]) = Classes.defaultClassPath()
+) extends api.Classes {
 
   lazy val tmpClassDir = {
     val d = new File(new File(System.getProperty("java.io.tmpdir")), s"ammonite-${UUID.randomUUID()}")

@@ -16,8 +16,8 @@ class AmmoniteChecker extends Checker {
   def predef = ""
   var allOutput = ""
 
-  def newInterpreter(): Interpreter with InterpreterInternals =
-    new InterpreterImpl(
+  def newInterpreter(): api.Interpreter with InterpreterInternals =
+    new Interpreter(
       ShellInterpreter.bridgeConfig(
         pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15)
       ),
