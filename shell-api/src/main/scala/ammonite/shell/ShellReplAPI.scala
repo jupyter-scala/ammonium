@@ -1,10 +1,10 @@
 package ammonite.shell
 
-import scala.reflect.runtime.universe._
+import scala.reflect.runtime.universe.WeakTypeTag
 
 trait ShellReplAPI {
   /**
-   *
+   * Reset the terminal
    */
   def reset(): Unit
 
@@ -37,8 +37,8 @@ trait FullShellReplAPI extends ReplAPI with ShellReplAPI {
 }
 
 class ReplAPIHolder {
-  var shell0: FullShellReplAPI = null
-  lazy val shell = shell0
+  @transient var shell0: FullShellReplAPI = null
+  @transient lazy val shell = shell0
 }
 
 object ReplAPIHolder{
@@ -49,12 +49,4 @@ object ReplAPIHolder{
       .get
     method.invoke(null, api)
   }
-
-  def currentReplAPI: Option[ReplAPI with FullShellReplAPI] =
-    try {
-      val cls = Class.forName("ReplBridge$", true, Thread.currentThread().getContextClassLoader)
-      Option(cls.getField("MODULE$").get(null).asInstanceOf[ReplAPIHolder].shell)
-    } catch {
-      case _: ClassNotFoundException => None
-    }
 }

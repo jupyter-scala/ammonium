@@ -18,10 +18,10 @@ class AmmoniteChecker extends Checker {
 
   def newInterpreter(): api.Interpreter with InterpreterInternals =
     new Interpreter(
-      ShellInterpreter.bridgeConfig(
+      Ammonite.bridgeConfig(
         pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15)
       ),
-      ShellInterpreter.wrap(classWrap = false),
+      Ammonite.wrap(classWrap = false),
       startingLine = if (predef.nonEmpty) -1 else 0
     )
 

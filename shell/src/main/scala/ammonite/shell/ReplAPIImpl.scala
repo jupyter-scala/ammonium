@@ -1,21 +1,24 @@
 package ammonite.shell
 
-import java.io.File
-
 import ammonite.shell.IvyConstructor.Resolvers
-import com.github.alexarchambault.ivylight.Sbt.Module
-import org.apache.ivy.plugins.resolver.DependencyResolver
-import com.github.alexarchambault.ivylight.{Sbt, ResolverHelpers, IvyHelper}
-
-import scala.reflect.runtime.universe._
-import acyclic.file
-
 import ammonite.interpreter._
 import ammonite.shell.util._
+
+import org.apache.ivy.plugins.resolver.DependencyResolver
+import com.github.alexarchambault.ivylight.{Resolver, Sbt, IvyHelper}
+import com.github.alexarchambault.ivylight.Sbt.Module
+
+import java.io.File
+
+import scala.reflect.runtime.universe._
+
+import acyclic.file
+
 
 class LoadImpl(intp: api.Interpreter,
                startJars: Seq[File],
                startIvys: Seq[(String, String, String)],
+               jarMap: File => File,
                startResolvers: Seq[DependencyResolver]) extends Load {
 
   def apply(line: String) = {
@@ -37,16 +40,19 @@ class LoadImpl(intp: api.Interpreter,
     intp.classes.addJars(jar: _*)
     intp.init()
   }
-  def module(coordinates: (String, String, String)*): Unit = {
+  def ivy(coordinates: (String, String, String)*): Unit = {
     userIvys = userIvys ++ coordinates
     updateIvy()
   }
   def updateIvy(extra: Seq[File] = Nil): Unit = {
-    val newIvyJars = IvyHelper.resolve((userIvys ++ sbtIvys) filterNot internalSbtIvys, userResolvers)
-    val newJars = newIvyJars ++ userJars
+    val ivyJars = IvyHelper.resolve((userIvys ++ sbtIvys) filterNot internalSbtIvys, userResolvers).map(jarMap)
+    val newJars = ivyJars ++ userJars
 
     val removedJars = intp.classes.jars.toSet -- newJars
-    if ((removedJars -- warnedJars).nonEmpty) {
+    // Second condition: if startIvys is empty, it is likely the startJars were *not* computed
+    // from ivy modules, so we do not warn users about the startJars not being found
+    // later by ivy
+    if ((removedJars -- warnedJars).nonEmpty && !(warnedJars.isEmpty && startIvys.isEmpty)) {
       println(
         s"Warning: the following JARs were previously added and are no more required:" +
           (removedJars -- warnedJars).toList.sorted.map("  ".+).mkString("\n", "\n", "\n") +
@@ -63,8 +69,8 @@ class LoadImpl(intp: api.Interpreter,
 
     for (proj <- projects) {
       Sbt.projectInfo(path, proj) match {
-        case None =>
-          println(s"Can't find project $proj in $path, ignoring it")
+        case None => println(s"Can't find project $proj in $path, ignoring it")
+
         case Some(info) =>
           anyProj = true
           sbtIvys = sbtIvys ++ info.dependencies.collect {
@@ -80,22 +86,20 @@ class LoadImpl(intp: api.Interpreter,
   }
   def resolver(resolver: Resolver*): Unit = {
     userResolvers = userResolvers ++ resolver.map {
-      case Resolvers.Local =>
-        ResolverHelpers.localRepo
-      case Resolvers.Central =>
-        ResolverHelpers.defaultMaven
+      case Resolvers.Local => Resolver.localRepo
+      case Resolvers.Central => Resolver.defaultMaven
     }
   }
 }
 
-class ReplAPIImpl(
-  intp: api.Interpreter,
-  startJars: Seq[File],
-  startIvys: Seq[(String, String, String)],
-  startResolvers: Seq[DependencyResolver]
-) extends ReplAPI {
+class ReplAPIImpl(intp: api.Interpreter,
+                  startJars: Seq[File],
+                  startIvys: Seq[(String, String, String)],
+                  jarMap: File => File,
+                  startResolvers: Seq[DependencyResolver]) extends ReplAPI {
+
   def exit = throw Exit
-  @transient val load = new LoadImpl(intp, startJars, startIvys, startResolvers)
+  val load = new LoadImpl(intp, startJars, startIvys, jarMap, startResolvers)
   def interpreter = intp
   def history = intp.history.toVector.dropRight(1)
 }

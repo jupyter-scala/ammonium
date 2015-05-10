@@ -1,23 +1,23 @@
 package ammonite.spark
 package tests
 
-import org.apache.spark.SPARK_VERSION
-
 import ammonite.shell.Checker
 import utest._
 
 object SparkTests {
-  val atLeastSpark13 = SPARK_VERSION.split('.').take(2).map(_.toInt) match { case Array(m0, m1) => m0 > 1 || (m0 == 1 && m1 >= 3) }
+  val atLeastSpark13 = org.apache.spark.SPARK_VERSION
+    .split('.').take(2).map(_.toInt) match {
+      case Array(m0, m1) => m0 > 1 || (m0 == 1 && m1 >= 3)
+    }
 }
 
-class SparkTests(
-  checker: => Checker,
-  master: String,
-  broadcastOk: Boolean = true,
-  hasDataFrames: Boolean = SparkTests.atLeastSpark13,
-  importSparkContextContent: Boolean = !SparkTests.atLeastSpark13,
-  wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$cur.INSTANCE.$$ref$$cmd$ref"
-) extends TestSuite {
+class SparkTests(checker: => Checker,
+                 master: String,
+                 broadcastOk: Boolean = true,
+                 hasDataFrames: Boolean = SparkTests.atLeastSpark13,
+                 importSparkContextContent: Boolean = !SparkTests.atLeastSpark13,
+                 wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$cur.INSTANCE.$$ref$$cmd$ref") extends TestSuite {
+
   val margin = "          "
 
   val preamble = s"""
@@ -215,7 +215,7 @@ class SparkTests(
           defined class Foo
 
           @ sc.parallelize((1 to 100).map(Foo), 10).collect()
-          res4: scala.Array[${wrapperInstance(3, 4)}.Foo] = Array(${(1 to 14).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...)
+          res4: scala.Array[${wrapperInstance(3, 4)}.Foo] = Array(${(1 to 14).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...
         """, postamble)
     }
 

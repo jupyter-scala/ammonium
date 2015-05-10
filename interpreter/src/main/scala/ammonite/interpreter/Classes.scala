@@ -66,7 +66,15 @@ class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLCl
 }
 
 object Classes {
-  
+
+  lazy val bootClasspath = System.getProperty("sun.boot.class.path")
+    .split(File.pathSeparatorChar)
+    .map(new File(_))
+    .filter(_.exists())
+
+  lazy val (bootStartJars, bootStartDirs) = bootClasspath.partition(_.getName.endsWith(".jar"))
+
+
   def defaultClassPath(classLoader: ClassLoader = Thread.currentThread().getContextClassLoader): (Seq[File], Seq[File]) = {
     var current = classLoader
     val files = collection.mutable.Buffer.empty[java.io.File]

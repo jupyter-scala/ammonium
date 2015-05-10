@@ -6,10 +6,10 @@ import ammonite.interpreter._
 class AmmoniteClassWrapperChecker extends AmmoniteChecker {
   override def newInterpreter(): api.Interpreter with InterpreterInternals =
     new Interpreter(
-      ShellInterpreter.bridgeConfig(
+      Ammonite.bridgeConfig(
         pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15)
       ),
-      ShellInterpreter.wrap(classWrap = true),
+      Ammonite.wrap(classWrap = true),
       imports = new Imports(useClassWrapper = true),
       startingLine = if (predef.nonEmpty) -1 else 0
     )

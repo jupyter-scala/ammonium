@@ -13,7 +13,8 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 
-class Spark(implicit interpreter: ammonite.interpreter.api.Interpreter) extends Serializable { api =>
+/** The spark entry point from an Ammonite session */
+class Spark(implicit @transient interpreter: ammonite.interpreter.api.Interpreter) extends Serializable { api =>
 
   private lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)

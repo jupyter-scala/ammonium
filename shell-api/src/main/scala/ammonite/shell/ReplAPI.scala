@@ -1,12 +1,5 @@
 package ammonite.shell
 
-import scala.reflect.runtime.universe._
-
-/*
- * With just a bit more ClassLoader machinery, this should be the only dependency added to
- * the REPL user code
- */
-
 trait ReplAPI {
   /**
    * Exit the Ammonite REPL. You can also use Ctrl-D to exit
@@ -17,11 +10,6 @@ trait ReplAPI {
    * History of commands that have been entered into the shell
    */
   def history: Seq[String]
-
-  /**
-   *
-   */
-  // def reify[T: WeakTypeTag](t: => T): Tree
 
   /**
    * Tools related to loading external scripts and code into the REPL
@@ -36,23 +24,6 @@ trait ReplAPI {
 
 trait Resolver
 
-object IvyConstructor {
-  val scalaBinaryVersion = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
-
-  implicit class GroupIdExt(groupId: String){
-    def %(artifactId: String) = (groupId, artifactId)
-    def %%(artifactId: String) = (groupId, artifactId + "_" + scalaBinaryVersion)
-  }
-  implicit class ArtifactIdExt(t: (String, String)){
-    def %(version: String) = (t._1, t._2, version)
-  }
-
-  object Resolvers {
-    case object Local extends Resolver
-    case object Central extends Resolver
-  }
-}
-
 trait Load {
   /**
    * Load a `.jar` file
@@ -61,7 +32,7 @@ trait Load {
   /**
    * Load a module from its maven/ivy coordinates
    */
-  def module(coordinates: (String, String, String)*): Unit
+  def ivy(coordinates: (String, String, String)*): Unit
   /**
    * Load one or several sbt project(s)
    */

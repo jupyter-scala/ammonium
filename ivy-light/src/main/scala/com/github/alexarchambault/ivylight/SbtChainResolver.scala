@@ -15,6 +15,11 @@ import org.apache.ivy.plugins.resolver._
 import org.apache.ivy.plugins.resolver.util.{ HasLatestStrategy, ResolvedResource }
 import org.apache.ivy.util.{ Message, StringUtils => IvyStringUtils }
 
+// Extracted from SBT, and refactored a little.
+// Most comments come from SBT.
+
+// I only have a very vague idea of how it works.
+
 case class SbtChainResolver(
   name: String,
   resolvers: Seq[DependencyResolver],

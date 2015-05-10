@@ -272,15 +272,15 @@ class Interpreter(
   var pressy: Pressy = _
   def init() = {
     compiler = Compiler(
-      classes.jars,
-      classes.dirs,
+      Classes.bootStartJars ++ classes.jars,
+      Classes.bootStartDirs ++ classes.dirs,
       dynamicClasspath,
       classes.currentClassLoader,
       () => pressy.shutdownPressy()
     )
     pressy = Pressy(
-      classes.jars,
-      classes.dirs,
+      Classes.bootStartJars ++ classes.jars,
+      Classes.bootStartDirs ++ classes.dirs,
       dynamicClasspath,
       classes.currentClassLoader
     )
