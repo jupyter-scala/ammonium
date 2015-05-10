@@ -165,7 +165,8 @@ object AmmoniteShellBuild extends Build {
     .settings(
       name := "ammonite-shell",
       libraryDependencies ++= Seq(
-        "jline" % "jline" % "2.12"
+        "jline" % "jline" % "2.12",
+        "com.github.alexarchambault" %% "case-app" % "0.2.2"
       )
     )
 
