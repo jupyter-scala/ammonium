@@ -6,17 +6,23 @@ import org.apache.spark.SPARK_VERSION
 import ammonite.shell.Checker
 import utest._
 
+object SparkTests {
+  val atLeastSpark13 = SPARK_VERSION.split('.').take(2).map(_.toInt) match { case Array(m0, m1) => m0 > 1 || (m0 == 1 && m1 >= 3) }
+}
+
 class SparkTests(
   checker: => Checker,
   master: String,
   broadcastOk: Boolean = true,
-  hasDataFrames: Boolean = SPARK_VERSION.split('.').take(2).map(_.toInt) match { case Array(m0, m1) => m0 > 1 || (m0 == 1 && m1 >= 3) },
+  hasDataFrames: Boolean = SparkTests.atLeastSpark13,
+  importSparkContextContent: Boolean = !SparkTests.atLeastSpark13,
   wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$cur.INSTANCE.$$ref$$cmd$ref"
 ) extends TestSuite {
+  val margin = "          "
 
   val preamble = s"""
-          @ import ammonite.spark.Spark
-          import ammonite.spark.Spark
+          @ import ammonite.spark.Spark ${if (importSparkContextContent) "; import org.apache.spark.SparkContext._" else ""}
+          import ammonite.spark.Spark${if (importSparkContextContent) s"\n${margin}import org.apache.spark.SparkContext._" else ""}
 
           @ Spark.withConf(_.setMaster("$master"))
           res1: Unit = ()
@@ -164,6 +170,7 @@ class SparkTests(
     'sparkIssue2576{
       val imp = if (hasDataFrames) "sqlContext.implicits._" else "sqlContext.createSchemaRDD"
       val toFrameMethod = if (hasDataFrames) "toDF()" else "toSchemaRDD"
+      val repr = if (hasDataFrames) (1 to 10).map(i => s"[$i]").mkString(", ") else (1 to 10).map(i => s"  GenericRow($i)").mkString("\n" + margin, ",\n" + margin, "\n" + margin)
 
       check.session(preamble +
        s"""
@@ -177,7 +184,7 @@ class SparkTests(
           defined class TestCaseClass
 
           @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).$toFrameMethod.collect()
-          res6: scala.Array[org.apache.spark.sql.Row] = Array([1], [2], [3], [4], [5], [6], [7], [8], [9], [10])
+          res6: scala.Array[org.apache.spark.sql.Row] = Array($repr)
         """, postamble)
     }
 
@@ -197,7 +204,7 @@ class SparkTests(
           defined class TestCaseClass
 
           @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
-          res7: scala.Array[${wrapperInstance(6, 7)}.TestCaseClass] = Array(${(1 to 10).map(i => s"  TestCaseClass($i)").mkString("\n", ",\n", "\n")})
+          res7: scala.Array[${wrapperInstance(6, 7)}.TestCaseClass] = Array(${(1 to 10).map(i => s"  TestCaseClass($i)").mkString("\n" + margin, ",\n" + margin, "\n" + margin)})
         """, postamble)
     }
 
@@ -208,7 +215,7 @@ class SparkTests(
           defined class Foo
 
           @ sc.parallelize((1 to 100).map(Foo), 10).collect()
-          res4: scala.Array[${wrapperInstance(3, 4)}.Foo] = Array(${(1 to 100).map(i => s"  Foo($i)").mkString("\n", ",\n", "\n")})
+          res4: scala.Array[${wrapperInstance(3, 4)}.Foo] = Array(${(1 to 100).map(i => s"  Foo($i)").mkString("\n" + margin, ",\n" + margin, "\n" + margin)})
         """, postamble)
     }
 
