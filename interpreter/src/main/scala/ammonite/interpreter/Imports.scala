@@ -16,7 +16,7 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
    */
   lazy val previousImports = mutable.Map(initialImports: _*)
 
-  def previousImportBlock(wanted: Option[Set[String]] = None): String = {
+  def previousImportBlock(wanted: Set[String] = null): String = {
     def isReplClassWrapImport(d: ImportData) =
       useClassWrapper && (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName)
 
@@ -27,7 +27,7 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
         d
 
     val previousImports0 =
-      wanted match {
+      Option(wanted) match {
         case None => previousImports
         case Some(wanted) => previousImports.filter(d => d._2.isImplicit || wanted(d._2.toName))
       }

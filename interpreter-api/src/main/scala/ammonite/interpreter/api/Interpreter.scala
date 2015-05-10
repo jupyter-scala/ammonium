@@ -50,7 +50,7 @@ trait Interpreter {
 
   def wrap(code: String): Either[String, String] = {
     decls(code).right.map(decls =>
-      wrapper(decls, imports.previousImportBlock(Some(decls.flatMap(_.referencedNames).toSet)), s"cmd$getCurrentLine")
+      wrapper(decls, imports.previousImportBlock(decls.flatMap(_.referencedNames).toSet), s"cmd$getCurrentLine")
     )
   }
 }

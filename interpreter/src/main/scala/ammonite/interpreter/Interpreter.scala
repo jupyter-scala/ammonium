@@ -207,7 +207,7 @@ class Interpreter(
       for {
         wrapperName <- Res.Success("cmd" + getCurrentLine)
         _ <- Catching{ case e: ThreadDeath => interrupted() }
-        wrappedLine = wrapper(input, imports.previousImportBlock(Some(input.flatMap(_.referencedNames).toSet)), wrapperName)
+        wrappedLine = wrapper(input, imports.previousImportBlock(input.flatMap(_.referencedNames).toSet), wrapperName)
         (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")
         _ = currentLine += 1
         _ <- Catching{
