@@ -167,7 +167,13 @@ object AmmoniteShellBuild extends Build {
       libraryDependencies ++= Seq(
         "jline" % "jline" % "2.12",
         "com.github.alexarchambault" %% "case-app" % "0.2.2"
-      )
+      ),
+      libraryDependencies ++= {
+        if (scalaVersion.value startsWith "2.10.")
+          Seq(compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full))
+        else
+          Seq()
+      }
     )
 
 

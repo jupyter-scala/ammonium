@@ -22,7 +22,8 @@ import acyclic.file
 case class Ammonite(shellPrompt: String = "@",
                     predef: String,
                     wrap: String,
-                    histFile: String = new File(new File(System.getProperty("user.home")), ".amm") .toString) extends App {
+                    histFile: String = new File(new File(System.getProperty("user.home")), ".amm") .toString,
+                    sharedLoader: Boolean = false) extends App {
 
   import Ammonite.{ bridgeConfig, wrap => wrapper }
 
@@ -54,9 +55,10 @@ case class Ammonite(shellPrompt: String = "@",
     case _ => Console.err.println(s"Unrecognized wrap argument: $wrap"); sys exit 255
   }
 
+  val scalaVersion = scala.util.Properties.versionNumberString
   val startIvys = Seq(
-    ("org.scala-lang", "scala-library", scala.util.Properties.versionNumberString),
-    ("com.github.alexarchambault", "ammonite-shell-api_2.11.6", BuildInfo.version)
+    ("org.scala-lang", "scala-library", scalaVersion),
+    ("com.github.alexarchambault", s"ammonite-shell-api_$scalaVersion", BuildInfo.version)
   )
 
   val resolvers = Seq(
@@ -75,13 +77,21 @@ case class Ammonite(shellPrompt: String = "@",
    */
   val packJarMap = Classes.defaultClassPath()._1.map(f => f.getName -> f).toMap
 
-  val (startJars, startDirs) = IvyHelper.resolve(startIvys, resolvers)
-    .map(f => packJarMap.getOrElse(f.getName, f))
-    .filter(_.exists())
-    .partition(_.getName.endsWith(".jar"))
+  val (startJars, startDirs) =
+    if (sharedLoader)
+      Classes.defaultClassPath()
+    else
+      IvyHelper.resolve(startIvys, resolvers).toSeq
+        .map(f => packJarMap.getOrElse(f.getName, f))
+        .filter(_.exists())
+        .partition(_.getName.endsWith(".jar"))
 
 
-  val startClassLoader = new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startJars ++ startDirs).toSet)
+  val startClassLoader =
+    if (sharedLoader)
+      Thread.currentThread().getContextClassLoader
+    else
+      new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startJars ++ startDirs).toSet)
 
   val shellPromptRef = Ref(shellPrompt)
 

@@ -16,6 +16,7 @@ class SparkTests(checker: => Checker,
                  broadcastOk: Boolean = true,
                  hasDataFrames: Boolean = SparkTests.atLeastSpark13,
                  importSparkContextContent: Boolean = !SparkTests.atLeastSpark13,
+                 hasSpark6299: Boolean = !SparkTests.atLeastSpark13,
                  wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$cur.INSTANCE.$$ref$$cmd$ref") extends TestSuite {
 
   val margin = "          "
@@ -227,10 +228,11 @@ class SparkTests(checker: => Checker,
 
           @ val list = List((1, Foo(1)), (1, Foo(2)))
           list: List[(Int, ${wrapperInstance(3, 4)}.Foo)] = List((1, Foo(1)), (1, Foo(2)))
+        """ + (if (!hasSpark6299) s"""
 
           @ sc.parallelize(list).groupByKey().collect()
           res5: scala.Array[(Int, scala.Iterable[${wrapperInstance(3, 4)}.Foo])] = Array((1, CompactBuffer(Foo(1), Foo(2))))
-        """, postamble)
+        """ else ""), postamble)
     }
   }
 

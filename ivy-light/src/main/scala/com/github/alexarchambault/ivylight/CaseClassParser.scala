@@ -1,6 +1,5 @@
 package com.github.alexarchambault.ivylight
 
-import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
 
 /** Helpers to parse the string representation of case classes */
@@ -52,14 +51,17 @@ object CaseClassParser {
         None
   }
 
+  // Could be scala.util.matching.Regex.quote in 2.11, doing this for 2.10 compatibility
+  def regexQuote(s: String) = java.util.regex.Pattern.quote(s)
+
   /** Parser combinators to parse case class string representations */
   object Parser extends RegexParsers {
-    def rawValue: Parser[String] = ("[^" + Regex.quote("()") + ",]+").r
+    def rawValue: Parser[String] = ("[^" + regexQuote("()") + ",]+").r
     def parRawValue: Parser[String] = "(" ~> value <~ ")" ^^ { "(" + _.repr + ")" }
     def value: Parser[Value] = (rawValue | parRawValue).+ ^^ { l => Value(l.mkString) }
     
     def ccName: Parser[String] = "[A-Z][a-zA-Z]*".r | ""
-    def emptyCC: Parser[Container] = ccName <~ (Regex.quote("(") + """\s*""" + Regex.quote(")")).r ^^ {
+    def emptyCC: Parser[Container] = ccName <~ (regexQuote("(") + """\s*""" + regexQuote(")")).r ^^ {
       case name  => Container(name, Nil)
     }
     def nonEmptyCC: Parser[Container] = ccName ~ ("(" ~> items <~ ")") ^^ {
