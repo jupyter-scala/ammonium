@@ -45,7 +45,7 @@ object AmmonitePlugin{
         inner(c).impl.body
       case other => throw new IllegalArgumentException(s"Unsupported wrapper definition: $other")
     }
-    val symbols = stats.filter(x => !Option(x.symbol).exists(_.isPrivate))
+    val symbols0 = stats.filter(x => !Option(x.symbol).exists(_.isPrivate))
                        .foldLeft(List.empty[(String, String, String, Boolean)]){
       // These are all the ways we want to import names from previous
       // executions into the current one. Most are straightforward, except
@@ -94,6 +94,9 @@ object AmmonitePlugin{
       case (ctx, t @ g.TypeDef(_, _, _, _))       => decode(t) :: ctx
       case (ctx, t) => ctx
     }
+
+    val symbolsImplicit = symbols0.groupBy{case (fromName, toName, prefix, _) => (fromName, toName, prefix)}.mapValues(_.exists(_._4))
+    val symbols = symbols0.map{case (fromName, toName, prefix, _) => (fromName, toName, prefix, symbolsImplicit((fromName, toName, prefix)))}
 
     output(
       for {

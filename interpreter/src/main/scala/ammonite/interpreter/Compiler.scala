@@ -189,7 +189,7 @@ object Compiler{
       val parser = compiler.newUnitParser(line)
       val trees = CompilerCompatibility.trees(compiler)(parser)
       if (reporter.hasErrors) Left(out.mkString("\n"))
-      else Right(trees.map(tree => tree -> referencedNames(tree)))
+      else Right(trees.map(tree => tree -> referencedNames(tree).map(_.decodedName)))
     }
   }
 }

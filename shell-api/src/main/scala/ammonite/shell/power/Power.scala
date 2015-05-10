@@ -37,6 +37,11 @@ trait Power {
   /**
    *
    */
+  def compile(code: String): (String, Option[(Traversable[(String, Array[Byte])], Seq[ImportData])])
+
+  /**
+   *
+   */
   def onStop(action: => Unit): Unit
 
   /**

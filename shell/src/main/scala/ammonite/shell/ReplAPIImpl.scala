@@ -176,6 +176,15 @@ class ReplAPIImpl(
         case Res.Skip => Left("[skip]")
       }
     }
+
+    def compile(code: String) = {
+      val output = new StringBuilder
+      val res = intp.compiler.compile(code.getBytes, output ++= _)
+      (output.result(), res.map{case (r, l) => (r, l.map{
+        case ammonite.interpreter.ImportData(fromName, toName, wrapperName, prefix, isImplicit) =>
+          ammonite.shell.power.ImportData(fromName, toName, wrapperName, prefix, isImplicit)
+      })})
+    }
   }
   def history = intp.history.toVector.dropRight(1)
 }
