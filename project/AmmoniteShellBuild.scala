@@ -3,6 +3,8 @@ import sbtbuildinfo.Plugin._
 import sbtrelease.ReleasePlugin.{ ReleaseKeys, releaseSettings }
 import com.typesafe.sbt.SbtPgp.autoImport.PgpKeys
 
+import scala.util.Try
+
 object AmmoniteShellBuild extends Build {
 
   private lazy val sharedSettings = Seq[Setting[_]](
@@ -73,9 +75,15 @@ object AmmoniteShellBuild extends Build {
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
     testOptions in Test := {
-      sys.env.get("AMM_SPARK_CLUSTER_TESTS") match {
-        case Some("0") => Seq(Tests.Filter(s => !s.startsWith("ammonite.spark.localcluster") && !s.startsWith("ammonite.spark.standalonecluster")))
-        case _ => Seq()
+      sys.env.get("SPARK_HOME") match {
+        case None => Seq(Tests.Filter(s => s != "ammonite.spark.LocalClusterTests" && s != "ammonite.spark.StandAloneClusterTests"))
+        case _ =>
+          // FIXME This does not really work, if a docker container with hostname master exists, it will be found
+          // (even if we're not running from docker)
+          if (Try(java.net.InetAddress.getByName("master")).toOption.isEmpty)
+            Seq(Tests.Filter(s => s != "ammonite.spark.StandAloneClusterTests"))
+          else
+            Seq()
       }
     },
     publishArtifact in (Test, packageBin) := true,

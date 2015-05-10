@@ -6,7 +6,9 @@ import java.io.File
 import java.nio.file.Files
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
-import org.apache.spark.{ SparkContext, SparkConf }
+import ammonite.shell.IvyConstructor._
+
+import org.apache.spark.{ SparkContext, SparkConf, SPARK_VERSION => sparkVersion }
 import org.apache.spark.sql.SQLContext
 
 import org.eclipse.jetty.server.Server
@@ -14,7 +16,9 @@ import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 
 /** The spark entry point from an Ammonite session */
-class Spark(implicit @transient interpreter: ammonite.interpreter.api.Interpreter) extends Serializable { api =>
+class Spark(implicit
+            interpreter: ammonite.interpreter.api.Interpreter,
+            load: ammonite.shell.Load) extends Serializable { api =>
 
   private lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
@@ -96,6 +100,12 @@ class Spark(implicit @transient interpreter: ammonite.interpreter.api.Interprete
     }
   }
 
+  /** Filtered out jars (we assume the spark master/slaves already have them) */
+  lazy val sparkJars = load.resolve(
+    "org.apache.spark" %% "spark-core" % sparkVersion,
+    "org.apache.spark" %% "spark-sql" % sparkVersion
+  ).toSet
+
   def setConfDefaults(conf: SparkConf): Unit = {
     implicit class SparkConfExtensions(val conf: SparkConf) {
       def setIfMissingLazy(key: String, value: => String): conf.type = {
@@ -108,7 +118,7 @@ class Spark(implicit @transient interpreter: ammonite.interpreter.api.Interprete
     conf
       .setIfMissing("spark.master", defaultMaster)
       .setIfMissing("spark.app.name", "Ammonite Shell")
-      .setIfMissingLazy("spark.jars", interpreter.classes.jars.map(_.toURI.toString) mkString ",")
+      .setIfMissingLazy("spark.jars", interpreter.classes.jars.filterNot(sparkJars).map(_.toURI.toString) mkString ",")
       .setIfMissingLazy("spark.repl.class.uri", classServerURI.toString)
       .setIfMissingLazy("spark.ui.port", availablePort(4040).toString)
 
@@ -136,7 +146,7 @@ class Spark(implicit @transient interpreter: ammonite.interpreter.api.Interprete
 
   interpreter.classes.onJarsAdded { newJars =>
     if (_sc != null)
-      newJars.foreach(_sc addJar _.toURI.toString)
+      newJars.filterNot(sparkJars).foreach(_sc addJar _.toURI.toString)
   }
 
   interpreter.onStop {

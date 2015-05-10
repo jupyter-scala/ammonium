@@ -14,7 +14,7 @@ trait ReplAPI {
   /**
    * Tools related to loading external scripts and code into the REPL
    */
-  def load: Load
+  implicit def load: Load
 
   /**
    *
@@ -37,6 +37,11 @@ trait Load {
    * Load one or several sbt project(s)
    */
   def sbt(path: java.io.File, projects: String*): Unit
+
+  /**
+   * Just resolves some modules, does not load them
+   */
+  def resolve(coordinates: (String, String, String)*): Seq[java.io.File]
 
   /**
    *

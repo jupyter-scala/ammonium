@@ -1,8 +1,28 @@
-package ammonite.shell.util
+package ammonite.spark.util
+
+import java.io._
+
+object Serialize {
+  def to(m: AnyRef): Array[Byte] = {
+    val baos = new ByteArrayOutputStream()
+    val oos = new ObjectOutputStream(baos)
+    try {
+      oos.writeObject(m)
+      baos.toByteArray
+    }
+    finally oos.close()
+  }
+
+  def from(b: Array[Byte], loader: ClassLoader): AnyRef = {
+    val bais = new ByteArrayInputStream(b)
+    val ois = new ClassLoaderObjectInputStream(loader, bais)
+    try ois.readObject()
+    finally ois.close()
+  }
+}
+
 
 // from akka.util
-
-import java.io.{ InputStream, ObjectInputStream, ObjectStreamClass }
 
 /**
  * ClassLoaderObjectInputStream tries to utilize the provided ClassLoader to load Classes and falls

@@ -63,6 +63,9 @@ class LoadImpl(intp: api.Interpreter,
     intp.classes.addJars(newJars ++ extra: _*)
     intp.init()
   }
+  def resolve(coordinates: (String, String, String)*): Seq[File] = {
+    IvyHelper.resolve(coordinates, userResolvers).map(jarMap)
+  }
   def sbt(path: java.io.File, projects: String*): Unit = {
     var anyProj = false
     var dirs = Seq.empty[File]

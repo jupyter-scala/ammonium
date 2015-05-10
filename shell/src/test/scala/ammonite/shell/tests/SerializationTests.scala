@@ -57,11 +57,11 @@ class SerializationTests(check0: => Checker,
         @ val c = new C
         c: ${wrapperInstance(0, 1)}.C = C
 
-        @ val b = ammonite.shell.util.Serialize.to(c)
+        @ val b = ammonite.spark.util.Serialize.to(c)
 
         @ val loader = interpreter.classes.classLoaderClone
 
-        @ val c2 = ammonite.shell.util.Serialize.from(b, loader)
+        @ val c2 = ammonite.spark.util.Serialize.from(b, loader)
         c2: AnyRef = C
 
         @ c2.getClass.getMethod("get").invoke(c2)
