@@ -107,6 +107,7 @@ case class Ammonite(shellPrompt: String = "@",
       bridgeConfig(
         startJars = startJars,
         startIvys = startIvys,
+        jarMap = f => packJarMap.getOrElse(f.getName, f),
         shellPrompt = shellPromptRef,
         reset = frontEnd.reset(),
         pprintConfig = pprintConfig.copy(maxWidth = frontEnd.width, lines = 15),
