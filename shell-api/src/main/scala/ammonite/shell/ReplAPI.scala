@@ -74,6 +74,10 @@ trait Load extends (String => Unit){
    * Load a library from its maven/ivy coordinates
    */
   def ivy(coordinates: (String, String, String)*): Unit
+  /**
+   * Load one or several sbt project(s)
+   */
+  def sbt(path: java.io.File, projects: String*): Unit
 
   /**
    *

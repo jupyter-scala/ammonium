@@ -1,7 +1,6 @@
 package ammonite.shell
 
 import java.io.{ Console => _, _ }
-import java.util.UUID
 import ammonite.interpreter._
 import ammonite.pprint
 import ammonite.shell.util._
@@ -39,13 +38,7 @@ class Main(input: InputStream,
   val startJars = startJars0.map(f => m.getOrElse(f.getName, f))
   println(s"start jars:\n${startJars mkString "\n"}")
 
-  val startClassLoader = ClassLoaderUtil.makeLoader(
-    startJars ++ startDirs,
-    null,
-    getClass.getClassLoader,
-    Nil,
-    { val dir = new File(new File(System.getProperty("java.io.tmpdir")), s"ammonite-${UUID.randomUUID()}"); dir.mkdirs(); dir.deleteOnExit(); dir }
-  )
+  val startClassLoader = new ClassLoaderUtil.ClasspathFilter(getClass.getClassLoader, null, (startJars ++ startDirs).toSet)
 
   val shellPrompt = Ref(shellPrompt0)
 
@@ -61,7 +54,7 @@ class Main(input: InputStream,
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = startJars, startIvys = startIvys, shellPrompt = shellPrompt, pprintConfig = pprintConfig.copy(maxWidth = frontEnd.width), colors = colorSet),
       ShellInterpreter.wrap(classWrap),
-      imports = new Imports(useClassWrapper = true),
+      imports = new Imports(useClassWrapper = classWrap),
       classes = new DefaultClassesImpl(startClassLoader, (startJars, startDirs)),
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory

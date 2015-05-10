@@ -259,7 +259,10 @@ object ClassLoaderUtil {
     {
       val codeSource = c.getProtectionDomain.getCodeSource
       (codeSource eq null) ||
-        onClasspath(codeSource.getLocation)
+        onClasspath(codeSource.getLocation) ||
+        // workaround SBT classloader returning the target directory as sourcecode
+        // make us keep more class than expected
+        urlAsFile(codeSource.getLocation).exists(_.isDirectory)
     }
     private[this] def onClasspath(src: URL): Boolean =
       (src eq null) || (

@@ -3,8 +3,9 @@ package ammonite.shell
 import java.io.File
 
 import ammonite.shell.IvyConstructor.Resolvers
+import com.github.alexarchambault.ivylight.Sbt.Module
 import org.apache.ivy.plugins.resolver.DependencyResolver
-import com.github.alexarchambault.ivylight.{ResolverHelpers, IvyHelper}
+import com.github.alexarchambault.ivylight.{Sbt, ResolverHelpers, IvyHelper}
 
 import scala.reflect.runtime.universe._
 import acyclic.file
@@ -44,6 +45,8 @@ class ReplAPIImpl(
 
     private var userJars = startJars
     private var userIvys = startIvys
+    private var sbtIvys = Seq.empty[(String, String, String)]
+    private var internalSbtIvys = Set.empty[(String, String, String)]
     private var warnedJars = Set.empty[File]
     private var userResolvers = startResolvers
 
@@ -54,7 +57,10 @@ class ReplAPIImpl(
     }
     def ivy(coordinates: (String, String, String)*): Unit = {
       userIvys = userIvys ++ coordinates
-      val newIvyJars = IvyHelper.resolve(userIvys, userResolvers)
+      updateIvy()
+    }
+    def updateIvy(extra: Seq[File] = Nil): Unit = {
+      val newIvyJars = IvyHelper.resolve((userIvys ++ sbtIvys) filterNot internalSbtIvys, userResolvers)
       val newJars = newIvyJars ++ userJars
 
       val removedJars = intp.classes.jars.toSet -- newJars
@@ -66,8 +72,29 @@ class ReplAPIImpl(
       }
       warnedJars = removedJars
 
-      intp.classes.addJars(newJars: _*)
+      intp.classes.addJars(newJars ++ extra: _*)
       intp.init()
+    }
+    def sbt(path: java.io.File, projects: String*): Unit = {
+      var anyProj = false
+      var dirs = Seq.empty[File]
+
+      for (proj <- projects) {
+        Sbt.projectInfo(path, proj) match {
+          case None =>
+            println(s"Can't find project $proj in $path, ignoring it")
+          case Some(info) =>
+            anyProj = true
+            sbtIvys = sbtIvys ++ info.dependencies.collect {
+              case Module(org, name, version, Seq()) => (org, name, version)
+            }
+            internalSbtIvys = internalSbtIvys + ((info.module.organization, info.module.name, info.module.version))
+            dirs = dirs ++ info.exportedProducts.map(new File(_)) ++ info.unmanagedClasspath.map(new File(_))
+        }
+      }
+
+      if (anyProj)
+        updateIvy(dirs)
     }
     def resolver(resolver: Resolver*): Unit = {
       userResolvers = userResolvers ++ resolver.map {
