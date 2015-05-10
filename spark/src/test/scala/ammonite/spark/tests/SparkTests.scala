@@ -139,7 +139,7 @@ class SparkTests(
     // TODO? interacting with files
 
     'sparkIssue1199{
-      check.session(preamble +
+      check.session(
        s"""
           @ case class Sum(exp: String, exp2: String)
           defined class Sum
@@ -152,11 +152,11 @@ class SparkTests(
 
           @ b(a)
           res6: String = "Found Sum"
-        """, postamble)
+        """)
     }
 
     'sparkIssue2452{
-      check.session(preamble +
+      check.session(
         """
           @ val x = 4 ; def f() = x
           x: Int = 4
@@ -164,7 +164,7 @@ class SparkTests(
 
           @ f()
           res4: Int = 4
-        """, postamble)
+        """)
     }
 
     'sparkIssue2576{
@@ -215,7 +215,7 @@ class SparkTests(
           defined class Foo
 
           @ sc.parallelize((1 to 100).map(Foo), 10).collect()
-          res4: scala.Array[${wrapperInstance(3, 4)}.Foo] = Array(${(1 to 100).map(i => s"  Foo($i)").mkString("\n" + margin, ",\n" + margin, "\n" + margin)})
+          res4: scala.Array[${wrapperInstance(3, 4)}.Foo] = Array(${(1 to 14).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...)
         """, postamble)
     }
 
