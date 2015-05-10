@@ -28,13 +28,14 @@ object BridgeHandle {
  * to interpret Scala code. Doesn't attempt to provide any
  * real encapsulation for now.
  */
-class Interpreter(bridgeConfig: BridgeConfig,
-                  preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output],
-                  wrap: (Preprocessor.Output, String, String) => String,
-                  startingLine: Int = 0,
-                  val imports: Imports = new Imports(),
-                  initialHistory: Seq[String] = Nil,
-                  val classes: Classes = new DefaultClassesImpl()){ interp =>
+class Interpreter(
+  bridgeConfig: BridgeConfig,
+  wrap: (Seq[Decl], String, String) => String,
+  val imports: Imports = new Imports(),
+  val classes: Classes = new DefaultClassesImpl(),
+  startingLine: Int = 0,
+  initialHistory: Seq[String] = Nil
+) { interp =>
 
   imports.update(bridgeConfig.imports)
 
@@ -50,7 +51,7 @@ class Interpreter(bridgeConfig: BridgeConfig,
       val Res.Failure(trace) = Res.Failure(x)
       Res.Failure(trace + "\nSomething unexpected went wrong =(")
     }
-    p <- preprocess(line, eval.getCurrentLine)
+    p <- Preprocessor(compiler.parse, line, eval.getCurrentLine)
     _ = saveHistory(history.append(_), line)
     oldClassloader = Thread.currentThread().getContextClassLoader
     out <- try{
@@ -116,8 +117,6 @@ class Interpreter(bridgeConfig: BridgeConfig,
   def stop() = {
     if (handle != null) handle.stop()
   }
-
-  val preprocess = preprocessor(_ => compiler.parse)
 
   val eval = Evaluator(
     classes.currentClassLoader,

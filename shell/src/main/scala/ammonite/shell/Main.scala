@@ -71,11 +71,10 @@ object Main{
   def shellInterpreter(main: Main, hasPredef: Boolean): Interpreter =
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
-      ShellInterpreter.preprocessor,
-      ShellInterpreter.wrap,
-      initialHistory = main.initialHistory,
+      ShellInterpreter.wrap(ShellInterpreter.mergePrinters),
+      classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs),
       startingLine = if (hasPredef) -1 else 0,
-      classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs)
+      initialHistory = main.initialHistory
     )
 
   val classWrapperInstanceSymbol = "INSTANCE"
@@ -83,12 +82,11 @@ object Main{
   def shellClassWrapInterpreter(main: Main, hasPredef: Boolean): Interpreter =
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
-      ShellInterpreter.preprocessor,
-      ShellInterpreter.classWrap,
-      initialHistory = main.initialHistory,
-      startingLine = if (hasPredef) -1 else 0,
+      ShellInterpreter.classWrap(ShellInterpreter.mergePrinters),
+      imports = new Imports(useClassWrapper = true),
       classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs),
-      imports = new Imports(useClassWrapper = true)
+      startingLine = if (hasPredef) -1 else 0,
+      initialHistory = main.initialHistory
     )
 
   def apply(

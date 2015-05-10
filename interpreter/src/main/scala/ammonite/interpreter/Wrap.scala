@@ -14,17 +14,17 @@ object Wrap {
         }
      """
 
-  def cls(code: String, displayCode: String, previousImportBlock: String, wrapperName: String, instanceSymbol: String): String =
+  def cls(code: String, displayCode: String, previousImportBlock: String, wrapperName: String): String =
     s"""object $wrapperName extends AnyRef {
-          val $instanceSymbol = new $wrapperName
+          val INSTANCE = new $wrapperName
         }
 
         object $wrapperName$$Main extends AnyRef {
           $previousImportBlock
 
           def $$main() = {
-            val $$execute = $wrapperName.$instanceSymbol
-            import $wrapperName.$instanceSymbol.$$user
+            val $$execute = $wrapperName.INSTANCE
+            import $wrapperName.INSTANCE.$$user
             $displayCode
           }
         }
@@ -40,17 +40,5 @@ object Wrap {
           val $$user = new $$user
         }
      """
-
-  def classWrapImportsTransform(r: Res[Evaluated[_]]): Res[Evaluated[_]] =
-    r .map { ev =>
-      ev.copy(imports = ev.imports.map{ d =>
-        if (d.prefix.startsWith(d.wrapperName + ".$ref$")) {
-          // Assuming this is an import through previous REPL variables
-          val stripped = d.prefix.stripPrefix(d.wrapperName + ".$ref$")
-          d.copy(prefix = stripped, wrapperName = stripped.takeWhile(_ != '.'))
-        } else
-          d
-      })
-    }
 
 }

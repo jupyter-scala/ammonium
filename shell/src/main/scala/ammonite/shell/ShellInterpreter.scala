@@ -3,10 +3,8 @@ package ammonite.shell
 import java.io.File
 
 import acyclic.file
-import ammonite.interpreter.Preprocessor.PreprocessorParser
 import org.apache.ivy.plugins.resolver.DependencyResolver
 import com.github.alexarchambault.ivylight.ResolverHelpers
-import scala.tools.nsc.Global
 import ammonite.interpreter._
 import ammonite.pprint
 import ammonite.shell.util._
@@ -52,18 +50,15 @@ object ShellInterpreter {
         Evaluator.namesFor[IvyConstructor].map(n => ImportData(n, n, "", "ammonite.shell.IvyConstructor")).toSeq
     )
 
-  val preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output] =
-    f => new PreprocessorParser(f(), new ShellDisplay {}) .apply
+  def mergePrinters(printers: Seq[DisplayItem]) =
+    printers.map(ShellDisplay(_)).reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")
 
-  def mergePrinters(printers: Seq[String]) =
-    printers.reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")
-
-  val wrap: (Preprocessor.Output, String, String) => String =
+  def wrap(mergeDisplay: Seq[DisplayItem] => String): (Seq[Decl], String, String) => String =
     (p, previousImportBlock, wrapperName) =>
-      Wrap.obj(p.code, mergePrinters(p.printer), previousImportBlock, wrapperName)
+      Wrap.obj(p.map(_.code) mkString " ; ", mergeDisplay(p.flatMap(_.display)), previousImportBlock, wrapperName)
 
-  val classWrap: (Preprocessor.Output, String, String) => String =
+  def classWrap(mergeDisplay: Seq[DisplayItem] => String): (Seq[Decl], String, String) => String =
     (p, previousImportBlock, wrapperName) =>
-      Wrap.cls(p.code, mergePrinters(p.printer), previousImportBlock, wrapperName, "INSTANCE")
+      Wrap.cls(p.map(_.code) mkString " ; ", mergeDisplay(p.flatMap(_.display)), previousImportBlock, wrapperName)
 
 }

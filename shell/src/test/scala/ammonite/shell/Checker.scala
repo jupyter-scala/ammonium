@@ -19,8 +19,7 @@ class AmmoniteChecker extends Checker {
   def newInterpreter(): Interpreter =
     new Interpreter(
       ShellInterpreter.bridgeConfig(),
-      ShellInterpreter.preprocessor,
-      ShellInterpreter.wrap,
+      ShellInterpreter.wrap(ShellInterpreter.mergePrinters),
       startingLine = if (predef.nonEmpty) -1 else 0
     )
 
