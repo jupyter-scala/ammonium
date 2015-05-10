@@ -5,7 +5,7 @@ import ammonite.interpreter._
 import ammonite.pprint
 import ammonite.shell.util._
 import acyclic.file
-import com.github.alexarchambault.ivylight.{ResolverHelpers, IvyHelper, ClassLoaderUtil}
+import com.github.alexarchambault.ivylight.{ResolverHelpers, IvyHelper, ClasspathFilter}
 import caseapp._
 
 import scala.annotation.tailrec
@@ -64,7 +64,7 @@ case class Ammonite(shellPrompt: String = "@",
   val m = ClassesImpl.defaultClassPath()._1.map(f => f.getName -> f).toMap
   val startJars = startJars0.map(f => m.getOrElse(f.getName, f))
 
-  val startClassLoader = new ClassLoaderUtil.ClasspathFilter(getClass.getClassLoader, null, (startJars ++ startDirs).toSet)
+  val startClassLoader = new ClasspathFilter(getClass.getClassLoader, (startJars ++ startDirs).toSet)
 
   val shellPrompt0 = Ref(shellPrompt)
 
