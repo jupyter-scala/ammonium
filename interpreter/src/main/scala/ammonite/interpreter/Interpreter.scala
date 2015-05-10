@@ -33,11 +33,10 @@ class Interpreter[B](bridgeConfig: BridgeConfig[B],
                      preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output],
                      wrap: (Preprocessor.Output, String, String) => String,
                      handleResult: => (String, Res[Evaluated[_]]) => Res[Evaluated[_]] = (_, r) => r,
-                     printer: B => Unit,
-                     stdout: String => Unit = print,
+                     stdout: String => Unit = print, // should be removed
+                     startingLine: Int = 0,
                      initialImports: Seq[(String, ImportData)] = Nil,
                      initialHistory: Seq[String] = Nil,
-                     predef: String = "",
                      val classes: Classes = new DefaultClassesImpl(),
                      useClassWrapper: Boolean = false){ interp =>
 
@@ -132,16 +131,10 @@ class Interpreter[B](bridgeConfig: BridgeConfig[B],
     wrap,
     compiler.compile,
     classes.addClass,
-    if (predef != "") -1 else 0,
+    startingLine,
     useClassWrapper = useClassWrapper
   )
 
   init()
-
-  if (predef != "") {
-    val res1 = processLine(predef, (_, _) => (), printer)
-    val res2 = handleOutput(res1)
-    stdout("\n")
-  }
 }
 

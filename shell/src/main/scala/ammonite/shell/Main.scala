@@ -16,8 +16,7 @@ class Main(input: InputStream,
            val pprintConfig: pprint.Config = pprint.Config.Colors.PPrintConfig,
            shellPrompt0: String = "@",
            val initialHistory: Seq[String] = Nil,
-           saveHistory: String => Unit = _ => (),
-           val predef: String = Main.defaultPredef) {
+           saveHistory: String => Unit = _ => ()) {
 
   val startClassLoader = Thread.currentThread().getContextClassLoader
   val startJars = Classpath.jarDeps
@@ -59,22 +58,21 @@ class Main(input: InputStream,
 }
 
 object Main{
-  def shellInterpreter(main: Main): Interpreter[Iterator[String]] =
+  def shellInterpreter(main: Main, hasPredef: Boolean): Interpreter[Iterator[String]] =
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
       ShellInterpreter.wrap,
       handleResult = { (buf, r) => main.frontEnd.update(buf, r); r },
-      printer = _.foreach(print),
       stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
-      predef = main.predef,
+      startingLine = if (hasPredef) -1 else 0,
       classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs)
     )
 
   val classWrapperInstanceSymbol = "INSTANCE"
 
-  def shellClassWrapInterpreter(main: Main): Interpreter[Iterator[String]] =
+  def shellClassWrapInterpreter(main: Main, hasPredef: Boolean): Interpreter[Iterator[String]] =
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
@@ -83,18 +81,16 @@ object Main{
         val transform = Wrap.classWrapImportsTransform _
         (buf, r0) => val r = transform(r0); main.frontEnd.update(buf, r); r
       },
-      printer = _.foreach(print),
       stdout = new PrintStream(main.output).println,
       initialHistory = main.initialHistory,
-      predef = main.predef,
+      startingLine = if (hasPredef) -1 else 0,
       classes = new DefaultClassesImpl(main.startClassLoader, main.startJars, main.startDirs),
       useClassWrapper = true
     )
 
   val defaultPredef = """"""
   def apply(
-    interpreter: Main => Interpreter[Iterator[String]],
-    predef: String
+    interpreter: Main => Interpreter[Iterator[String]]
   ): Unit = {
     println("Loading Ammonite Shell...")
 
@@ -112,8 +108,7 @@ object Main{
         val fw = new FileWriter(saveFile, true)
         try fw.write(delimiter + s)
         finally fw.close()
-      },
-      predef = predef
+      }
     )
     shell.run()
   }
@@ -128,5 +123,13 @@ object Main{
     run(classWrap = classWrap)
   }
   def run(predef: String = "", classWrap: Boolean = false) =
-    apply(if (classWrap) shellClassWrapInterpreter else shellInterpreter, predef)
+    apply({ m =>
+      val intp = if (classWrap) shellClassWrapInterpreter(m, predef.nonEmpty) else shellInterpreter(m, predef.nonEmpty)
+      if (predef.nonEmpty) {
+        val res1 = intp.processLine(predef, (_, _) => (), _.foreach(print))
+        val res2 = intp.handleOutput(res1)
+        print("\n")
+      }
+      intp
+    })
 }

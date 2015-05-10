@@ -21,12 +21,17 @@ class AmmoniteChecker extends Checker {
       ShellInterpreter.bridgeConfig(),
       ShellInterpreter.preprocessor,
       ShellInterpreter.wrap,
-      printer = _.foreach(allOutput += _),
       stdout = allOutput += _,
-      predef = predef
+      startingLine = if (predef.nonEmpty) -1 else 0
     )
 
   val interp = newInterpreter()
+
+  if (predef.nonEmpty) {
+    val res1 = interp.processLine(predef, (_, _) => (), _.foreach(allOutput += _))
+    val res2 = interp.handleOutput(res1)
+    allOutput += "\n"
+  }
 
   def session(sess: String): Unit = {
 //    println("SESSION")
