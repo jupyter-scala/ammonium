@@ -16,8 +16,8 @@ class AmmoniteChecker extends Checker {
   def predef = ""
   var allOutput = ""
 
-  def newInterpreter(): Interpreter =
-    new Interpreter(
+  def newInterpreter(): Interpreter with InterpreterInternals =
+    new InterpreterImpl(
       ShellInterpreter.bridgeConfig(
         pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15)
       ),
@@ -29,7 +29,7 @@ class AmmoniteChecker extends Checker {
 
   if (predef.nonEmpty) {
     val res1 = interp(predef, (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(allOutput += _))
-    val res2 = interp.handleOutput(res1)
+    interp.handleOutput(res1)
     allOutput += "\n"
   }
 
@@ -107,11 +107,7 @@ class AmmoniteChecker extends Checker {
   }
 
   def complete(cursor: Int, buf: String): (Int, Seq[String], Seq[String]) = {
-    interp.pressy.complete(
-      cursor,
-      interp.imports.previousImportBlock(),
-      buf
-    )
+    interp.complete(cursor, buf)
   }
 
 }

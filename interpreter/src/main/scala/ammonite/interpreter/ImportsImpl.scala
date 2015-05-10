@@ -2,10 +2,8 @@ package ammonite.interpreter
 
 import scala.collection.mutable
 
-class Imports(
-  initialImports: Seq[(String, ImportData)] = Nil,
-  useClassWrapper: Boolean = false
-) {
+class ImportsImpl(initialImports: Seq[(String, ImportData)] = Nil,
+                  useClassWrapper: Boolean = false) extends Imports {
 
   /**
    * Imports which are required by earlier commands to the REPL. Imports

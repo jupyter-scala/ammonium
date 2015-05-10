@@ -6,7 +6,6 @@ import java.io.File
 import java.nio.file.Files
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
-import ammonite.shell.power.Power
 import org.apache.spark.{ SparkContext, SparkConf }
 import org.apache.spark.sql.SQLContext
 
@@ -14,7 +13,7 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 
-class Spark(implicit power: Power) extends Serializable { api =>
+class Spark(implicit interpreter: ammonite.interpreter.Interpreter) extends Serializable { api =>
 
   private lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
@@ -43,11 +42,11 @@ class Spark(implicit power: Power) extends Serializable { api =>
         def fromClassMaps =
           for {
             List(item) <- Some(path)
-            b <- power.classes.fromAddedClasses(item.stripSuffix(".class"))
+            b <- interpreter.classes.fromAddedClasses(item.stripSuffix(".class"))
           } yield b
 
         def fromDirs =
-          power.classes.dirs
+          interpreter.classes.dirs
             .map(path.foldLeft(_)(new File(_, _)))
             .collectFirst{ case f if f.exists() => Files.readAllBytes(f.toPath) }
 
@@ -108,7 +107,7 @@ class Spark(implicit power: Power) extends Serializable { api =>
     conf
       .setIfMissing("spark.master", defaultMaster)
       .setIfMissing("spark.app.name", "Ammonite Shell")
-      .setIfMissingLazy("spark.jars", power.classes.jars.map(_.toURI.toString) mkString ",")
+      .setIfMissingLazy("spark.jars", interpreter.classes.jars.map(_.toURI.toString) mkString ",")
       .setIfMissingLazy("spark.repl.class.uri", classServerURI.toString)
       .setIfMissingLazy("spark.ui.port", availablePort(4040).toString)
 
@@ -134,12 +133,12 @@ class Spark(implicit power: Power) extends Serializable { api =>
   def withConf(f: SparkConf => SparkConf): Unit =
     _sparkConf = f(sparkConf)
 
-  power.classes.onJarsAdded { newJars =>
+  interpreter.classes.onJarsAdded { newJars =>
     if (_sc != null)
       newJars.foreach(_sc addJar _.toURI.toString)
   }
 
-  power.onStop {
+  interpreter.onStop {
     stop()
   }
 

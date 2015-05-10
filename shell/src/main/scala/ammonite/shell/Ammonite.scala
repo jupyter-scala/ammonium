@@ -61,7 +61,7 @@ case class Ammonite(shellPrompt: String = "@",
       IvyHelper.resolve(startIvys, resolvers)
   } .filter(_.exists()) .partition(_.getName.endsWith(".jar"))
 
-  val m = Classes.default()._1.map(f => f.getName -> f).toMap
+  val m = ClassesImpl.defaultClassPath()._1.map(f => f.getName -> f).toMap
   val startJars = startJars0.map(f => m.getOrElse(f.getName, f))
 
   val startClassLoader = new ClassLoaderUtil.ClasspathFilter(getClass.getClassLoader, null, (startJars ++ startDirs).toSet)
@@ -71,16 +71,16 @@ case class Ammonite(shellPrompt: String = "@",
   val frontEnd = JLineFrontend(
     System.in, System.out,
     colorSet.prompt + shellPrompt0() + scala.Console.RESET,
-    interp.pressy.complete(_, interp.imports.previousImportBlock(), _),
+    interp.complete(_, _),
     initialHistory
   )
 
-  val interp: Interpreter =
-    new Interpreter(
+  val interp: Interpreter with InterpreterInternals =
+    new InterpreterImpl(
       ShellInterpreter.bridgeConfig(startJars = startJars, startIvys = startIvys, shellPrompt = shellPrompt0, reset = frontEnd.reset(), pprintConfig = pprintConfig.copy(maxWidth = frontEnd.width, lines = 15), colors = colorSet),
       ShellInterpreter.wrap(classWrap),
-      imports = new ammonite.interpreter.Imports(useClassWrapper = classWrap),
-      classes = new DefaultClassesImpl(startClassLoader, (startJars, startDirs)),
+      imports = new ammonite.interpreter.ImportsImpl(useClassWrapper = classWrap),
+      classes = new ClassesImpl(startClassLoader, (startJars, startDirs)),
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory
     )

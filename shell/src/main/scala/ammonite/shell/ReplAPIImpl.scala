@@ -3,7 +3,6 @@ package ammonite.shell
 import java.io.File
 
 import ammonite.shell.IvyConstructor.Resolvers
-import ammonite.shell.power.{Classes, Power}
 import com.github.alexarchambault.ivylight.Sbt.Module
 import org.apache.ivy.plugins.resolver.DependencyResolver
 import com.github.alexarchambault.ivylight.{Sbt, ResolverHelpers, IvyHelper}
@@ -11,7 +10,7 @@ import com.github.alexarchambault.ivylight.{Sbt, ResolverHelpers, IvyHelper}
 import scala.reflect.runtime.universe._
 import acyclic.file
 
-import ammonite.interpreter.{ Classes => _, _ }
+import ammonite.interpreter._
 import ammonite.shell.util._
 
 
@@ -30,18 +29,10 @@ class ReplAPIImpl(
   object load extends Load{
 
     def apply(line: String) = {
-      val res = intp(
-        line,
-        (_, _) => (), // Discard history of load-ed lines,
-        print
-      )
-
-      res match {
-        case Res.Failure(msg) => println(Console.RED + msg + Console.RESET)
+      intp.run(line) match {
+        case Left(msg) => println(Console.RED + msg + Console.RESET)
         case _ =>
       }
-
-      intp.handleOutput(res)
     }
 
     private var userJars = startJars
@@ -106,67 +97,9 @@ class ReplAPIImpl(
       }
     }
   }
-  lazy val power: Power = new Power with Serializable {
-    val classes = new Classes with Serializable {
-      def currentClassLoader = intp.classes.currentClassLoader
-      def dirs = intp.classes.dirs
-      def addJar(jar: File) = intp.classes.addJars(jar)
-      def jars = intp.classes.jars
-      def onJarsAdded(action: Seq[File] => Unit) = intp.classes.onJarsAdded(action)
-      def fromAddedClasses(name: String) = intp.classes.fromAddedClasses(name)
 
-      def underlying = intp.classes
-    }
+  def interpreter = intp
 
-    var onStopHooks = Seq.empty[() => Unit]
-    def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
-    def stop() = onStopHooks.foreach(_())
-
-    def complete(snippetIndex: Int, snippet: String) =
-      intp.pressy.complete(snippetIndex, intp.imports.previousImportBlock(), snippet)
-
-    def newCompiler() = intp.init()
-    def imports =
-      new ammonite.shell.power.Imports {
-        def previousImportBlock(wanted: Option[Set[String]] = None) =
-          intp.imports.previousImportBlock(wanted)
-        def update(newImports: Seq[ImportData]) =
-          intp.imports.update(newImports)
-      }
-
-    def decls(code: String) =
-      Preprocessor(intp.compiler.parse, code, intp.getCurrentLine) match {
-        case Res.Success(l) => Right(l)
-
-        case Res.Failure(msg) => Left(msg)
-        case Res.Buffer(_) => Left("[incomplete]")
-        case Res.Exit => Left("[exit]")
-        case Res.Skip => Left("[skip]")
-      }
-
-    def wrap(code: String) = {
-      val wrapperName = s"cmd${intp.getCurrentLine}"
-
-      val res =
-        for {
-          decls <- Preprocessor(intp.compiler.parse, code, intp.getCurrentLine)
-        } yield intp.wrap(decls, intp.imports.previousImportBlock(Some(decls.flatMap(_.referencedNames).toSet)), wrapperName)
-
-      res match {
-        case Res.Success(wrapped) => Right(wrapped)
-        case Res.Failure(msg) => Left(msg)
-        case Res.Buffer(_) => Left("[incomplete]")
-        case Res.Exit => Left("[exit]")
-        case Res.Skip => Left("[skip]")
-      }
-    }
-
-    def compile(code: String) = {
-      val output = new StringBuilder
-      val res = intp.compiler.compile(code.getBytes, output ++= _)
-      (output.result(), res)
-    }
-  }
   def history = intp.history.toVector.dropRight(1)
 }
 

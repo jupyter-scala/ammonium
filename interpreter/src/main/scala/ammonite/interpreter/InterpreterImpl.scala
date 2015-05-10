@@ -9,31 +9,6 @@ import scala.reflect.io.VirtualDirectory
 import scala.util.Try
 import scala.util.control.ControlThrowable
 
-case class BridgeConfig(
-  init: String,
-  name: String,
-  imports: Seq[ImportData]
-)(
-  val initClass: (Interpreter, Class[_]) => BridgeHandle
-)
-
-object BridgeConfig {
-  val empty = BridgeConfig("object Bridge", "Bridge", Nil)((_, _) => BridgeHandle.empty)
-}
-
-trait BridgeHandle {
-  def stop(): Unit
-}
-
-object BridgeHandle {
-  def apply(onStop: => Unit): BridgeHandle =
-    new BridgeHandle {
-      def stop() = onStop
-    }
-
-  val empty = apply(())
-}
-
 
 object Wrap {
   val default = apply(_.map {
@@ -95,38 +70,29 @@ case object Exit extends ControlThrowable
  * A convenient bundle of all the functionality necessary
  * to interpret Scala code.
  */
-trait Interpreter0 {
-  /** Initialization parameters */
-  def bridgeConfig: BridgeConfig
-  def wrap: (Seq[Decl], String, String) => String
-  def imports: Imports
-  def classes: Classes
 
-  def compiler: Compiler
-  def pressy: Pressy
-  def handle: BridgeHandle
-
-  def getCurrentLine: String
+trait InterpreterInternals {
 
   def apply[T](
-    line: String,
-    saveHistory: (String => Unit, String) => Unit = _(_),
-    printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]
-  ): Res[Evaluated[T]]
+                line: String,
+                saveHistory: (String => Unit, String) => Unit = _(_),
+                printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]
+                ): Res[Evaluated[T]]
 
   // def evalClass(code: String, wrapperName: String) // return type???
   def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]]
   def handleOutput(res: Res[Evaluated[_]]): Boolean
+
 }
 
-class Interpreter(
+class InterpreterImpl(
   val bridgeConfig: BridgeConfig = BridgeConfig.empty,
-  val wrap: (Seq[Decl], String, String) => String = Wrap.default,
-  val imports: Imports = new Imports(),
-  val classes: Classes = new DefaultClassesImpl(),
+  val wrapper: (Seq[Decl], String, String) => String = Wrap.default,
+  val imports: Imports = new ImportsImpl(),
+  val classes: Classes = new ClassesImpl(),
   startingLine: Int = 0,
   initialHistory: Seq[String] = Nil
-) extends Interpreter0 {
+) extends Interpreter with InterpreterInternals {
 
   imports.update(bridgeConfig.imports)
 
@@ -145,11 +111,50 @@ class Interpreter(
   def getCurrentLine = currentLine.toString.replace("-", "_")
 
 
+  def complete(snippetIndex: Int, snippet: String, previousImports: String = null) = {
+    pressy.complete(snippetIndex, Option(previousImports) getOrElse imports.previousImportBlock(), snippet)
+  }
+
+  def decls(code: String) = {
+    Preprocessor(compiler.parse, code, getCurrentLine) match {
+      case Res.Success(l) =>
+        Right(l)
+      case Res.Buffer(s) =>
+        throw new IllegalArgumentException(s"Incomplete statement: $s")
+      case Res.Exit =>
+        throw new Exception("Can't happen")
+      case Res.Skip =>
+        Right(Nil)
+      case Res.Failure(err) =>
+        Left(err)
+    }
+  }
+
+  def compile(src: Array[Byte], runLogger: String => Unit) = {
+    compiler.compile(src, runLogger)
+  }
+
+  def run(code: String) = {
+    apply(code, (_, _) => (), bridgeConfig.defaultPrinter) match {
+      case Res.Success(ev) =>
+        imports.update(ev.imports)
+        Right(())
+      case Res.Buffer(s) =>
+        throw new IllegalArgumentException(s"Incomplete statement: $s")
+      case Res.Exit =>
+        throw Exit
+      case Res.Skip =>
+        Right(())
+      case Res.Failure(err) =>
+        Left(err)
+    }
+  }
+
   def apply[T](
     line: String,
     saveHistory: (String => Unit, String) => Unit = _(_),
     printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]
-  ): Res[Evaluated[T]] =
+  ) =
     for{
       _ <- Catching { case Ex(x@_*) =>
         val Res.Failure(trace) = Res.Failure(x)
@@ -200,7 +205,7 @@ class Interpreter(
       for {
         wrapperName <- Res.Success("cmd" + getCurrentLine)
         _ <- Catching{ case e: ThreadDeath => interrupted() }
-        wrappedLine = wrap(input, imports.previousImportBlock(Some(input.flatMap(_.referencedNames).toSet)), wrapperName)
+        wrappedLine = wrapper(input, imports.previousImportBlock(Some(input.flatMap(_.referencedNames).toSet)), wrapperName)
         (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")
         _ = currentLine += 1
         _ <- Catching{
@@ -284,8 +289,12 @@ class Interpreter(
   }
 
   def stop() = {
+    onStopHooks.foreach(_())
     if (handle != null) handle.stop()
   }
+
+  var onStopHooks = Seq.empty[() => Unit]
+  def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
 
   init()
 

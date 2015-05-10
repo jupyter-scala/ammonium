@@ -1,7 +1,5 @@
 package ammonite.shell
 
-import ammonite.shell.power.Power
-
 import scala.reflect.runtime.universe._
 
 /*
@@ -46,9 +44,12 @@ trait ReplAPI {
   /**
    * Tools related to loading external scripts and code into the REPL
    */
-  implicit def load: Load
+  def load: Load
 
-  implicit def power: Power
+  /**
+   *
+   */
+  implicit def interpreter: ammonite.interpreter.Interpreter
 }
 
 trait Resolver

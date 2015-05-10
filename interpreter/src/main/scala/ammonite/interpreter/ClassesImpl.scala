@@ -5,39 +5,6 @@ import java.net.{URLClassLoader, URL}
 import java.nio.file.Files
 import java.util.UUID
 
-trait Classes {
-  def currentClassLoader: ClassLoader
-  def jars: Seq[File]
-  def dirs: Seq[File]
-  def addJars(jars: File*): Unit
-  def addClass(name: String, b: Array[Byte]): Unit
-  def fromAddedClasses(name: String): Option[Array[Byte]]
-  def onJarsAdded(action: Seq[File] => Unit): Unit
-  def classLoaderClone(): ClassLoader
-}
-
-object Classes {
-  def default(classLoader: ClassLoader = Thread.currentThread().getContextClassLoader): (Seq[File], Seq[File]) = {
-    var current = classLoader
-    val files = collection.mutable.Buffer.empty[java.io.File]
-    files.appendAll(
-      System.getProperty("sun.boot.class.path")
-        .split(":")
-        .map(new java.io.File(_))
-    )
-    while (current != null) {
-      current match {
-        case t: java.net.URLClassLoader =>
-          files.appendAll(t.getURLs.map(u => new java.io.File(u.toURI)))
-        case _ =>
-      }
-      current = current.getParent
-    }
-
-    files.toVector.filter(_.exists).partition(_.toString.endsWith(".jar"))
-  }
-}
-
 class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLClassLoader(Array(), parent) {
   override def addURL(url: URL) = super.addURL(url)
   var dirs = Seq.empty[File]
@@ -98,9 +65,33 @@ class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLCl
 
 }
 
-class DefaultClassesImpl(
+object ClassesImpl {
+  
+  def defaultClassPath(classLoader: ClassLoader = Thread.currentThread().getContextClassLoader): (Seq[File], Seq[File]) = {
+    var current = classLoader
+    val files = collection.mutable.Buffer.empty[java.io.File]
+    files.appendAll(
+      System.getProperty("sun.boot.class.path")
+        .split(":")
+        .map(new java.io.File(_))
+    )
+    while (current != null) {
+      current match {
+        case t: java.net.URLClassLoader =>
+          files.appendAll(t.getURLs.map(u => new java.io.File(u.toURI)))
+        case _ =>
+      }
+      current = current.getParent
+    }
+
+    files.toVector.filter(_.exists).partition(_.toString.endsWith(".jar"))
+  }
+  
+}
+
+class ClassesImpl(
   startClassLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
-  startDeps: (Seq[File], Seq[File]) = Classes.default()
+  startDeps: (Seq[File], Seq[File]) = ClassesImpl.defaultClassPath()
 ) extends Classes {
 
   lazy val tmpClassDir = {
