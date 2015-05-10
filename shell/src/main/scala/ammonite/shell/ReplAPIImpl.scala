@@ -27,7 +27,7 @@ class ReplAPIImpl(
   object load extends Load{
 
     def apply(line: String) = {
-      val res = intp.processLine(
+      val res = intp(
         line,
         (_, _) => (), // Discard history of load-ed lines,
         print

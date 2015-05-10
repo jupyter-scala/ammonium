@@ -5,6 +5,12 @@ import java.lang.reflect.InvocationTargetException
 import acyclic.file
 import scala.collection.mutable
 import scala.util.Try
+import scala.util.control.ControlThrowable
+
+/**
+ * Thrown to exit the interpreter cleanly
+ */
+case object Exit extends ControlThrowable
 
 /**
  * Takes source code and, with the help of a compiler and preprocessor,
@@ -81,9 +87,6 @@ object Evaluator{
       }, e => "Failed to load compiled class " + e)
     } yield (cls, importData)
 
-    def evalMain(cls: Class[_]) =
-      cls.getDeclaredMethod("$main").invoke(null)
-
 
     def interrupted() = {
       Thread.interrupted()
@@ -115,7 +118,7 @@ object Evaluator{
     } yield {
       // Exhaust the printer iterator now, before exiting the `Catching`
       // block, so any exceptions thrown get properly caught and handled
-      val value = evaluatorRunPrinter(process(evalMain(cls)))
+      val value = evaluatorRunPrinter(process(cls.getDeclaredMethod("$main").invoke(null)))
       Evaluated(
         wrapperName,
         newImports.map(id => id.copy(

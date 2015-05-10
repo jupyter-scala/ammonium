@@ -45,7 +45,7 @@ class Main(input: InputStream,
     )
 
   if (predef.nonEmpty) {
-    val res1 = interp.processLine(predef, (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(print))
+    val res1 = interp(predef, (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(print))
     val res2 = interp.handleOutput(res1)
     print("\n")
   }
@@ -54,7 +54,7 @@ class Main(input: InputStream,
     // Condition to short circuit early if `interp` hasn't finished evaluating
     line <- frontEnd.action(interp.buffered)
     _ <- Signaller("INT") { Thread.currentThread().stop() }
-    out <- interp.processLine(line, (f, x) => {saveHistory(x); f(x)}, _.asInstanceOf[Iterator[String]].foreach(print))
+    out <- interp(line, (f, x) => {saveHistory(x); f(x)}, _.asInstanceOf[Iterator[String]].foreach(print))
   } yield {
     println()
     out

@@ -3,12 +3,11 @@ package ammonite.interpreter
 import acyclic.file
 
 import scala.reflect.io.VirtualDirectory
-import scala.util.control.ControlThrowable
 
 case class BridgeConfig(
   init: String,
   name: String,
-  initClass: Unit => (Interpreter, Class[_]) => BridgeHandle,
+  initClass: (Interpreter, Class[_]) => BridgeHandle,
   imports: Seq[ImportData]
 )
 
@@ -22,11 +21,6 @@ object BridgeHandle {
       def stop() = onStop
     }
 }
-
-/**
- * Thrown to exit the interpreter cleanly
- */
-case object Exit extends ControlThrowable
 
 /**
  * A convenient bundle of all the functionality necessary
@@ -49,7 +43,7 @@ class Interpreter(
   val history = initialHistory.to[collection.mutable.Buffer]
   var buffered = ""
 
-  def processLine[T](
+  def apply[T](
     line: String,
     saveHistory: (String => Unit, String) => Unit,
     printer: AnyRef => T
@@ -93,8 +87,6 @@ class Interpreter(
     }
   }
 
-  val bridgeInitClass = bridgeConfig.initClass()
-
   var compiler: Compiler = _
   var pressy: Pressy = _
   var handle: BridgeHandle = _
@@ -119,7 +111,7 @@ class Interpreter(
       case Res.Success(s) => s
       case other => throw new Exception(s"Error while initializing REPL API: $other")
     }
-    handle = bridgeInitClass(this, cls)
+    handle = bridgeConfig.initClass(this, cls)
   }
 
   def stop() = {
