@@ -8,6 +8,9 @@ trait Checker {
   def fail(input: String, failureCheck: String => Boolean = _ => true): Unit
   def complete(cursor: Int, buf: String): (Int, Seq[String], Seq[String])
 
+  def captureOut: Boolean
+  def captureOut_=(v: Boolean): Unit
+
   def session(sess: String, finally0: String): Unit =
     try session(sess) finally session(finally0)
 }
@@ -15,6 +18,7 @@ trait Checker {
 class AmmoniteChecker extends Checker {
   def predef = ""
   var allOutput = ""
+  var captureOut = false
 
   def newInterpreter(): api.Interpreter with InterpreterInternals =
     new Interpreter(
@@ -28,7 +32,12 @@ class AmmoniteChecker extends Checker {
   val interp = newInterpreter()
 
   if (predef.nonEmpty) {
-    val res1 = interp(predef, (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(allOutput += _))
+    val res1 = interp(
+      predef,
+      (_, _) => (),
+      _.asInstanceOf[Iterator[String]].foreach(allOutput += _),
+      if (captureOut) Some(allOutput += _) else None
+    )
     interp.handleOutput(res1)
     allOutput += "\n"
   }
@@ -64,8 +73,14 @@ class AmmoniteChecker extends Checker {
 //    println(input)
 //    print(".")
     val msg = collection.mutable.Buffer.empty[String]
-    val processed = interp(interp.buffered + input, _(_), _.asInstanceOf[Iterator[String]].foreach(msg.append(_)))
-    val printed = processed.map(_ => msg.mkString)
+    val msgOut = collection.mutable.Buffer.empty[String]
+    val processed = interp(
+      interp.buffered + input,
+      _(_),
+      _.asInstanceOf[Iterator[String]].foreach(msg.append(_)),
+      if (captureOut) Some(msgOut.append(_)) else None
+    )
+    val printed = processed.map(_ => msgOut.mkString + msg.mkString)
     printed match {
       case _: Res.Buffer =>
       case _ => allOutput += "\n" + printed
