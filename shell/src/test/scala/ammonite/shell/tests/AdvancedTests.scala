@@ -17,7 +17,6 @@ class AdvancedTests(check0: => Checker, isAmmonite: Boolean = true, hasMacros: B
             error: not found: value scalatags
 
             @ load.ivy("com.lihaoyi" %% "scalatags" % "0.4.5")
-            res0: Unit = ()
 
             @ import scalatags.Text.all._
             import scalatags.Text.all._
@@ -32,7 +31,6 @@ class AdvancedTests(check0: => Checker, isAmmonite: Boolean = true, hasMacros: B
           // Make sure it automatically picks up jawn-parser since upickle depends on it,
           check.session("""
             @ load.ivy("com.lihaoyi" %% "upickle" % "0.2.6")
-            res0: Unit = ()
 
             @ import upickle._
             import upickle._
@@ -81,7 +79,6 @@ class AdvancedTests(check0: => Checker, isAmmonite: Boolean = true, hasMacros: B
         'complex{
           check.session("""
             @ load.ivy("com.typesafe.akka" %% "akka-http-experimental" % "1.0-M3")
-            res0: Unit = ()
 
             @ implicit val system = akka.actor.ActorSystem()
 
@@ -196,7 +193,6 @@ class AdvancedTests(check0: => Checker, isAmmonite: Boolean = true, hasMacros: B
     'shapeless{
       check.session("""
         @ load.ivy("com.chuusai" %% "shapeless" % "2.1.0")
-        res0: Unit = ()
 
         @ import shapeless._
 
@@ -214,7 +210,6 @@ class AdvancedTests(check0: => Checker, isAmmonite: Boolean = true, hasMacros: B
     'scalaz{
       check.session("""
         @ load.ivy("org.scalaz" %% "scalaz-core" % "7.1.1")
-        res0: Unit = ()
 
         @ import scalaz._
         import scalaz._
