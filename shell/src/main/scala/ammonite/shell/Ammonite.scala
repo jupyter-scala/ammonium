@@ -184,26 +184,16 @@ object Ammonite extends AppOf[Ammonite] {
         NamesFor[IvyConstructor.type].map{case (n, isImpl) => ImportData(n, n, "", "ammonite.api.IvyConstructor", isImpl)}.toSeq,
       _.asInstanceOf[Iterator[String]].foreach(print)
     ) {
-      def _colors = colors
-      def _shellPrompt = shellPrompt
-      def _pprintConfig = pprintConfig
-      def _reset() = reset
-
       var replApi: ReplAPI with FullReplAPI = null
+      def _reset() = reset
 
       (intp, cls) =>
         if (replApi == null)
-          replApi = new ReplAPIImpl(intp, startJars, startIvys, jarMap, startResolvers) {
-            def colors = _colors
-            def shellPrompt0 = _shellPrompt
-            var pprintConfig = _pprintConfig
+          replApi = new ReplAPIImpl(intp, startJars, startIvys, jarMap, startResolvers, colors, shellPrompt, pprintConfig) {
             def reset() = _reset()
           }
 
-        ReplAPIHolder.initReplBridge(
-          cls.asInstanceOf[Class[ReplAPIHolder]],
-          replApi
-        )
+        ReplAPIHolder.initReplBridge(cls.asInstanceOf[Class[ReplAPIHolder]], replApi)
     }
 
   def wrap(classWrap: Boolean) =
