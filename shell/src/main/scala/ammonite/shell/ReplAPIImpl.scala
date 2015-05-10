@@ -161,5 +161,5 @@ trait ShellReplAPIImpl extends FullShellReplAPI {
     s"${colors.`type`}import ${colors.ident}$imported${colors.reset}"
   }
 
-  def full[T](a: T, lines: Int = 0) = ammonite.pprint.Full(a, lines)
+  def show[T](a: T, lines: Int = 0) = ammonite.pprint.Show(a, lines)
 }

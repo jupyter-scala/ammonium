@@ -97,7 +97,7 @@ object AmmoniteShellBuild extends Build {
       name := "ammonite-shell-api",
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-        "com.lihaoyi" %% "ammonite-pprint" % "0.2.9"
+        "com.lihaoyi" %% "ammonite-pprint" % "0.3.0"
       )
     )
 

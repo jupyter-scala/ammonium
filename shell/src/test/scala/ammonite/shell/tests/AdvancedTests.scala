@@ -279,8 +279,8 @@ class AdvancedTests(check0: => AmmoniteChecker, hasMacros: Boolean = true, wrapp
         100,
       ...
 
-      @ full(Seq.fill(20)(100))
-      res1: ammonite.pprint.Full[Seq[Int]] = List(
+      @ show(Seq.fill(20)(100))
+      res1: ammonite.pprint.Show[Seq[Int]] = List(
         100,
         100,
         100,
@@ -303,8 +303,8 @@ class AdvancedTests(check0: => AmmoniteChecker, hasMacros: Boolean = true, wrapp
         100
       )
 
-      @ full(Seq.fill(20)(100), lines = 3)
-      res2: ammonite.pprint.Full[Seq[Int]] = List(
+      @ show(Seq.fill(20)(100), lines = 3)
+      res2: ammonite.pprint.Show[Seq[Int]] = List(
         100,
         100,
       ...
