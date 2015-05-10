@@ -39,8 +39,8 @@ trait Interpreter {
    * Throw away the current scala.tools.nsc.Global and get a new one
    */
   def init(): Unit
-  def stop(): Unit
 
+  def stop(): Unit
   def onStop(action: => Unit): Unit
 
   def complete(snippetIndex: Int, snippet: String, previousImports: String = null): (Int, Seq[String], Seq[String])
