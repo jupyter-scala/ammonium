@@ -1,6 +1,7 @@
 package ammonite.shell
 
 import ammonite.interpreter._
+import ammonite.shell.util.ColorSet
 import utest._
 
 trait Checker {
@@ -38,12 +39,12 @@ class AmmoniteChecker extends Checker {
   var captureOut = false
 
   def newInterpreter(): ammonite.api.Interpreter with InterpreterInternals =
-    new Interpreter(
-      Ammonite.bridgeConfig(
-        pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15)
-      ),
-      Ammonite.wrap(classWrap = false),
-      startingLine = if (predef.nonEmpty) -1 else 0
+    Ammonite.newInterpreter(
+      predef,
+      classWrap = false,
+      pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15),
+      colors = ColorSet.BlackWhite,
+      sharedLoader = false
     )
 
   val interp = newInterpreter()

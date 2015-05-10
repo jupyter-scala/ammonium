@@ -2,15 +2,15 @@ package ammonite.shell
 package classwrapper
 
 import ammonite.interpreter._
+import ammonite.shell.util.ColorSet
 
 class AmmoniteClassWrapperChecker extends AmmoniteChecker {
   override def newInterpreter(): ammonite.api.Interpreter with InterpreterInternals =
-    new Interpreter(
-      Ammonite.bridgeConfig(
-        pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15)
-      ),
-      Ammonite.wrap(classWrap = true),
-      imports = new Imports(useClassWrapper = true),
-      startingLine = if (predef.nonEmpty) -1 else 0
+    Ammonite.newInterpreter(
+      predef,
+      classWrap = true,
+      pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15),
+      colors = ColorSet.BlackWhite,
+      sharedLoader = false
     )
 }

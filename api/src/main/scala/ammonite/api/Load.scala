@@ -10,9 +10,12 @@ trait Load {
    */
   def ivy(coordinates: (String, String, String)*): Unit
   /**
-   * Load one or several sbt project(s)
+   * Load one or several sbt project(s). Requires the sbt-detailed-settings
+   * SBT plugin, and the sbt-extra launcher.
    */
   def sbt(path: java.io.File, projects: String*): Unit
+  def sbt(path: String, projects: String*): Unit =
+    sbt(new java.io.File(path), projects: _*)
 
   /**
    * Just resolves some modules, does not load them

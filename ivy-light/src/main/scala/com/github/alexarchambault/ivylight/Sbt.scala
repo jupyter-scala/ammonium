@@ -10,6 +10,14 @@ import scala.io.Source
 object Sbt {
   import CaseClassParser.{Value, Container}
 
+  def defaultProject(lines: Seq[String]): Option[String] =
+    lines
+      .filter(_ startsWith "[info]")
+      .map(_ stripPrefix "[info]")
+      .filterNot(l => l.contains('/') || l.contains('\\'))
+      .find(_.trim startsWith "*")
+      .map(_.replace('*', ' ').trim)
+
   def parseProjects(lines: Seq[String]): Seq[String] =
     lines
       .filter(_ startsWith "[info]")
@@ -60,20 +68,26 @@ object Sbt {
       case _ => None
     }
 
-  private val projectsBuilder = new ProcessBuilder("sbt", "projects")
+  private val projectsBuilder = new ProcessBuilder("sbt", "-Dsbt.log.noformat=true", "projects")
 
-  def projects(dir: File): Seq[String] = {
+  def projects(dir: File): (Option[String], Seq[String]) = {
     val proc = projectsBuilder.directory(dir).start()
-    parseProjects(Source.fromInputStream(proc.getInputStream).getLines().toList)
+    val lines = Source.fromInputStream(proc.getInputStream).getLines().toList
+    Console.err println s"Lines:\n${lines mkString "\n"}\n"
+
+    (defaultProject(lines), parseProjects(lines))
   }
 
   case class ProjectInfo(module: Module, dependencies: Seq[Module], exportedProducts: Seq[String], unmanagedClasspath: Seq[String])
 
+  /** Requires the sbt-detailed-settings SBT plugin, and the sbt-extra launcher */
   def projectInfo(dir: File, project: String): Option[ProjectInfo] = {
-    val pb = new ProcessBuilder("sbt", "-Dsbt.log.noformat=true", s"show $project/detailedModuleSettings", s"show $project/exportedProducts", s"show $project/unmanagedClasspath")
+    val pb = new ProcessBuilder("sbt", "-sbt-version", "0.13.8", "-Dsbt.log.noformat=true", s"show $project/detailedModuleSettings", s"show $project/exportedProducts", s"show $project/unmanagedClasspath")
 
     val proc = pb.directory(dir).start()
     val lines = Source.fromInputStream(proc.getInputStream).getLines().toList
+
+    Console.err println s"Lines:\n${lines mkString "\n"}\n"
 
     val lines0 = lines.dropWhile(!_.startsWith("[info] List")).drop(1)
 

@@ -100,6 +100,8 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   val history = initialHistory.to[collection.mutable.Buffer]
   var buffered = ""
 
+  var sourcesMap = new mutable.HashMap[String, String]
+  def sources = sourcesMap.toMap
 
   /**
    * The current line number of the REPL, used to make sure every snippet
@@ -220,6 +222,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
         // Exhaust the printer iterator now, before exiting the `Catching`
         // block, so any exceptions thrown get properly caught and handled
         val value = evaluatorRunPrinter(process(cls.getDeclaredMethod("$main").invoke(null)))
+        sourcesMap(wrapperName) = wrappedLine
         Evaluated(
           wrapperName,
           newImports.map(id => id.copy(
@@ -273,14 +276,14 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       Classes.bootStartJars ++ classes.jars,
       Classes.bootStartDirs ++ classes.dirs,
       dynamicClasspath,
-      classes.currentClassLoader,
+      classes.currentMacroClassLoader,
       () => pressy.shutdownPressy()
     )
     pressy = Pressy(
       Classes.bootStartJars ++ classes.jars,
       Classes.bootStartDirs ++ classes.dirs,
       dynamicClasspath,
-      classes.currentClassLoader
+      classes.currentMacroClassLoader
     )
 
     // initializing the compiler so that it does not complain having no phase

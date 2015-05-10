@@ -17,4 +17,7 @@ trait Imports {
 
   /** Updates the previous import data with new ones */
   def update(newImports: Seq[ImportData]): Unit
+
+  def filtering: Boolean
+  def filtering_=(v: Boolean): Unit
 }

@@ -11,6 +11,7 @@ trait Classes {
    * whenever a `ClassLoader` is needed.
    */
   def currentClassLoader: ClassLoader
+  def currentMacroClassLoader: ClassLoader
   
   def jars: Seq[File]
   def dirs: Seq[File]
@@ -33,6 +34,6 @@ trait Classes {
    * Returns a `ClassLoader` having the same JARs and added classes than `currentClassLoader`, but loaded
    * by a different `ClassLoader`
    */
-  def classLoaderClone(): ClassLoader
+  def classLoaderClone(baseClassLoader: ClassLoader = null): ClassLoader
 }
 

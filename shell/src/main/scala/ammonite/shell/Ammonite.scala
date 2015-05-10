@@ -25,7 +25,7 @@ case class Ammonite(shellPrompt: String = "@",
                     histFile: String = new File(new File(System.getProperty("user.home")), ".amm") .toString,
                     sharedLoader: Boolean = false) extends App {
 
-  import Ammonite.{ bridgeConfig, wrap => wrapper }
+  import Ammonite._
 
   println("Loading Ammonite Shell...")
 
@@ -55,49 +55,6 @@ case class Ammonite(shellPrompt: String = "@",
     case _ => Console.err.println(s"Unrecognized wrap argument: $wrap"); sys exit 255
   }
 
-  val scalaVersion = scala.util.Properties.versionNumberString
-  val startIvys = Seq(
-    ("org.scala-lang", "scala-library", scalaVersion),
-    ("com.github.alexarchambault", s"ammonite-shell-api_$scalaVersion", BuildInfo.version)
-  )
-
-  val resolvers = Seq(
-    Resolver.localRepo,
-    Resolver.defaultMaven
-  ) ++ {
-    if (BuildInfo.version endsWith "-SNAPSHOT")
-      Seq(Resolver.sonatypeRepo("snapshots"))
-    else
-      Seq()
-  }
-
-  /*
-   * Hackish workaround for when we're launched from an sbt-pack package:
-   * tries to substitute the JARs from the package (in our classpath)
-   * to the ones found by ivy.
-   * That soothes ClasspathFilter below, which is often pointed
-   * to the absolute path of JARs by class protection domains,
-   * and needs that to properly filter shared classes between
-   * the REPL and the interpreter.
-   */
-  val packJarMap = Classes.defaultClassPath()._1.map(f => f.getName -> f).toMap
-
-  val (startJars, startDirs) =
-    if (sharedLoader)
-      Classes.defaultClassPath()
-    else
-      Ivy.resolve(startIvys, resolvers).toSeq
-        .map(f => packJarMap.getOrElse(f.getName, f))
-        .filter(_.exists())
-        .partition(_.getName.endsWith(".jar"))
-
-
-  val startClassLoader =
-    if (sharedLoader)
-      Thread.currentThread().getContextClassLoader
-    else
-      new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startJars ++ startDirs).toSet)
-
   val shellPromptRef = Ref(shellPrompt)
 
   val frontEnd = JLineFrontend(
@@ -108,21 +65,15 @@ case class Ammonite(shellPrompt: String = "@",
   )
 
   val interp: ammonite.api.Interpreter with InterpreterInternals =
-    new Interpreter(
-      bridgeConfig(
-        startJars = startJars,
-        startIvys = startIvys,
-        jarMap = f => packJarMap.getOrElse(f.getName, f),
-        shellPrompt = shellPromptRef,
-        reset = frontEnd.reset(),
-        pprintConfig = pprintConfig.copy(maxWidth = frontEnd.width, lines = 15),
-        colors = colorSet
-      ),
-      wrapper(classWrap),
-      imports = new Imports(useClassWrapper = classWrap),
-      classes = new Classes(startClassLoader, (startJars, startDirs)),
-      startingLine = if (predef.nonEmpty) -1 else 0,
-      initialHistory = initialHistory
+    newInterpreter(
+      predef,
+      classWrap,
+      pprintConfig.copy(maxWidth = frontEnd.width, lines = 15),
+      colorSet,
+      sharedLoader,
+      shellPromptRef,
+      frontEnd.reset(),
+      initialHistory
     )
 
   interp.onStop { println("Bye!") }
@@ -198,5 +149,88 @@ object Ammonite extends AppOf[Ammonite] {
 
   def wrap(classWrap: Boolean) =
     Wrap(_.map(ShellDisplay(_)).reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()"), classWrap)
+
+  val scalaVersion = scala.util.Properties.versionNumberString
+  val startIvys = Seq(
+    ("org.scala-lang", "scala-library", scalaVersion),
+//    ("org.scala-lang", "scala-compiler", scalaVersion), // for macros
+    ("com.github.alexarchambault", s"ammonite-shell-api_$scalaVersion", BuildInfo.version)
+  )
+  val startMacroIvys = startIvys ++ Seq(
+    ("org.scala-lang", "scala-compiler", scalaVersion)
+  )
+
+  val resolvers = Seq(
+    Resolver.localRepo,
+    Resolver.defaultMaven
+  ) ++ {
+    if (BuildInfo.version endsWith "-SNAPSHOT")
+      Seq(Resolver.sonatypeRepo("snapshots"))
+    else
+      Seq()
+  }
+
+  /*
+   * Hackish workaround for when we're launched from an sbt-pack package:
+   * tries to substitute the JARs from the package (in our classpath)
+   * to the ones found by ivy.
+   * That soothes ClasspathFilter below, which is often pointed
+   * to the absolute path of JARs by class protection domains,
+   * and needs that to properly filter shared classes between
+   * the REPL and the interpreter.
+   */
+  lazy val packJarMap = Classes.defaultClassPath()._1.map(f => f.getName -> f).toMap
+
+  lazy val (startJars, startDirs) =
+    Ivy.resolve(startIvys, resolvers).toSeq
+      .map(f => packJarMap.getOrElse(f.getName, f))
+      .filter(_.exists())
+      .partition(_.getName.endsWith(".jar"))
+
+  lazy val (startMacroJars, startMacroDirs) =
+    Ivy.resolve(startMacroIvys, resolvers).toSeq
+      .map(f => packJarMap.getOrElse(f.getName, f))
+      .filter(_.exists())
+      .partition(_.getName.endsWith(".jar"))
+
+
+  lazy val startClassLoader =
+    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startJars ++ startDirs).toSet)
+
+  lazy val startMacroClassLoader =
+    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startMacroJars ++ startMacroDirs).toSet)
+
+
+  def newInterpreter(predef: String,
+                     classWrap: Boolean,
+                     pprintConfig: pprint.Config,
+                     colors: ColorSet,
+                     sharedLoader: Boolean,
+                     shellPromptRef: => Ref[String] = Ref("@"),
+                     reset: => Unit = (),
+                     initialHistory: Seq[String] = Nil): ammonite.api.Interpreter with InterpreterInternals = {
+    lazy val (startJars0, startDirs0) = Classes.defaultClassPath()
+
+    new Interpreter(
+      bridgeConfig(
+        startJars = if (sharedLoader) startJars0 else startJars,
+        startIvys = startIvys,
+        jarMap = f => packJarMap.getOrElse(f.getName, f),
+        shellPrompt = shellPromptRef,
+        reset = reset,
+        pprintConfig = pprintConfig,
+        colors = colors
+      ),
+      wrap(classWrap),
+      imports = new Imports(useClassWrapper = classWrap),
+      classes =
+        if (sharedLoader)
+          new Classes(Thread.currentThread().getContextClassLoader, (startJars0, startDirs0))
+        else
+          new Classes(startClassLoader, (startJars, startDirs), startMacroClassLoader = startMacroClassLoader),
+      startingLine = if (predef.nonEmpty) -1 else 0,
+      initialHistory = initialHistory
+    )
+  }
 
 }

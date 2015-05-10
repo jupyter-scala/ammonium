@@ -4,7 +4,7 @@ package tests
 import ammonite.interpreter.Res
 import utest._
 
-class AdvancedTests(check0: => Checker, hasMacros: Boolean = true, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
+class AdvancedTests(check0: => Checker, isAmmonite: Boolean = true, hasMacros: Boolean = true, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
 
   val tests = TestSuite{
     val check = check0
@@ -17,6 +17,7 @@ class AdvancedTests(check0: => Checker, hasMacros: Boolean = true, wrapperInstan
             error: not found: value scalatags
 
             @ load.ivy("com.lihaoyi" %% "scalatags" % "0.4.5")
+            res0: Unit = ()
 
             @ import scalatags.Text.all._
             import scalatags.Text.all._
@@ -31,6 +32,7 @@ class AdvancedTests(check0: => Checker, hasMacros: Boolean = true, wrapperInstan
           // Make sure it automatically picks up jawn-parser since upickle depends on it,
           check.session("""
             @ load.ivy("com.lihaoyi" %% "upickle" % "0.2.6")
+            res0: Unit = ()
 
             @ import upickle._
             import upickle._
@@ -79,6 +81,7 @@ class AdvancedTests(check0: => Checker, hasMacros: Boolean = true, wrapperInstan
         'complex{
           check.session("""
             @ load.ivy("com.typesafe.akka" %% "akka-http-experimental" % "1.0-M3")
+            res0: Unit = ()
 
             @ implicit val system = akka.actor.ActorSystem()
 
@@ -159,7 +162,8 @@ class AdvancedTests(check0: => Checker, hasMacros: Boolean = true, wrapperInstan
       check(")", "res1: Int = 3")
     }
     'exit{
-      check.result("exit", Res.Exit)
+      if (isAmmonite)
+        check.result("exit", Res.Exit)
     }
     'skip{
       check("1", "res0: Int = 1")
@@ -192,17 +196,25 @@ class AdvancedTests(check0: => Checker, hasMacros: Boolean = true, wrapperInstan
     'shapeless{
       check.session("""
         @ load.ivy("com.chuusai" %% "shapeless" % "2.1.0")
+        res0: Unit = ()
 
         @ import shapeless._
 
         @ (1 :: "lol" :: List(1, 2, 3) :: HNil)(1)
         res2: java.lang.String = "lol"
+
+        @ case class Foo(i: Int, blah: String, b: Boolean)
+        defined class Foo
+
+        @ Generic[Foo].to(Foo(2, "a", true))
+        res4: shapeless.::[Int,shapeless.::[java.lang.String,shapeless.::[Boolean,shapeless.HNil]]] = ::(2, ::("a", ::(true, HNil)))
       """)
     }
 
     'scalaz{
       check.session("""
         @ load.ivy("org.scalaz" %% "scalaz-core" % "7.1.1")
+        res0: Unit = ()
 
         @ import scalaz._
         import scalaz._
@@ -215,26 +227,28 @@ class AdvancedTests(check0: => Checker, hasMacros: Boolean = true, wrapperInstan
       """)
     }
     'predef{
-      val check2 = new AmmoniteChecker{
-        override def predef = """
-          import math.abs
-          val x = 1
-          val y = "2"
-        """
+      if (isAmmonite) {
+        val check2 = new AmmoniteChecker{
+          override def predef = """
+            import math.abs
+            val x = 1
+            val y = "2"
+          """
+        }
+        check2.session("""
+          @ -x
+          res0: Int = -1
+
+          @ y
+          res1: java.lang.String = "2"
+
+          @ x + y
+          res2: String = "12"
+
+          @ abs(-x)
+          res3: Int = 1
+        """)
       }
-      check2.session("""
-        @ -x
-        res0: Int = -1
-
-        @ y
-        res1: java.lang.String = "2"
-
-        @ x + y
-        res2: String = "12"
-
-        @ abs(-x)
-        res3: Int = 1
-      """)
 
     }
     'macros{

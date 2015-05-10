@@ -16,18 +16,20 @@ import org.apache.ivy.util._
 
 object Ivy {
 
-  var maxLevel = 2
+  var maxLevel = 1
   Message.setDefaultLogger {
     new AbstractMessageLogger {
       def doEndProgress(msg: String) = Console println "Done"
       def doProgress() = Console print "."
-      def log(msg: String, level: Int) = if (level <= maxLevel) Console.println(msg)
+      def log(msg: String, level: Int) =
+        if (level <= maxLevel)
+          (if (level <= Message.MSG_ERR) Console.err else Console.out).println(msg)
       def rawlog(msg: String, level: Int) = log(msg, level)
     }
   }
 
   // TODO Cache the results of Ivy resolutions
-  def resolve(artifacts: Seq[(String, String, String)], resolvers: Seq[DependencyResolver], verbosity: Int = 2) = {
+  def resolve(artifacts: Seq[(String, String, String)], resolvers: Seq[DependencyResolver], verbosity: Int = 1) = {
     maxLevel = verbosity
 
     val settings = new IvySettings()

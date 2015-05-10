@@ -66,9 +66,16 @@ class Load(intp: ammonite.api.Interpreter,
     var anyProj = false
     var dirs = Seq.empty[File]
 
-    for (proj <- projects) {
+    def defaultProjects = Sbt.projects(path)._1.toSeq
+
+    val projects0 = Some(projects).filter(_.nonEmpty).getOrElse(defaultProjects)
+
+    if (projects0.isEmpty)
+      Console.err.println(s"No default project found in $path")
+
+    for (proj <- projects0) {
       Sbt.projectInfo(path, proj) match {
-        case None => println(s"Can't find project $proj in $path, ignoring it")
+        case None => Console.err.println(s"Can't get project $proj settings in $path, ignoring it")
 
         case Some(info) =>
           anyProj = true

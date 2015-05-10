@@ -28,8 +28,8 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
 
     val previousImports0 =
       Option(wanted) match {
-        case None => previousImports
-        case Some(wanted) => previousImports.filter(d => d._2.isImplicit || wanted(d._2.toName))
+        case Some(wanted) if filtering => previousImports.filter(d => d._2.isImplicit || wanted(d._2.toName))
+        case _ => previousImports
       }
 
     val instanceRefs =
@@ -79,4 +79,6 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
     for(i <- newImports0)
       previousImports(i.toName) = i
   }
+
+  var filtering = true
 }

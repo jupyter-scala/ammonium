@@ -99,7 +99,8 @@ object Classes {
 
 class Classes(
   startClassLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
-  startDeps: (Seq[File], Seq[File]) = Classes.defaultClassPath()
+  startDeps: (Seq[File], Seq[File]) = Classes.defaultClassPath(),
+  startMacroClassLoader: ClassLoader = null
 ) extends ammonite.api.Classes {
 
   lazy val tmpClassDir = {
@@ -113,11 +114,12 @@ class Classes(
 
   def newClassLoader() = {
     classLoader = new AddURLClassLoader(classLoader, tmpClassDir)
+    macroClassLoader = null
   }
 
-  def classLoaderClone(): AddURLClassLoader = {
+  def classLoaderClone(baseClassLoader: ClassLoader = null): AddURLClassLoader = {
     val classLoaders0 = classLoaders.toList
-    val classLoader = new AddURLClassLoader(startClassLoader, tmpClassDir)
+    val classLoader = new AddURLClassLoader(Option(baseClassLoader) getOrElse startClassLoader, tmpClassDir)
     extraJars.foreach(classLoader addURL _.toURI.toURL)
     classLoaders0.foreach(classLoader.dirs ++= _.dirs)
     classLoaders0.foreach(classLoader.map ++= _.map)
@@ -126,6 +128,7 @@ class Classes(
 
   def resetClassLoader() = {
     classLoader = classLoaderClone()
+    macroClassLoader = null
   }
 
   var extraJars = Seq.empty[File]
@@ -147,10 +150,12 @@ class Classes(
     extraJars = extraJars ++ newJars
     extraDirs = extraDirs ++ newDirs
     onJarsAddedHooks.foreach(_(newJars ++ extraDirs))
+    macroClassLoader = null
   }
 
   def addClass(name: String, b: Array[Byte]): Unit = {
     classLoader.map += name -> b
+    macroClassLoader = null
   }
 
   def classLoaders: Stream[AddURLClassLoader] = {
@@ -167,6 +172,17 @@ class Classes(
     classLoaders.collectFirst{ case c if c.map contains name => c.map(name) }
 
   def currentClassLoader: ClassLoader = classLoader
+
+  var macroClassLoader: ClassLoader = null
+  def currentMacroClassLoader: ClassLoader =
+    if (startMacroClassLoader == null || startMacroClassLoader == startClassLoader)
+      currentClassLoader
+    else {
+      if (macroClassLoader == null)
+        macroClassLoader = classLoaderClone(Option(startMacroClassLoader) getOrElse startClassLoader)
+
+      macroClassLoader
+    }
   def jars = startDeps._1 ++ extraJars
   def dirs = startDeps._2 ++ extraDirs
 
