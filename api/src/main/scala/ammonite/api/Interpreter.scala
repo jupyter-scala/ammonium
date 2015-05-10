@@ -1,4 +1,4 @@
-package ammonite.interpreter.api
+package ammonite.api
 
 case class BridgeConfig(init: String,
                         name: String,

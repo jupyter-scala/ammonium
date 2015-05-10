@@ -37,7 +37,7 @@ class AmmoniteChecker extends Checker {
   var allOutput = ""
   var captureOut = false
 
-  def newInterpreter(): api.Interpreter with InterpreterInternals =
+  def newInterpreter(): ammonite.api.Interpreter with InterpreterInternals =
     new Interpreter(
       Ammonite.bridgeConfig(
         pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15)

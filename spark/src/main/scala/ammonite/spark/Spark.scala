@@ -6,7 +6,7 @@ import java.io.File
 import java.nio.file.Files
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
-import ammonite.shell.IvyConstructor._
+import ammonite.api.IvyConstructor._
 
 import org.apache.spark.{ SparkContext, SparkConf, SPARK_VERSION => sparkVersion }
 import org.apache.spark.sql.SQLContext
@@ -17,8 +17,8 @@ import org.eclipse.jetty.server.handler.AbstractHandler
 
 /** The spark entry point from an Ammonite session */
 class Spark(implicit
-            interpreter: ammonite.interpreter.api.Interpreter,
-            load: ammonite.shell.Load) extends Serializable { api =>
+            interpreter: ammonite.api.Interpreter,
+            load: ammonite.api.Load) extends Serializable { api =>
 
   private lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)

@@ -90,14 +90,32 @@ object AmmoniteShellBuild extends Build {
     publishArtifact in (Test, packageSrc) := true
   )
 
-  lazy val interpreterApi = Project(id = "interpreter-api", base = file("interpreter-api"))
+  lazy val api = Project(id = "api", base = file("api"))
     .settings(sharedSettings: _*)
     .settings(
-      name := "ammonite-interpreter-api"
+      name := "ammonite-api"
+    )
+
+  lazy val ivyLight = Project(id = "ivy-light", base = file("ivy-light"))
+    .settings(sharedSettings ++ testSettings: _*)
+    .settings(
+      name := "ivy-light",
+      libraryDependencies ++= Seq(
+        "org.apache.ivy" % "ivy" % "2.4.0"
+      ),
+      libraryDependencies ++= {
+        if (scalaVersion.value startsWith "2.10.")
+          Seq()
+        else
+          Seq(
+            "org.scala-lang.modules" %% "scala-xml" % "1.0.3",
+            "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
+          )
+      }
     )
 
   lazy val interpreter = Project(id = "interpreter", base = file("interpreter"))
-    .dependsOn(interpreterApi)
+    .dependsOn(api, ivyLight)
     .settings(sharedSettings: _*)
     .settings(
       name := "ammonite-interpreter",
@@ -108,7 +126,7 @@ object AmmoniteShellBuild extends Build {
     )
 
   lazy val shellApi = Project(id = "shell-api", base = file("shell-api"))
-    .dependsOn(interpreterApi)
+    .dependsOn(api)
     .settings(sharedSettings: _*)
     .settings(
       name := "ammonite-shell-api",
@@ -149,26 +167,8 @@ object AmmoniteShellBuild extends Build {
   lazy val spark13 = sparkProject("1.3.1")
   lazy val spark12 = sparkProject("1.2.2")
 
-  lazy val ivyLight = Project(id = "ivy-light", base = file("ivy-light"))
-    .settings(sharedSettings ++ testSettings: _*)
-    .settings(
-      name := "ivy-light",
-      libraryDependencies ++= Seq(
-        "org.apache.ivy" % "ivy" % "2.4.0"
-      ),
-      libraryDependencies ++= {
-        if (scalaVersion.value startsWith "2.10.")
-          Seq()
-        else
-          Seq(
-            "org.scala-lang.modules" %% "scala-xml" % "1.0.3",
-            "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
-          )
-      }
-    )
-
   lazy val shell = Project(id = "shell", base = file("shell"))
-    .dependsOn(shellApi, interpreter, ivyLight)
+    .dependsOn(shellApi, interpreter)
     .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
     .settings(
       name := "ammonite-shell",
@@ -187,8 +187,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(interpreterApi, interpreter, shellApi, spark13, spark12, ivyLight, shell)
-    .dependsOn(interpreterApi, interpreter, shellApi, spark13, spark12, ivyLight, shell)
+    .aggregate(api, ivyLight, interpreter, shellApi, spark13, spark12, shell)
+    .dependsOn(api, ivyLight, interpreter, shellApi, spark13, spark12, shell)
     .settings(
       publish := {},
       publishLocal := {},

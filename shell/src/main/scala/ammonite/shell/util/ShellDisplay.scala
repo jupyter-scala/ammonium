@@ -1,6 +1,6 @@
 package ammonite.shell.util
 
-import ammonite.interpreter.api.DisplayItem, DisplayItem._
+import ammonite.api.DisplayItem, DisplayItem._
 
 import acyclic.file
 

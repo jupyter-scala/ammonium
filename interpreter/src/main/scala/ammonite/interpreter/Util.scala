@@ -3,7 +3,7 @@ package ammonite.interpreter
 import acyclic.file
 
 import scala.util.Try
-import ammonite.interpreter.api.ImportData
+import ammonite.api.ImportData
 
 object Res{
   def apply[T](o: Option[T], errMsg: => String) = o match{

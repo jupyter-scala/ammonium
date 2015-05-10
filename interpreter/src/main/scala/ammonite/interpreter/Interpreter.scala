@@ -9,7 +9,7 @@ import scala.reflect.io.VirtualDirectory
 import scala.util.Try
 import scala.util.control.ControlThrowable
 
-import ammonite.interpreter.api.{ DisplayItem, Decl, BridgeConfig, ImportData }
+import ammonite.api.{ DisplayItem, Decl, BridgeConfig, ImportData }
 
 
 object Wrap {
@@ -88,10 +88,10 @@ trait InterpreterInternals {
  */
 class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
                   val wrapper: (Seq[Decl], String, String) => String = Wrap.default,
-                  val imports: api.Imports = new Imports(),
-                  val classes: api.Classes = new Classes(),
+                  val imports: ammonite.api.Imports = new Imports(),
+                  val classes: ammonite.api.Classes = new Classes(),
                   startingLine: Int = 0,
-                  initialHistory: Seq[String] = Nil) extends api.Interpreter with InterpreterInternals {
+                  initialHistory: Seq[String] = Nil) extends ammonite.api.Interpreter with InterpreterInternals {
 
   imports.update(bridgeConfig.imports)
 

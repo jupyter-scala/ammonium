@@ -15,7 +15,7 @@ import scala.tools.nsc.reporters.AbstractReporter
 import scala.tools.nsc.util.ClassPath.JavaContext
 import scala.tools.nsc.util._
 
-import ammonite.interpreter.api.ImportData
+import ammonite.api.ImportData
 
 
 /**

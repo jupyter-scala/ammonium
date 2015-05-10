@@ -6,7 +6,7 @@ import org.parboiled2.ParseError
 import scala.reflect.internal.Flags
 import scala.tools.nsc.{Global => G}
 
-import ammonite.interpreter.api.{ DisplayItem, Decl }
+import ammonite.api.{ DisplayItem, Decl }
 
 object Preprocessor{
   import DisplayItem._

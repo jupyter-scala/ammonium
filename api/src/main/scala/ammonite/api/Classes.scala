@@ -1,4 +1,4 @@
-package ammonite.interpreter.api
+package ammonite.api
 
 import java.io.File
 

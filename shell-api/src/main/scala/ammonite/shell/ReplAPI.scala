@@ -1,5 +1,7 @@
 package ammonite.shell
 
+import scala.reflect.runtime.universe.WeakTypeTag
+
 trait ReplAPI {
   /**
    * Exit the Ammonite REPL. You can also use Ctrl-D to exit
@@ -14,43 +16,57 @@ trait ReplAPI {
   /**
    * Tools related to loading external scripts and code into the REPL
    */
-  implicit def load: Load
+  implicit def load: ammonite.api.Load
 
   /**
-   *
+   * Exposes some internals of the current interpreter
    */
-  implicit def interpreter: ammonite.interpreter.api.Interpreter
+  implicit def interpreter: ammonite.api.Interpreter
+
+
+  /**
+   * Reset the terminal
+   */
+  def reset(): Unit
+
+  /**
+   * Read/writable prompt for the shell. Use this to change the
+   * REPL prompt at any time!
+   */
+  var shellPrompt: String
+
+  /**
+   * Controls how things are pretty-printed in the REPL. Feel free
+   * to shadow this with your own definition to change how things look
+   */
+  implicit var pprintConfig: ammonite.pprint.Config
+
+  /**
+   * Prettyprint the given `value` with no truncation. Optionally takes
+   * a number of lines to print.
+   */
+  def show[T](value: T, lines: Int = 0): ammonite.pprint.Show[T]
 }
 
-trait Resolver
+/**
+ * Things that are part of the ReplAPI that aren't really "public"
+ */
+trait FullReplAPI extends ReplAPI {
+  def shellPPrint[T: WeakTypeTag](value: => T, ident: String): String
+  def shellPrintDef(definitionLabel: String, ident: String): String
+  def shellPrintImport(imported: String): String
+}
 
-trait Load {
-  /**
-   * Load a `.jar` file
-   */
-  def jar(jar: java.io.File*): Unit
-  /**
-   * Load a module from its maven/ivy coordinates
-   */
-  def ivy(coordinates: (String, String, String)*): Unit
-  /**
-   * Load one or several sbt project(s)
-   */
-  def sbt(path: java.io.File, projects: String*): Unit
+class ReplAPIHolder {
+  @transient var shell0: FullReplAPI = null
+  @transient lazy val shell = shell0
+}
 
-  /**
-   * Just resolves some modules, does not load them
-   */
-  def resolve(coordinates: (String, String, String)*): Seq[java.io.File]
-
-  /**
-   *
-   */
-  def resolver(resolver: Resolver*): Unit
-
-  /**
-   * Loads a command into the REPL and
-   * evaluates them one after another
-   */
-  def apply(line: String): Unit
+object ReplAPIHolder {
+  def initReplBridge(holder: Class[ReplAPIHolder], api: FullReplAPI) =
+    holder
+      .getDeclaredMethods
+      .find(_.getName == "shell0_$eq")
+      .get
+      .invoke(null, api)
 }

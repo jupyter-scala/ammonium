@@ -1,7 +1,7 @@
 package ammonite.shell
 
 import ammonite.interpreter._
-import ammonite.interpreter.api.{ImportData, BridgeConfig}
+import ammonite.api.{IvyConstructor, ImportData, BridgeConfig}
 import ammonite.pprint
 import ammonite.shell.util._
 
@@ -107,7 +107,7 @@ case class Ammonite(shellPrompt: String = "@",
     initialHistory
   )
 
-  val interp: api.Interpreter with InterpreterInternals =
+  val interp: ammonite.api.Interpreter with InterpreterInternals =
     new Interpreter(
       bridgeConfig(
         startJars = startJars,
@@ -178,10 +178,10 @@ object Ammonite extends AppOf[Ammonite] {
                    pprintConfig: pprint.Config = pprint.Config.Defaults.PPrintConfig,
                    colors: ColorSet = ColorSet.BlackWhite): BridgeConfig =
     BridgeConfig(
-      "object ReplBridge extends ammonite.shell.ReplAPIHolder{}",
+      "object ReplBridge extends ammonite.shell.ReplAPIHolder",
       "ReplBridge",
-      NamesFor[ReplAPI with ShellReplAPI].map{case (n, isImpl) => ImportData(n, n, "", "ReplBridge.shell", isImpl)}.toSeq ++
-        NamesFor[IvyConstructor.type].map{case (n, isImpl) => ImportData(n, n, "", "ammonite.shell.IvyConstructor", isImpl)}.toSeq,
+      NamesFor[ReplAPI].map{case (n, isImpl) => ImportData(n, n, "", "ReplBridge.shell", isImpl)}.toSeq ++
+        NamesFor[IvyConstructor.type].map{case (n, isImpl) => ImportData(n, n, "", "ammonite.api.IvyConstructor", isImpl)}.toSeq,
       _.asInstanceOf[Iterator[String]].foreach(print)
     ) {
       def _colors = colors
@@ -189,11 +189,11 @@ object Ammonite extends AppOf[Ammonite] {
       def _pprintConfig = pprintConfig
       def _reset() = reset
 
-      var replApi: ReplAPI with FullShellReplAPI = null
+      var replApi: ReplAPI with FullReplAPI = null
 
       (intp, cls) =>
         if (replApi == null)
-          replApi = new ReplAPIImpl(intp, startJars, startIvys, jarMap, startResolvers) with ShellReplAPIImpl {
+          replApi = new ReplAPIImpl(intp, startJars, startIvys, jarMap, startResolvers) {
             def colors = _colors
             def shellPrompt0 = _shellPrompt
             var pprintConfig = _pprintConfig

@@ -100,7 +100,7 @@ object Classes {
 class Classes(
   startClassLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
   startDeps: (Seq[File], Seq[File]) = Classes.defaultClassPath()
-) extends api.Classes {
+) extends ammonite.api.Classes {
 
   lazy val tmpClassDir = {
     val d = new File(new File(System.getProperty("java.io.tmpdir")), s"ammonite-${UUID.randomUUID()}")

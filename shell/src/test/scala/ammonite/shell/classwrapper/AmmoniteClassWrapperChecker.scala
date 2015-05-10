@@ -4,7 +4,7 @@ package classwrapper
 import ammonite.interpreter._
 
 class AmmoniteClassWrapperChecker extends AmmoniteChecker {
-  override def newInterpreter(): api.Interpreter with InterpreterInternals =
+  override def newInterpreter(): ammonite.api.Interpreter with InterpreterInternals =
     new Interpreter(
       Ammonite.bridgeConfig(
         pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15)
