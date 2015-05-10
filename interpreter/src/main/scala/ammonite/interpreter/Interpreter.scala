@@ -7,8 +7,9 @@ import scala.reflect.io.VirtualDirectory
 case class BridgeConfig(
   init: String,
   name: String,
-  initClass: (Interpreter, Class[_]) => BridgeHandle,
   imports: Seq[ImportData]
+)(
+  val initClass: (Interpreter, Class[_]) => BridgeHandle
 )
 
 trait BridgeHandle {
@@ -58,7 +59,7 @@ class Interpreter(
       oldClassloader = Thread.currentThread().getContextClassLoader
       out <- try{
         Thread.currentThread().setContextClassLoader(classes.currentClassLoader)
-        eval.processLine(p, printer)
+        eval.process(p, printer)
       } finally Thread.currentThread().setContextClassLoader(oldClassloader)
     } yield out
 

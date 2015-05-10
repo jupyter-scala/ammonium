@@ -5,10 +5,29 @@ import java.io.File
 import acyclic.file
 import org.apache.ivy.plugins.resolver.DependencyResolver
 import com.github.alexarchambault.ivylight.ResolverHelpers
-import ammonite.interpreter._
+import ammonite.interpreter._, DisplayItem._
 import ammonite.pprint
 import ammonite.shell.util._
 
+
+object ShellDisplay {
+
+  def pprintSignature(ident: String) = s"""Iterator(ReplBridge.shell.shellPPrint($$user.$ident, "$ident"))"""
+
+  def apply(d: DisplayItem): String =
+    d match {
+      case Definition(label, name) =>
+        s"""Iterator(ReplBridge.shell.shellPrintDef("$label", "$name"))"""
+      case Identity(ident) =>
+        pprintSignature(ident) +
+          s""" ++ Iterator(" = ") ++ ammonite.pprint.PPrint($$user.$ident)"""
+      case LazyIdentity(ident) =>
+        s"""${pprintSignature(ident)} ++ Iterator(" = <lazy>")"""
+      case Import(imported) =>
+        s"""Iterator(ReplBridge.shell.shellPrintImport("$imported"))"""
+    }
+
+}
 
 object ShellInterpreter {
   def bridgeConfig(
@@ -22,32 +41,31 @@ object ShellInterpreter {
     BridgeConfig(
       "object ReplBridge extends ammonite.shell.ReplAPIHolder{}",
       "ReplBridge",
-      {
-        val _colors = colors
-        def _shellPrompt = shellPrompt
-        val _pprintConfig = pprintConfig
-        var replApi: ReplAPI with FullShellReplAPI = null
+       NamesFor[ReplAPI with ShellReplAPI].map(n => ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
+       NamesFor[IvyConstructor].map(n => ImportData(n, n, "", "ammonite.shell.IvyConstructor")).toSeq) {
+         def _colors = colors
+         def _shellPrompt = shellPrompt
+         def _pprintConfig = pprintConfig
 
-        (intp, cls) =>
-          if (replApi == null)
-            replApi = new ReplAPIImpl(intp, startJars, startIvys, startResolvers) with ShellReplAPIImpl {
-              def colors = _colors
-              def shellPrompt0 = _shellPrompt
-              def pprintConfig = _pprintConfig
-            }
+         var replApi: ReplAPI with FullShellReplAPI = null
 
-          ReplAPIHolder.initReplBridge(
-            cls.asInstanceOf[Class[ReplAPIHolder]],
-            replApi
-          )
+         (intp, cls) =>
+           if (replApi == null)
+             replApi = new ReplAPIImpl(intp, startJars, startIvys, startResolvers) with ShellReplAPIImpl {
+               def colors = _colors
+               def shellPrompt0 = _shellPrompt
+               def pprintConfig = _pprintConfig
+             }
 
-          BridgeHandle {
-            replApi.power.stop()
-          }
-      },
-      NamesFor[ReplAPI with ShellReplAPI].map(n => ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-        NamesFor[IvyConstructor].map(n => ImportData(n, n, "", "ammonite.shell.IvyConstructor")).toSeq
-    )
+           ReplAPIHolder.initReplBridge(
+             cls.asInstanceOf[Class[ReplAPIHolder]],
+             replApi
+           )
+
+           BridgeHandle {
+             replApi.power.stop()
+           }
+    }
 
   def wrap(classWrap: Boolean): (Seq[Decl], String, String) => String = {
     def merge(disp: Seq[DisplayItem]) =

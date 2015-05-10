@@ -39,7 +39,7 @@ trait Evaluator {
    * passing in the callback ensures the printing is still done lazily, but within
    * the exception-handling block of the `Evaluator`
    */
-  def processLine[T](input: Seq[Decl], process: AnyRef => T): Res[Evaluated[T]]
+  def process[T](input: Seq[Decl], process: AnyRef => T): Res[Evaluated[T]]
 }
 
 object Evaluator{
@@ -96,7 +96,7 @@ object Evaluator{
     type InvEx = InvocationTargetException
     type InitEx = ExceptionInInitializerError
 
-    def processLine[T](input: Seq[Decl], process: AnyRef => T) = for {
+    def process[T](input: Seq[Decl], process: AnyRef => T) = for {
       wrapperName <- Res.Success("cmd" + getCurrentLine)
       _ <- Catching{ case e: ThreadDeath => interrupted() }
       wrappedLine = {
