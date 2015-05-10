@@ -122,9 +122,6 @@ class ReplAPIImpl(
     def complete(snippetIndex: Int, snippet: String) =
       intp.pressy.complete(snippetIndex, intp.imports.previousImportBlock, snippet)
 
-    def getShow = intp.getShow
-    def setShow(v: Boolean) = intp.setShow(v)
-
     def newCompiler() = intp.init()
     def imports = intp.imports.previousImportBlock
   }

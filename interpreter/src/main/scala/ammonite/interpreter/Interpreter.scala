@@ -49,23 +49,20 @@ object Wrap {
       val mainCode = displayCode(decls.flatMap(_.display))
 
       if (classWrap)
-        s"""object $wrapperName extends AnyRef {
+        s"""
+          object $wrapperName$$Main {
+            $previousImportBlock // FIXME Only import implicits here
+
+            def $$main() = {val $$user = $wrapperName.INSTANCE.$$user; $mainCode}
+          }
+
+
+          object $wrapperName {
             val INSTANCE = new $wrapperName
           }
 
-          object $wrapperName$$Main extends AnyRef {
-            $previousImportBlock
-
-            def $$main() = {
-              val $$execute = $wrapperName.INSTANCE
-              import $wrapperName.INSTANCE.$$user
-              $mainCode
-            }
-          }
-
-
           class $wrapperName extends Serializable {
-            $previousImportBlock
+            $previousImportBlock // FIXME Only import necessary imports here (implicits ones + the ones referenced in code)
 
             class $$user extends Serializable {
               $code
@@ -81,7 +78,7 @@ object Wrap {
               def $$main() = {val $$user = $wrapperName; $mainCode}
             }
 
-            object $wrapperName{
+            object $wrapperName {
               $code
             }
          """
@@ -96,8 +93,7 @@ case object Exit extends ControlThrowable
 
 /**
  * A convenient bundle of all the functionality necessary
- * to interpret Scala code. Doesn't attempt to provide any
- * real encapsulation for now.
+ * to interpret Scala code.
  */
 class Interpreter(
   bridgeConfig: BridgeConfig = BridgeConfig.empty,
@@ -128,18 +124,11 @@ class Interpreter(
    */
   def getCurrentLine = currentLine.toString.replace("-", "_")
 
-  /**
-   *
-   */
-  var show = false
-  def getShow = show
-  def setShow(v: Boolean) = show = v
-
 
   def apply[T](
     line: String,
-    saveHistory: (String => Unit, String) => Unit,
-    printer: AnyRef => T
+    saveHistory: (String => Unit, String) => Unit = _(_),
+    printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]
   ): Res[Evaluated[T]] =
     for{
       _ <- Catching { case Ex(x@_*) =>
@@ -148,11 +137,7 @@ class Interpreter(
       }
       p <- Preprocessor(compiler.parse, line, getCurrentLine)
       _ = saveHistory(history.append(_), line)
-      oldClassloader = Thread.currentThread().getContextClassLoader
-      out <- try{
-        Thread.currentThread().setContextClassLoader(classes.currentClassLoader)
-        process(p, printer)
-      } finally Thread.currentThread().setContextClassLoader(oldClassloader)
+      out <- process(p, printer)
     } yield out
 
   def evalClass(code: String, wrapperName: String) = for {
@@ -188,37 +173,39 @@ class Interpreter(
    * passing in the callback ensures the printing is still done lazily, but within
    * the exception-handling block of the `Evaluator`
    */
-  def process[T](input: Seq[Decl], process: AnyRef => T) = for {
-    wrapperName <- Res.Success("cmd" + getCurrentLine)
-    _ <- Catching{ case e: ThreadDeath => interrupted() }
-    wrappedLine = {
-      val l = wrap(input, imports.previousImportBlock, wrapperName)
-      if (show)
-        Console.err println s"Line:\n$l"
-      l
-    }
-    (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")
-    _ = currentLine += 1
-    _ <- Catching{
-      case Ex(_: InitEx, Exit)                => Res.Exit
-      case Ex(_: InvEx, _: InitEx, Exit)      => Res.Exit
-      case Ex(_: ThreadDeath)                 => interrupted()
-      case Ex(_: InvEx, _: ThreadDeath)       => interrupted()
-      case Ex(_: InvEx, _: InitEx, userEx@_*) => Res.Failure(userEx, stopMethod = "$main", stopClass = s"$wrapperName$$$$user")
-      case Ex(userEx@_*)                      => Res.Failure(userEx, stopMethod = "evaluatorRunPrinter")
-    }
-  } yield {
-    // Exhaust the printer iterator now, before exiting the `Catching`
-    // block, so any exceptions thrown get properly caught and handled
-    val value = evaluatorRunPrinter(process(cls.getDeclaredMethod("$main").invoke(null)))
-    Evaluated(
-      wrapperName,
-      newImports.map(id => id.copy(
-        wrapperName = wrapperName,
-        prefix = if (id.prefix == "") wrapperName else id.prefix
-      )),
-      value
-    )
+  def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]] = {
+    val oldClassloader = Thread.currentThread().getContextClassLoader
+    try { Thread.currentThread().setContextClassLoader(classes.currentClassLoader)
+
+      for {
+        wrapperName <- Res.Success("cmd" + getCurrentLine)
+        _ <- Catching{ case e: ThreadDeath => interrupted() }
+        wrappedLine = wrap(input, imports.previousImportBlock, wrapperName)
+        (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")
+        _ = currentLine += 1
+        _ <- Catching{
+          case Ex(_: InitEx, Exit)                => Res.Exit
+          case Ex(_: InvEx, _: InitEx, Exit)      => Res.Exit
+          case Ex(_: ThreadDeath)                 => interrupted()
+          case Ex(_: InvEx, _: ThreadDeath)       => interrupted()
+          case Ex(_: InvEx, _: InitEx, userEx@_*) => Res.Failure(userEx, stopMethod = "$main", stopClass = s"$wrapperName$$$$user")
+          case Ex(userEx@_*)                      => Res.Failure(userEx, stopMethod = "evaluatorRunPrinter")
+        }
+      } yield {
+        // Exhaust the printer iterator now, before exiting the `Catching`
+        // block, so any exceptions thrown get properly caught and handled
+        val value = evaluatorRunPrinter(process(cls.getDeclaredMethod("$main").invoke(null)))
+        Evaluated(
+          wrapperName,
+          newImports.map(id => id.copy(
+            wrapperName = wrapperName,
+            prefix = if (id.prefix == "") wrapperName else id.prefix
+          )),
+          value
+        )
+      }
+
+    } finally Thread.currentThread().setContextClassLoader(oldClassloader)
   }
 
   /**
@@ -258,8 +245,6 @@ class Interpreter(
   var pressy: Pressy = _
   var handle: BridgeHandle = _
   def init() = {
-    if (handle != null) handle.stop()
-
     compiler = Compiler(
       classes.jars,
       classes.dirs,
@@ -273,12 +258,6 @@ class Interpreter(
       dynamicClasspath,
       classes.currentClassLoader
     )
-
-    val cls = evalClass(bridgeConfig.init, bridgeConfig.name).map(_._1) match {
-      case Res.Success(s) => s
-      case other => throw new Exception(s"Error while initializing REPL API: $other")
-    }
-    handle = bridgeConfig.initClass(this, cls)
   }
 
   def stop() = {
@@ -286,5 +265,12 @@ class Interpreter(
   }
 
   init()
+
+  handle = bridgeConfig.initClass(this,
+    evalClass(bridgeConfig.init, bridgeConfig.name).map(_._1) match {
+      case Res.Success(s) => s
+      case other => throw new Exception(s"Error while initializing REPL API: $other")
+    }
+  )
 }
 

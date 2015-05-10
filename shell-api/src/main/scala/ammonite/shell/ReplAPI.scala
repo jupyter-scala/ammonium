@@ -97,9 +97,6 @@ trait Power {
    */
   def classes: Classes
 
-  def getShow: Boolean
-  def setShow(v: Boolean): Unit
-
   /**
    * Throw away the current scala.tools.nsc.Global and get a new one
    */
