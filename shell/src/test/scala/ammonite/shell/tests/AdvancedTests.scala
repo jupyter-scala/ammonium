@@ -6,7 +6,7 @@ import utest._
 
 import scala.collection.{immutable => imm}
 
-class AdvancedTests(check0: => AmmoniteChecker, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
+class AdvancedTests(check0: => AmmoniteChecker, hasMacros: Boolean = true, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
 
   val tests = TestSuite{
     val check = check0
@@ -240,23 +240,24 @@ class AdvancedTests(check0: => AmmoniteChecker, wrapperInstance: (Int, Int) => S
 
     }
     'macros{
-      check.session("""
-        @ import language.experimental.macros
+      if (hasMacros)
+        check.session("""
+          @ import language.experimental.macros
 
-        @ import reflect.macros.Context
+          @ import reflect.macros.Context
 
-        @ def impl(c: Context): c.Expr[String] = {
-        @  import c.universe._
-        @  c.Expr[String](Literal(Constant("Hello!")))
-        @ }
-        defined function impl
+          @ def impl(c: Context): c.Expr[String] = {
+          @  import c.universe._
+          @  c.Expr[String](Literal(Constant("Hello!")))
+          @ }
+          defined function impl
 
-        @ def m: String = macro impl
-        defined function m
+          @ def m: String = macro impl
+          defined function m
 
-        @ m
-        res4: java.lang.String = "Hello!"
-      """)
+          @ m
+          res4: java.lang.String = "Hello!"
+        """)
     }
   }
 }
