@@ -14,27 +14,9 @@ trait ReplAPI {
   def exit: Nothing
 
   /**
-   * Display this help text
-   */
-  def help: String
-
-  /**
    * History of commands that have been entered into the shell
    */
   def history: Seq[String]
-
-  /**
-   * Get the `Type` object of [[T]]. Useful for finding
-   * what its methods are and what you can do with it
-   */
-  def typeOf[T: WeakTypeTag]: Type
-
-  /**
-   * Get the `Type` object representing the type of `t`. Useful
-   * for finding what its methods are and what you can do with it
-   *
-   */
-  def typeOf[T: WeakTypeTag](t: => T): Type
 
   /**
    *
@@ -77,9 +59,9 @@ trait Load {
    */
   def jar(jar: java.io.File*): Unit
   /**
-   * Load a library from its maven/ivy coordinates
+   * Load a module from its maven/ivy coordinates
    */
-  def ivy(coordinates: (String, String, String)*): Unit
+  def module(coordinates: (String, String, String)*): Unit
   /**
    * Load one or several sbt project(s)
    */
