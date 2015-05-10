@@ -67,7 +67,7 @@ object Sbt {
   case class ProjectInfo(module: Module, dependencies: Seq[Module], exportedProducts: Seq[String], unmanagedClasspath: Seq[String])
 
   def projectInfo(dir: File, project: String): Option[ProjectInfo] = {
-    val pb = new ProcessBuilder("sbt", "-Dsbt.log.noformat=true", s"show $project/moduleSettings", s"show $project/exportedProducts", s"show $project/unmanagedClasspath")
+    val pb = new ProcessBuilder("sbt", "-Dsbt.log.noformat=true", s"show $project/detailedModuleSettings", s"show $project/exportedProducts", s"show $project/unmanagedClasspath")
 
     val proc = pb.directory(dir).start()
     val lines = Source.fromInputStream(proc.getInputStream).getLines().toList
