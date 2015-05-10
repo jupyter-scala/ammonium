@@ -52,7 +52,7 @@ class Main(input: InputStream,
 
   val interp: Interpreter =
     new Interpreter(
-      ShellInterpreter.bridgeConfig(startJars = startJars, startIvys = startIvys, shellPrompt = shellPrompt, reset = frontEnd.reset(), pprintConfig = pprintConfig.copy(maxWidth = frontEnd.width), colors = colorSet),
+      ShellInterpreter.bridgeConfig(startJars = startJars, startIvys = startIvys, shellPrompt = shellPrompt, reset = frontEnd.reset(), pprintConfig = pprintConfig.copy(maxWidth = frontEnd.width, lines = 15), colors = colorSet),
       ShellInterpreter.wrap(classWrap),
       imports = new ammonite.interpreter.Imports(useClassWrapper = classWrap),
       classes = new DefaultClassesImpl(startClassLoader, (startJars, startDirs)),

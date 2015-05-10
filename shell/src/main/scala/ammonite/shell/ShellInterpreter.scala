@@ -56,7 +56,7 @@ object ShellInterpreter {
              replApi = new ReplAPIImpl(intp, startJars, startIvys, startResolvers) with ShellReplAPIImpl {
                def colors = _colors
                def shellPrompt0 = _shellPrompt
-               def pprintConfig = _pprintConfig
+               var pprintConfig = _pprintConfig
                def reset() = _reset()
              }
 

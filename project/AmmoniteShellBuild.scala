@@ -87,7 +87,7 @@ object AmmoniteShellBuild extends Build {
       name := "ammonite-interpreter",
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-        "com.lihaoyi" %% "scala-parser" % "0.1.3"
+        "com.lihaoyi" %% "scala-parser" % "0.1.4"
       )
     )
 
