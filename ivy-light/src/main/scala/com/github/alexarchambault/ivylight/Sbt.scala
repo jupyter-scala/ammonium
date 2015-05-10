@@ -4,6 +4,9 @@ import java.io.File
 
 import scala.io.Source
 
+/** Parses the output of some SBT commands like
+  *   sbt "show someCommand"
+  */
 object Sbt {
   import CaseClassParser.{Value, Container}
 

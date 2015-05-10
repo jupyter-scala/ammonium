@@ -3,10 +3,16 @@ package com.github.alexarchambault.ivylight
 import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
 
+/** Helpers to parse the string representation of case classes */
 object CaseClassParser {
 
+  /** Part of a path to an item in a case class representation
+    * First item, if non empty, is the name of the container at the current position.
+    * Second item is the index of the next item from the children of this container.
+    */
   type Path = (Option[String], Int)
 
+  /** Represents a parsed case class representation */
   sealed trait Item {
     def at(path: Path*): Option[Item]
 
@@ -17,6 +23,12 @@ object CaseClassParser {
         name -> items.collect{case Value(repr) => repr}
       }
   }
+
+  /** A "container" from a case class representation, like "CC" (`name`) and its items "a" and "b" (`items`) from "CC(a, b)".
+    *
+    * Also applies to things that have a representation similar to case classes, like "List(1, 2)"
+    * (despite List itself not being a case class).
+    */
   case class Container(name: String, items: Seq[Item]) extends Item {
     def at(path: Path*): Option[Item] =
       if (path.isEmpty)
@@ -30,6 +42,8 @@ object CaseClassParser {
           None
       }
   }
+
+  /** A "value" from a case class representation, like "a" or "b" in "CC(a, b)" */
   case class Value(repr: String) extends Item {
     def at(path: Path*): Option[Item] =
       if (path.isEmpty)
@@ -38,6 +52,7 @@ object CaseClassParser {
         None
   }
 
+  /** Parser combinators to parse case class string representations */
   object Parser extends RegexParsers {
     def rawValue: Parser[String] = ("[^" + Regex.quote("()") + ",]+").r
     def parRawValue: Parser[String] = "(" ~> value <~ ")" ^^ { "(" + _.repr + ")" }

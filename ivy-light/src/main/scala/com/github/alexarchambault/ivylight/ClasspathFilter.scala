@@ -73,14 +73,13 @@ class ClasspathFilter(parent: ClassLoader, classpath: Set[File]) extends ClassLo
   }
 
   override def getResource(name: String): URL = {
-    val u = super.getResource(name)
-    if (onClasspath(u)) u else null
+    val res = super.getResource(name)
+    if (onClasspath(res)) res else null
   }
 
   override def getResources(name: String): java.util.Enumeration[URL] = {
-    import collection.convert.WrapAsScala.{ enumerationAsScalaIterator => asIt }
-    import collection.convert.WrapAsJava.{ asJavaEnumeration => asEn }
-    val us = super.getResources(name)
-    if (us == null) null else asEn(asIt(us) filter onClasspath)
+    import collection.JavaConverters._
+    val res = super.getResources(name)
+    if (res == null) null else res.asScala.filter(onClasspath).asJavaEnumeration
   }
 }
