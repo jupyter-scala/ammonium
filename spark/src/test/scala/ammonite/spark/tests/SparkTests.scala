@@ -145,13 +145,13 @@ class SparkTests(
           defined class Sum
 
           @ val a = Sum("A", "B")
-          a: ${wrapperInstance(3, 4)}.Sum = Sum("A", "B")
+          a: ${wrapperInstance(0, 1)}.Sum = Sum("A", "B")
 
           @ def b(a: Sum): String = a match { case Sum(_, _) => "Found Sum" }
           defined function b
 
           @ b(a)
-          res6: String = "Found Sum"
+          res3: String = "Found Sum"
         """)
     }
 
@@ -163,7 +163,7 @@ class SparkTests(
           defined function f
 
           @ f()
-          res4: Int = 4
+          res1: Int = 4
         """)
     }
 
