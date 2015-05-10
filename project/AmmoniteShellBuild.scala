@@ -1,4 +1,5 @@
 import sbt._, Keys._
+import sbtbuildinfo.Plugin._
 import sbtrelease.ReleasePlugin.{ ReleaseKeys, releaseSettings }
 import com.typesafe.sbt.SbtPgp.autoImport.PgpKeys
 
@@ -100,6 +101,15 @@ object AmmoniteShellBuild extends Build {
         "com.lihaoyi" %% "ammonite-pprint" % "0.3.0"
       )
     )
+    .settings(buildInfoSettings: _*)
+    .settings(
+      sourceGenerators in Compile <+= buildInfo,
+      buildInfoKeys := Seq[BuildInfoKey](
+        version
+      ),
+      buildInfoPackage := "ammonite.shell"
+    )
+
 
   def sparkProject(sparkVersion: String) = {
     val binaryVersion = sparkVersion.split('.').take(2).mkString(".")

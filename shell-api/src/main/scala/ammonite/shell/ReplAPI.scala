@@ -1,6 +1,6 @@
 package ammonite.shell
 
-import java.io.File
+import ammonite.shell.power.Power
 
 import scala.reflect.runtime.universe._
 
@@ -94,55 +94,4 @@ trait Load extends (String => Unit){
    * evaluates them one after another
    */
   def apply(line: String): Unit
-}
-
-trait Power {
-  /**
-   *
-   */
-  def classes: Classes
-
-  /**
-   * Throw away the current scala.tools.nsc.Global and get a new one
-   */
-  def newCompiler(): Unit
-
-  /**
-   *
-   */
-  def imports: Imports
-
-  /**
-   *
-   */
-  def onStop(action: => Unit): Unit
-
-  /**
-   *
-   */
-  def stop(): Unit
-
-  def complete(snippetIndex: Int, snippet: String): (Int, Seq[String], Seq[String])
-}
-
-trait Classes {
-  def currentClassLoader: ClassLoader
-  def jars: Seq[File]
-  def dirs: Seq[File]
-  def addJar(jar: File): Unit
-  def onJarsAdded(action: Seq[File] => Unit): Unit
-  def fromAddedClasses(name: String): Option[Array[Byte]]
-
-  def underlying: AnyRef
-}
-
-case class ImportData(fromName: String,
-                      toName: String,
-                      wrapperName: String,
-                      prefix: String,
-                      isImplicit: Boolean)
-
-trait Imports {
-  def previousImportBlock(wanted: Option[Set[String]] = None): String
-  def update(newImports: Seq[ImportData]): Unit
 }

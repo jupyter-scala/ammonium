@@ -6,7 +6,7 @@ import java.io.File
 import java.nio.file.Files
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
-import ammonite.shell.Power
+import ammonite.shell.power.Power
 import org.apache.spark.{ SparkContext, SparkConf }
 import org.apache.spark.sql.SQLContext
 

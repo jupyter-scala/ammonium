@@ -15,7 +15,7 @@ object DisplayItem {
   case class Import(imported: String) extends DisplayItem
 }
 
-case class Decl(code: String, display: Seq[DisplayItem], referencedNames: Seq[G#Name])
+case class Decl(code: String, display: Seq[DisplayItem], referencedNames: Seq[String])
 
 object Preprocessor{
   import DisplayItem._
@@ -33,7 +33,7 @@ object Preprocessor{
         Decl(
           code,
           Seq(Definition(definitionLabel, BacktickWrap(name.decoded))),
-          refNames
+          refNames.map(_.toString)
         )
       }
 
@@ -52,18 +52,18 @@ object Preprocessor{
       if (t.name.decoded.contains("$")) Nil
       else if (!t.mods.hasFlag(Flags.LAZY)) Seq(Identity(BacktickWrap.apply(t.name.decoded)))
       else Seq(LazyIdentity(BacktickWrap.apply(t.name.decoded))),
-      refNames
+      refNames.map(_.toString)
     )
   }
 
   val Import = Processor{
     case (name, code, tree: G#Import, refNames: Seq[G#Name]) =>
       val Array(keyword, body) = code.split(" ", 2)
-      Decl(code, Seq(DisplayItem.Import(body)), refNames)
+      Decl(code, Seq(DisplayItem.Import(body)), refNames.map(_.toString))
   }
 
   val Expr = Processor{
-    case (name, code, tree, refNames: Seq[G#Name]) => Decl(s"val $name = (\n$code\n)", Seq(Identity(name)), refNames)
+    case (name, code, tree, refNames: Seq[G#Name]) => Decl(s"val $name = (\n$code\n)", Seq(Identity(name)), refNames.map(_.toString))
   }
 
   val decls = Seq[(String, String, G#Tree, Seq[G#Name]) => Option[Decl]](
@@ -113,7 +113,8 @@ object Preprocessor{
               Decl(_, printers, _) = handleTree(tree, referencedNames)
               printer <- printers
             } yield printer
-            Seq(Decl(code, printers, trees.flatMap(_._2)))
+
+            Seq(Decl(code, printers, trees.flatMap(_._2).map(_.toString)))
         }
       }
       Res(

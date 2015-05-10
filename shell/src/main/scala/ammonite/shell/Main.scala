@@ -21,7 +21,7 @@ class Main(input: InputStream,
 
   val startIvys = Seq(
     ("org.scala-lang", "scala-library", scala.util.Properties.versionNumberString),
-    ("com.github.alexarchambault", "ammonite-shell-api_2.11.6", "0.3.0-SNAPSHOT")
+    ("com.github.alexarchambault", "ammonite-shell-api_2.11.6", BuildInfo.version)
   )
 
   val resolvers = Seq(
