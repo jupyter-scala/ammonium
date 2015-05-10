@@ -11,7 +11,7 @@ import scala.util.Try
 
 class Main(input: InputStream,
            val output: OutputStream,
-           createInterpreter: Main => Interpreter[Preprocessor.Output, Iterator[String]],
+           createInterpreter: Main => Interpreter[Iterator[String]],
            val colorSet: ColorSet = ColorSet.Default,
            val pprintConfig: pprint.Config = pprint.Config.Colors.PPrintConfig,
            shellPrompt0: String = "@",
@@ -59,7 +59,7 @@ class Main(input: InputStream,
 }
 
 object Main{
-  def shellInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
+  def shellInterpreter(main: Main): Interpreter[Iterator[String]] =
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
@@ -74,7 +74,7 @@ object Main{
 
   val classWrapperInstanceSymbol = "INSTANCE"
 
-  def shellClassWrapInterpreter(main: Main): Interpreter[Preprocessor.Output, Iterator[String]] =
+  def shellClassWrapInterpreter(main: Main): Interpreter[Iterator[String]] =
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
@@ -93,7 +93,7 @@ object Main{
 
   val defaultPredef = """"""
   def apply(
-    interpreter: Main => Interpreter[Preprocessor.Output, Iterator[String]],
+    interpreter: Main => Interpreter[Iterator[String]],
     predef: String
   ): Unit = {
     println("Loading Ammonite Shell...")

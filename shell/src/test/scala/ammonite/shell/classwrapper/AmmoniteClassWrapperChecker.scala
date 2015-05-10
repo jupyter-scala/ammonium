@@ -4,7 +4,7 @@ package classwrapper
 import ammonite.interpreter._
 
 class AmmoniteClassWrapperChecker extends AmmoniteChecker {
-  override def newInterpreter(): Interpreter[Preprocessor.Output, Iterator[String]] =
+  override def newInterpreter(): Interpreter[Iterator[String]] =
     new Interpreter(
       ShellInterpreter.bridgeConfig(),
       ShellInterpreter.preprocessor,

@@ -20,7 +20,7 @@ object ShellInterpreter {
     shellPrompt: => Ref[String] = Ref("@"),
     pprintConfig: pprint.Config = pprint.Config.Defaults.PPrintConfig,
     colors: ColorSet = ColorSet.BlackWhite
-  ): BridgeConfig[Preprocessor.Output, Iterator[String]] =
+  ): BridgeConfig[Iterator[String]] =
     BridgeConfig(
       "object ReplBridge extends ammonite.shell.ReplAPIHolder{}",
       "ReplBridge",

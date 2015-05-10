@@ -16,7 +16,7 @@ class AmmoniteChecker extends Checker {
   def predef = ""
   var allOutput = ""
 
-  def newInterpreter(): Interpreter[Preprocessor.Output, Iterator[String]] =
+  def newInterpreter(): Interpreter[Iterator[String]] =
     new Interpreter(
       ShellInterpreter.bridgeConfig(),
       ShellInterpreter.preprocessor,

@@ -13,7 +13,7 @@ import ammonite.shell.util._
 
 
 class ReplAPIImpl[B](
-  intp: Interpreter[_, B],
+  intp: Interpreter[B],
   println: String => Unit,
   startJars: Seq[File],
   startIvys: Seq[(String, String, String)],

@@ -6,10 +6,10 @@ import acyclic.file
 import scala.reflect.io.VirtualDirectory
 import scala.tools.nsc.Global
 
-case class BridgeConfig[A,B](
+case class BridgeConfig[B](
   init: String,
   name: String,
-  initClass: Unit => (Interpreter[A,B], Class[_], String => Unit) => BridgeHandle,
+  initClass: Unit => (Interpreter[B], Class[_], String => Unit) => BridgeHandle,
   imports: Seq[(String, ImportData)]
 )
 
@@ -29,17 +29,17 @@ object BridgeHandle {
  * to interpret Scala code. Doesn't attempt to provide any
  * real encapsulation for now.
  */
-class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
-                       preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[A],
-                       wrap: (A, String, String) => String,
-                       handleResult: => (String, Res[Evaluated[_]]) => Res[Evaluated[_]] = (_, r) => r,
-                       printer: B => Unit,
-                       stdout: String => Unit = print,
-                       initialImports: Seq[(String, ImportData)] = Nil,
-                       initialHistory: Seq[String] = Nil,
-                       predef: String = "",
-                       val classes: Classes = new DefaultClassesImpl(),
-                       useClassWrapper: Boolean = false){ interp =>
+class Interpreter[B](bridgeConfig: BridgeConfig[B],
+                     preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output],
+                     wrap: (Preprocessor.Output, String, String) => String,
+                     handleResult: => (String, Res[Evaluated[_]]) => Res[Evaluated[_]] = (_, r) => r,
+                     printer: B => Unit,
+                     stdout: String => Unit = print,
+                     initialImports: Seq[(String, ImportData)] = Nil,
+                     initialHistory: Seq[String] = Nil,
+                     predef: String = "",
+                     val classes: Classes = new DefaultClassesImpl(),
+                     useClassWrapper: Boolean = false){ interp =>
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
 
@@ -126,7 +126,7 @@ class Interpreter[A,B](bridgeConfig: BridgeConfig[A, B],
 
   val preprocess = preprocessor(_ => compiler.parse)
 
-  val eval = Evaluator[A, B](
+  val eval = Evaluator[B](
     classes.currentClassLoader,
     bridgeConfig.imports ++ initialImports,
     wrap,
