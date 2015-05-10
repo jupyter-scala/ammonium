@@ -39,9 +39,14 @@ trait ReplAPI {
   def typeOf[T: WeakTypeTag](t: => T): Type
 
   /**
+   *
+   */
+  // def reify[T: WeakTypeTag](t: => T): Tree
+
+  /**
    * Tools related to loading external scripts and code into the REPL
    */
-  def load: Load
+  implicit def load: Load
 
   implicit def power: Power
 }

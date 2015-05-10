@@ -95,14 +95,38 @@ case object Exit extends ControlThrowable
  * A convenient bundle of all the functionality necessary
  * to interpret Scala code.
  */
+trait Interpreter0 {
+  /** Initialization parameters */
+  def bridgeConfig: BridgeConfig
+  def wrap: (Seq[Decl], String, String) => String
+  def imports: Imports
+  def classes: Classes
+
+  def compiler: Compiler
+  def pressy: Pressy
+  def handle: BridgeHandle
+
+  def getCurrentLine: String
+
+  def apply[T](
+    line: String,
+    saveHistory: (String => Unit, String) => Unit = _(_),
+    printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]
+  ): Res[Evaluated[T]]
+
+  // def evalClass(code: String, wrapperName: String) // return type???
+  def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]]
+  def handleOutput(res: Res[Evaluated[_]]): Boolean
+}
+
 class Interpreter(
-  bridgeConfig: BridgeConfig = BridgeConfig.empty,
-  wrap: (Seq[Decl], String, String) => String = Wrap.default,
+  val bridgeConfig: BridgeConfig = BridgeConfig.empty,
+  val wrap: (Seq[Decl], String, String) => String = Wrap.default,
   val imports: Imports = new Imports(),
   val classes: Classes = new DefaultClassesImpl(),
   startingLine: Int = 0,
   initialHistory: Seq[String] = Nil
-) {
+) extends Interpreter0 {
 
   imports.update(bridgeConfig.imports)
 
@@ -118,10 +142,6 @@ class Interpreter(
    */
   var currentLine = startingLine
 
-  /**
-   * Weird indirection only necessary because of
-   * https://issues.scala-lang.org/browse/SI-7085
-   */
   def getCurrentLine = currentLine.toString.replace("-", "_")
 
 
