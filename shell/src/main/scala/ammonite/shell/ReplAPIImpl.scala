@@ -12,8 +12,8 @@ import ammonite.interpreter.{ Classes => _, _ }, Evaluator.Exit
 import ammonite.shell.util._
 
 
-class ReplAPIImpl[B](
-  intp: Interpreter[B],
+class ReplAPIImpl(
+  intp: Interpreter,
   println: String => Unit,
   startJars: Seq[File],
   startIvys: Seq[(String, String, String)],

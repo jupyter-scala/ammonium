@@ -18,10 +18,8 @@ import scala.util.matching.Regex
  * evaluates it and returns a `Result[(output: String, imports: String)]`
  * where `output` is what gets printed and `imports` are any imports that
  * need to get prepended to subsequent commands.
- *
- * @tparam B: wrapper $main method return type
  */
-trait Evaluator[+B] {
+trait Evaluator {
   def evalClass(code: String, wrapperName: String): Res[(Class[_], Seq[ImportData])]
 
   /**
@@ -43,7 +41,7 @@ trait Evaluator[+B] {
    * passing in the callback ensures the printing is still done lazily, but within
    * the exception-handling block of the `Evaluator`
    */
-  def processLine[C](input: Preprocessor.Output, process: B => C): Res[Evaluated[C]]
+  def processLine[B,C](input: Preprocessor.Output, process: B => C): Res[Evaluated[C]]
 
   def previousImportBlock: String
 }
@@ -64,13 +62,13 @@ object Evaluator{
 
   def namesFor[T: TypeTag]: Set[String] = namesFor(typeOf[T])
 
-  def apply[B](classLoader: => ClassLoader,
-               initialImports: Seq[(String, ImportData)],
-               wrap: (Preprocessor.Output, String, String) => String,
-               compile: => (Array[Byte], String => Unit) => Compiler.Output,
-               addClass: (String, Array[Byte]) => Unit,
-               startingLine: Int,
-               useClassWrapper: Boolean): Evaluator[B] = new Evaluator[B] {
+  def apply(classLoader: => ClassLoader,
+            initialImports: Seq[(String, ImportData)],
+            wrap: (Preprocessor.Output, String, String) => String,
+            compile: => (Array[Byte], String => Unit) => Compiler.Output,
+            addClass: (String, Array[Byte]) => Unit,
+            startingLine: Int,
+            useClassWrapper: Boolean): Evaluator = new Evaluator {
 
     /**
      * Imports which are required by earlier commands to the REPL. Imports
@@ -173,7 +171,7 @@ object Evaluator{
     type InvEx = InvocationTargetException
     type InitEx = ExceptionInInitializerError
 
-    def processLine[C](input: Preprocessor.Output, process: B => C) = for {
+    def processLine[B,C](input: Preprocessor.Output, process: B => C) = for {
       wrapperName <- Res.Success("cmd" + getCurrentLine)
       _ <- Catching{ case e: ThreadDeath => interrupted() }
       wrappedLine = {

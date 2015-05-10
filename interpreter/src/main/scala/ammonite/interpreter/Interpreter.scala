@@ -6,10 +6,10 @@ import acyclic.file
 import scala.reflect.io.VirtualDirectory
 import scala.tools.nsc.Global
 
-case class BridgeConfig[B](
+case class BridgeConfig(
   init: String,
   name: String,
-  initClass: Unit => (Interpreter[B], Class[_], String => Unit) => BridgeHandle,
+  initClass: Unit => (Interpreter, Class[_], String => Unit) => BridgeHandle,
   imports: Seq[(String, ImportData)]
 )
 
@@ -29,25 +29,25 @@ object BridgeHandle {
  * to interpret Scala code. Doesn't attempt to provide any
  * real encapsulation for now.
  */
-class Interpreter[B](bridgeConfig: BridgeConfig[B],
-                     preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output],
-                     wrap: (Preprocessor.Output, String, String) => String,
-                     handleResult: => (String, Res[Evaluated[_]]) => Res[Evaluated[_]] = (_, r) => r,
-                     stdout: String => Unit = print, // should be removed
-                     startingLine: Int = 0,
-                     initialImports: Seq[(String, ImportData)] = Nil,
-                     initialHistory: Seq[String] = Nil,
-                     val classes: Classes = new DefaultClassesImpl(),
-                     useClassWrapper: Boolean = false){ interp =>
+class Interpreter(bridgeConfig: BridgeConfig,
+                  preprocessor: (Unit => (String => Either[String, scala.Seq[Global#Tree]])) => (String, String) => Res[Preprocessor.Output],
+                  wrap: (Preprocessor.Output, String, String) => String,
+                  handleResult: => (String, Res[Evaluated[_]]) => Res[Evaluated[_]] = (_, r) => r,
+                  stdout: String => Unit = print, // should be removed
+                  startingLine: Int = 0,
+                  initialImports: Seq[(String, ImportData)] = Nil,
+                  initialHistory: Seq[String] = Nil,
+                  val classes: Classes = new DefaultClassesImpl(),
+                  useClassWrapper: Boolean = false){ interp =>
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
 
   val history = initialHistory.to[collection.mutable.Buffer]
   var buffered = ""
 
-  def processLine[C](line: String,
-                     saveHistory: (String => Unit, String) => Unit,
-                     printer: B => C) = for{
+  def processLine[B,C](line: String,
+                       saveHistory: (String => Unit, String) => Unit,
+                       printer: B => C) = for{
     _ <- Catching { case Ex(x@_*) =>
       val Res.Failure(trace) = Res.Failure(x)
       Res.Failure(trace + "\nSomething unexpected went wrong =(")
@@ -125,7 +125,7 @@ class Interpreter[B](bridgeConfig: BridgeConfig[B],
 
   val preprocess = preprocessor(_ => compiler.parse)
 
-  val eval = Evaluator[B](
+  val eval = Evaluator(
     classes.currentClassLoader,
     bridgeConfig.imports ++ initialImports,
     wrap,

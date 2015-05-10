@@ -11,7 +11,7 @@ import scala.util.Try
 
 class Main(input: InputStream,
            val output: OutputStream,
-           createInterpreter: Main => Interpreter[Iterator[String]],
+           createInterpreter: Main => Interpreter,
            val colorSet: ColorSet = ColorSet.Default,
            val pprintConfig: pprint.Config = pprint.Config.Colors.PPrintConfig,
            shellPrompt0: String = "@",
@@ -40,7 +40,7 @@ class Main(input: InputStream,
     // Condition to short circuit early if `interp` hasn't finished evaluating
     line <- frontEnd.action(interp.buffered)
     _ <- Signaller("INT") { Thread.currentThread().stop() }
-    out <- interp.processLine(line, (f, x) => {saveHistory(x); f(x)}, _.foreach(print))
+    out <- interp.processLine(line, (f, x) => {saveHistory(x); f(x)}, (it: Iterator[String]) => it.foreach(print))
   } yield {
     println()
     out
@@ -58,7 +58,7 @@ class Main(input: InputStream,
 }
 
 object Main{
-  def shellInterpreter(main: Main, hasPredef: Boolean): Interpreter[Iterator[String]] =
+  def shellInterpreter(main: Main, hasPredef: Boolean): Interpreter =
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
@@ -72,7 +72,7 @@ object Main{
 
   val classWrapperInstanceSymbol = "INSTANCE"
 
-  def shellClassWrapInterpreter(main: Main, hasPredef: Boolean): Interpreter[Iterator[String]] =
+  def shellClassWrapInterpreter(main: Main, hasPredef: Boolean): Interpreter =
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = main.startJars, startIvys = main.startIvys, shellPrompt = main.shellPrompt, pprintConfig = main.pprintConfig.copy(maxWidth = main.frontEnd.width), colors = main.colorSet),
       ShellInterpreter.preprocessor,
@@ -88,9 +88,8 @@ object Main{
       useClassWrapper = true
     )
 
-  val defaultPredef = """"""
   def apply(
-    interpreter: Main => Interpreter[Iterator[String]]
+    interpreter: Main => Interpreter
   ): Unit = {
     println("Loading Ammonite Shell...")
 
@@ -126,7 +125,7 @@ object Main{
     apply({ m =>
       val intp = if (classWrap) shellClassWrapInterpreter(m, predef.nonEmpty) else shellInterpreter(m, predef.nonEmpty)
       if (predef.nonEmpty) {
-        val res1 = intp.processLine(predef, (_, _) => (), _.foreach(print))
+        val res1 = intp.processLine(predef, (_, _) => (), (it: Iterator[String]) => it.foreach(print))
         val res2 = intp.handleOutput(res1)
         print("\n")
       }
