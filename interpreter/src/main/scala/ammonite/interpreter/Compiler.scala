@@ -33,7 +33,7 @@ trait Compiler{
   /**
    * Either the statements that were parsed or the error message
    */
-  def parse(line: String): Either[String, Seq[Global#Tree]]
+  def parse(line: String): Either[String, Seq[(Global#Tree, Seq[Global#Name])]]
 }
 object Compiler{
   /**
@@ -182,14 +182,14 @@ object Compiler{
     }
 
 
-    def parse(line: String): Either[String, Seq[Global#Tree]]= {
+    def parse(line: String): Either[String, Seq[(Global#Tree, Seq[Global#Name])]] = {
       val out = mutable.Buffer.empty[String]
       logger = out.append(_)
       reporter.reset()
       val parser = compiler.newUnitParser(line)
       val trees = CompilerCompatibility.trees(compiler)(parser)
       if (reporter.hasErrors) Left(out.mkString("\n"))
-      else Right(trees)
+      else Right(trees.map(tree => tree -> referencedNames(tree)))
     }
   }
 }

@@ -15,6 +15,6 @@ object CompilerCompatibility {
   def interactiveAnalyzer(g: InteractiveGlobal, cl: ClassLoader): InteractiveAnalyzer { val global: g.type } =
     analyzer(g, cl)
 
-  def trees(g: Global)(parser: g.syntaxAnalyzer.UnitParser): Seq[Global#Tree] =
+  def trees(g: Global)(parser: g.syntaxAnalyzer.UnitParser): Seq[g.Tree] =
     parser.templateStats() ++ parser.topStatSeq()
 }

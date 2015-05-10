@@ -17,6 +17,6 @@ object CompilerCompatibility {
       override def findMacroClassLoader() = cl
     }
 
-  def trees(g: Global)(parser: g.syntaxAnalyzer.UnitParser): Seq[Global#Tree] =
+  def trees(g: Global)(parser: g.syntaxAnalyzer.UnitParser): Seq[g.Tree] =
     parser.parseStatsOrPackages()
 }

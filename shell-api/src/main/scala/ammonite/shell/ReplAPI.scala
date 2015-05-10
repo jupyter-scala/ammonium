@@ -110,7 +110,7 @@ trait Power {
   /**
    *
    */
-  def imports: String
+  def imports: Imports
 
   /**
    *
@@ -132,4 +132,15 @@ trait Classes {
   def addJar(jar: File): Unit
   def onJarsAdded(action: Seq[File] => Unit): Unit
   def fromAddedClasses(name: String): Option[Array[Byte]]
+
+  def underlying: AnyRef
+}
+
+case class ImportData(fromName: String,
+                      toName: String,
+                      wrapperName: String,
+                      prefix: String)
+
+trait Imports {
+  def update(newImports: Seq[ImportData]): Unit
 }

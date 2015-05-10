@@ -278,6 +278,9 @@ class Interpreter(
       dynamicClasspath,
       classes.currentClassLoader
     )
+
+    // initializing the compiler so that it does not complain having no phase
+    compiler.compile("object $dummy".getBytes, _ => ())
   }
 
   def stop() = {

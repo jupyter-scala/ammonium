@@ -113,6 +113,8 @@ class ReplAPIImpl(
       def jars = intp.classes.jars
       def onJarsAdded(action: Seq[File] => Unit) = intp.classes.onJarsAdded(action)
       def fromAddedClasses(name: String) = intp.classes.fromAddedClasses(name)
+
+      def underlying = intp.classes
     }
 
     var onStopHooks = Seq.empty[() => Unit]
@@ -123,7 +125,13 @@ class ReplAPIImpl(
       intp.pressy.complete(snippetIndex, intp.imports.previousImportBlock, snippet)
 
     def newCompiler() = intp.init()
-    def imports = intp.imports.previousImportBlock
+    def imports =
+      new Imports {
+        def update(newImports: Seq[ammonite.shell.ImportData]) =
+          intp.imports.update(newImports.map{case ammonite.shell.ImportData(fromName, toName, wrapperName, prefix) =>
+            ammonite.interpreter.ImportData(fromName, toName, wrapperName, prefix)
+          })
+      }
   }
   def history = intp.history.toVector.dropRight(1)
 }
