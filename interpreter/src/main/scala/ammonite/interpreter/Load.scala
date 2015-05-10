@@ -3,7 +3,7 @@ package ammonite.interpreter
 import ammonite.api.{ Resolver => ApiResolver }
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
-import com.github.alexarchambault.ivylight.{ Resolver, Sbt, IvyHelper }
+import com.github.alexarchambault.ivylight.{ Resolver, Sbt, Ivy }
 import com.github.alexarchambault.ivylight.Sbt.Module
 
 import java.io.File
@@ -41,7 +41,7 @@ class Load(intp: ammonite.api.Interpreter,
     updateIvy()
   }
   def updateIvy(extra: Seq[File] = Nil): Unit = {
-    val ivyJars = IvyHelper.resolve((userIvys ++ sbtIvys) filterNot internalSbtIvys, userResolvers).map(jarMap)
+    val ivyJars = Ivy.resolve((userIvys ++ sbtIvys) filterNot internalSbtIvys, userResolvers).map(jarMap)
     val newJars = ivyJars ++ userJars
 
     val removedJars = intp.classes.jars.toSet -- newJars
@@ -60,7 +60,7 @@ class Load(intp: ammonite.api.Interpreter,
     intp.init()
   }
   def resolve(coordinates: (String, String, String)*): Seq[File] = {
-    IvyHelper.resolve(coordinates, userResolvers).map(jarMap)
+    Ivy.resolve(coordinates, userResolvers).map(jarMap)
   }
   def sbt(path: java.io.File, projects: String*): Unit = {
     var anyProj = false

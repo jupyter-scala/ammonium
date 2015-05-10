@@ -2,7 +2,7 @@ package com.github.alexarchambault.ivylight
 
 import java.io.File
 
-import org.apache.ivy.Ivy
+import org.apache.ivy.{ Ivy => IvyIvy }
 import org.apache.ivy.core.module.descriptor.Configuration.Visibility
 import org.apache.ivy.core.module.descriptor._
 import org.apache.ivy.core.module.id.ModuleRevisionId
@@ -12,20 +12,21 @@ import org.apache.ivy.plugins.parser.xml.XmlModuleDescriptorWriter
 import org.apache.ivy.plugins.resolver._
 import org.apache.ivy.util._
 
-// From Ammonite's IvyThing and sbt-ivy
+// Originally based on Ammonite's IvyThing and sbt-ivy
 
-object IvyHelper {
+object Ivy {
 
   var maxLevel = 2
   Message.setDefaultLogger {
     new AbstractMessageLogger {
-      def doEndProgress(msg: String) = Console.err println "Done"
-      def doProgress() = Console.err print "."
-      def log(msg: String, level: Int) = if (level <= maxLevel) Console.err.println(msg)
+      def doEndProgress(msg: String) = Console println "Done"
+      def doProgress() = Console print "."
+      def log(msg: String, level: Int) = if (level <= maxLevel) Console.println(msg)
       def rawlog(msg: String, level: Int) = log(msg, level)
     }
   }
 
+  // TODO Cache the results of Ivy resolutions
   def resolve(artifacts: Seq[(String, String, String)], resolvers: Seq[DependencyResolver], verbosity: Int = 2) = {
     maxLevel = verbosity
 
@@ -36,7 +37,7 @@ object IvyHelper {
     settings.addResolver(chain)
     settings.setDefaultResolver(chain.getName)
 
-    val ivy = new Ivy()
+    val ivy = new IvyIvy()
     ivy.setSettings(settings)
     ivy.bind()
 

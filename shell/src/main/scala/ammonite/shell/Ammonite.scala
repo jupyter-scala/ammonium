@@ -5,7 +5,7 @@ import ammonite.api.{IvyConstructor, ImportData, BridgeConfig}
 import ammonite.pprint
 import ammonite.shell.util._
 
-import com.github.alexarchambault.ivylight.{Resolver, IvyHelper, ClasspathFilter}
+import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
 
 import caseapp._
 
@@ -86,7 +86,7 @@ case class Ammonite(shellPrompt: String = "@",
     if (sharedLoader)
       Classes.defaultClassPath()
     else
-      IvyHelper.resolve(startIvys, resolvers).toSeq
+      Ivy.resolve(startIvys, resolvers).toSeq
         .map(f => packJarMap.getOrElse(f.getName, f))
         .filter(_.exists())
         .partition(_.getName.endsWith(".jar"))
