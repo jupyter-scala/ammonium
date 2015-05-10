@@ -82,7 +82,14 @@ object AmmoniteShellBuild extends Build {
     publishArtifact in (Test, packageSrc) := true
   )
 
+  lazy val interpreterApi = Project(id = "interpreter-api", base = file("interpreter-api"))
+    .settings(sharedSettings: _*)
+    .settings(
+      name := "ammonite-interpreter-api"
+    )
+
   lazy val interpreter = Project(id = "interpreter", base = file("interpreter"))
+    .dependsOn(interpreterApi)
     .settings(sharedSettings: _*)
     .settings(
       name := "ammonite-interpreter",
@@ -93,6 +100,7 @@ object AmmoniteShellBuild extends Build {
     )
 
   lazy val shellApi = Project(id = "shell-api", base = file("shell-api"))
+    .dependsOn(interpreterApi)
     .settings(sharedSettings: _*)
     .settings(
       name := "ammonite-shell-api",
@@ -164,8 +172,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(interpreter, shellApi, spark13, spark12, ivyLight, shell)
-    .dependsOn(interpreter, shellApi, spark13, spark12, ivyLight, shell)
+    .aggregate(interpreterApi, interpreter, shellApi, spark13, spark12, ivyLight, shell)
+    .dependsOn(interpreterApi, interpreter, shellApi, spark13, spark12, ivyLight, shell)
     .settings(
       publish := {},
       publishLocal := {},
