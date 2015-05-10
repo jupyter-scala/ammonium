@@ -72,7 +72,9 @@ trait InterpreterInternals {
 
   def apply[T](line: String,
                saveHistory: (String => Unit, String) => Unit = _(_),
-               printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]]
+               printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T],
+               stdout: Option[String => Unit] = None,
+               stderr: Option[String => Unit] = None): Res[Evaluated[T]]
 
   // def evalClass(code: String, wrapperName: String) // return type???
   def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]]
@@ -149,7 +151,9 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
 
   def apply[T](line: String,
                saveHistory: (String => Unit, String) => Unit = _(_),
-               printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]) =
+               printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T],
+               stdout: Option[String => Unit] = None,
+               stderr: Option[String => Unit] = None) =
     for{
       _ <- Catching { case Ex(x@_*) =>
         val Res.Failure(trace) = Res.Failure(x)
@@ -157,6 +161,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       }
       p <- Preprocessor(compiler.parse, line, getCurrentLine)
       _ = saveHistory(history.append(_), line)
+      _ <- Capturing(stdout, stderr)
       out <- process(p, printer)
     } yield out
 
