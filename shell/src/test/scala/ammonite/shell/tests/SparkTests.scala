@@ -7,8 +7,7 @@ class SparkTests(checker: => Checker,
                  master: String,
                  sparkVersion: (Int, Int),
                  wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$cur.INSTANCE.$$ref$$cmd$ref",
-                 requisite: String = "()",
-                 requisiteResult: String = "res0: Unit = ()") extends TestSuite {
+                 loadAmmoniteSpark: Boolean = false) extends TestSuite {
 
   val atLeastSpark13 = implicitly[Ordering[(Int, Int)]].compare(sparkVersion, (1, 3)) >= 0
 
@@ -20,8 +19,14 @@ class SparkTests(checker: => Checker,
 
   val margin = "          "
 
+  val requisite =
+    if (loadAmmoniteSpark)
+      s"""load.ivy("com.github.alexarchambault" % "ammonite-spark_${sparkVersion._1}.${sparkVersion._2}_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")"""
+    else
+      ""
+
   val preamble = s"""
-          @ $requisite${Some(requisiteResult).filter(_.nonEmpty).map("\n" + margin + _).mkString}
+          @ $requisite
 
           @ import ammonite.spark.Spark ${if (importSparkContextContent) "; import org.apache.spark.SparkContext._" else ""}
           import ammonite.spark.Spark${if (importSparkContextContent) s"\n${margin}import org.apache.spark.SparkContext._" else ""}
