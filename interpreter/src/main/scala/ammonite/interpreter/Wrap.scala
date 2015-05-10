@@ -1,21 +1,9 @@
 package ammonite.interpreter
 
 object Wrap {
-
-  def obj(code: String, displayCode: String, previousImportBlock: String, wrapperName: String): String =
-    s"""$previousImportBlock
-
-        object $wrapperName$$Main extends AnyRef {
-          def $$main() = {val $$user = $wrapperName; $displayCode}
-        }
-
-        object $wrapperName{
-          $code
-        }
-     """
-
-  def cls(code: String, displayCode: String, previousImportBlock: String, wrapperName: String): String =
-    s"""object $wrapperName extends AnyRef {
+  def apply(code: String, displayCode: String, previousImportBlock: String, wrapperName: String, classWrap: Boolean): String =
+    if (classWrap)
+      s"""object $wrapperName extends AnyRef {
           val INSTANCE = new $wrapperName
         }
 
@@ -40,5 +28,15 @@ object Wrap {
           val $$user = new $$user
         }
      """
+    else
+      s"""$previousImportBlock
 
+          object $wrapperName$$Main {
+            def $$main() = {val $$user = $wrapperName; $displayCode}
+          }
+
+          object $wrapperName{
+            $code
+          }
+       """
 }

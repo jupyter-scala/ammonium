@@ -37,7 +37,7 @@ class Main(input: InputStream,
   val interp: Interpreter =
     new Interpreter(
       ShellInterpreter.bridgeConfig(startJars = startJars, startIvys = startIvys, shellPrompt = shellPrompt, pprintConfig = pprintConfig.copy(maxWidth = frontEnd.width), colors = colorSet),
-      if (classWrap) ShellInterpreter.classWrap(ShellInterpreter.mergePrinters) else ShellInterpreter.wrap(ShellInterpreter.mergePrinters),
+      ShellInterpreter.wrap(classWrap),
       imports = new Imports(useClassWrapper = true),
       classes = new DefaultClassesImpl(startClassLoader, startJars, startDirs),
       startingLine = if (predef.nonEmpty) -1 else 0,
@@ -45,7 +45,7 @@ class Main(input: InputStream,
     )
 
   if (predef.nonEmpty) {
-    val res1 = interp.processLine(predef, (_, _) => (), (it: Iterator[String]) => it.foreach(print))
+    val res1 = interp.processLine(predef, (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(print))
     val res2 = interp.handleOutput(res1)
     print("\n")
   }
@@ -54,7 +54,7 @@ class Main(input: InputStream,
     // Condition to short circuit early if `interp` hasn't finished evaluating
     line <- frontEnd.action(interp.buffered)
     _ <- Signaller("INT") { Thread.currentThread().stop() }
-    out <- interp.processLine(line, (f, x) => {saveHistory(x); f(x)}, (it: Iterator[String]) => it.foreach(print))
+    out <- interp.processLine(line, (f, x) => {saveHistory(x); f(x)}, _.asInstanceOf[Iterator[String]].foreach(print))
   } yield {
     println()
     out

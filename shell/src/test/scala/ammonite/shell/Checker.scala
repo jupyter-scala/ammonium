@@ -19,14 +19,14 @@ class AmmoniteChecker extends Checker {
   def newInterpreter(): Interpreter =
     new Interpreter(
       ShellInterpreter.bridgeConfig(),
-      ShellInterpreter.wrap(ShellInterpreter.mergePrinters),
+      ShellInterpreter.wrap(classWrap = false),
       startingLine = if (predef.nonEmpty) -1 else 0
     )
 
   val interp = newInterpreter()
 
   if (predef.nonEmpty) {
-    val res1 = interp.processLine(predef, (_, _) => (), (it: Iterator[String]) => it.foreach(allOutput += _))
+    val res1 = interp.processLine(predef, (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(allOutput += _))
     val res2 = interp.handleOutput(res1)
     allOutput += "\n"
   }
@@ -62,7 +62,7 @@ class AmmoniteChecker extends Checker {
 //    println(input)
 //    print(".")
     val msg = collection.mutable.Buffer.empty[String]
-    val processed = interp.processLine(interp.buffered + input, _(_), (it: Iterator[String]) => it.foreach(msg.append(_)))
+    val processed = interp.processLine(interp.buffered + input, _(_), _.asInstanceOf[Iterator[String]].foreach(msg.append(_)))
     val printed = processed.map(_ => msg.mkString)
     if (!printed.isInstanceOf[Res.Buffer])
       allOutput += "\n" + printed

@@ -3,7 +3,7 @@ package ammonite.interpreter
 import acyclic.file
 
 import scala.reflect.io.VirtualDirectory
-import scala.tools.nsc.Global
+import scala.util.control.ControlThrowable
 
 case class BridgeConfig(
   init: String,
@@ -24,6 +24,11 @@ object BridgeHandle {
 }
 
 /**
+ * Thrown to exit the interpreter cleanly
+ */
+case object Exit extends ControlThrowable
+
+/**
  * A convenient bundle of all the functionality necessary
  * to interpret Scala code. Doesn't attempt to provide any
  * real encapsulation for now.
@@ -35,7 +40,7 @@ class Interpreter(
   val classes: Classes = new DefaultClassesImpl(),
   startingLine: Int = 0,
   initialHistory: Seq[String] = Nil
-) { interp =>
+) {
 
   imports.update(bridgeConfig.imports)
 
@@ -44,21 +49,24 @@ class Interpreter(
   val history = initialHistory.to[collection.mutable.Buffer]
   var buffered = ""
 
-  def processLine[B,C](line: String,
-                       saveHistory: (String => Unit, String) => Unit,
-                       printer: B => C) = for{
-    _ <- Catching { case Ex(x@_*) =>
-      val Res.Failure(trace) = Res.Failure(x)
-      Res.Failure(trace + "\nSomething unexpected went wrong =(")
-    }
-    p <- Preprocessor(compiler.parse, line, eval.getCurrentLine)
-    _ = saveHistory(history.append(_), line)
-    oldClassloader = Thread.currentThread().getContextClassLoader
-    out <- try{
-      Thread.currentThread().setContextClassLoader(classes.currentClassLoader)
-      eval.processLine(p, printer)
-    } finally Thread.currentThread().setContextClassLoader(oldClassloader)
-  } yield out
+  def processLine[T](
+    line: String,
+    saveHistory: (String => Unit, String) => Unit,
+    printer: AnyRef => T
+  ): Res[Evaluated[T]] =
+    for{
+      _ <- Catching { case Ex(x@_*) =>
+        val Res.Failure(trace) = Res.Failure(x)
+        Res.Failure(trace + "\nSomething unexpected went wrong =(")
+      }
+      p <- Preprocessor(compiler.parse, line, eval.getCurrentLine)
+      _ = saveHistory(history.append(_), line)
+      oldClassloader = Thread.currentThread().getContextClassLoader
+      out <- try{
+        Thread.currentThread().setContextClassLoader(classes.currentClassLoader)
+        eval.processLine(p, printer)
+      } finally Thread.currentThread().setContextClassLoader(oldClassloader)
+    } yield out
 
   def handleOutput(res: Res[Evaluated[_]]) = {
     res match{
@@ -111,7 +119,7 @@ class Interpreter(
       case Res.Success(s) => s
       case other => throw new Exception(s"Error while initializing REPL API: $other")
     }
-    handle = bridgeInitClass(interp, cls)
+    handle = bridgeInitClass(this, cls)
   }
 
   def stop() = {

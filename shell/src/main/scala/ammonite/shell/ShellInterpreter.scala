@@ -46,19 +46,16 @@ object ShellInterpreter {
               replApi.power.stop()
             }
       },
-      Evaluator.namesFor[ReplAPI with ShellReplAPI].map(n => ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
-        Evaluator.namesFor[IvyConstructor].map(n => ImportData(n, n, "", "ammonite.shell.IvyConstructor")).toSeq
+      NamesFor[ReplAPI with ShellReplAPI].map(n => ImportData(n, n, "", "ReplBridge.shell")).toSeq ++
+        NamesFor[IvyConstructor].map(n => ImportData(n, n, "", "ammonite.shell.IvyConstructor")).toSeq
     )
 
-  def mergePrinters(printers: Seq[DisplayItem]) =
-    printers.map(ShellDisplay(_)).reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")
+  def wrap(classWrap: Boolean): (Seq[Decl], String, String) => String = {
+    def merge(disp: Seq[DisplayItem]) =
+      disp.map(ShellDisplay(_)).reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()")
 
-  def wrap(mergeDisplay: Seq[DisplayItem] => String): (Seq[Decl], String, String) => String =
     (p, previousImportBlock, wrapperName) =>
-      Wrap.obj(p.map(_.code) mkString " ; ", mergeDisplay(p.flatMap(_.display)), previousImportBlock, wrapperName)
-
-  def classWrap(mergeDisplay: Seq[DisplayItem] => String): (Seq[Decl], String, String) => String =
-    (p, previousImportBlock, wrapperName) =>
-      Wrap.cls(p.map(_.code) mkString " ; ", mergeDisplay(p.flatMap(_.display)), previousImportBlock, wrapperName)
+      Wrap(p.map(_.code) mkString " ; ", merge(p.flatMap(_.display)), previousImportBlock, wrapperName, classWrap)
+  }
 
 }

@@ -7,7 +7,7 @@ class AmmoniteClassWrapperChecker extends AmmoniteChecker {
   override def newInterpreter(): Interpreter =
     new Interpreter(
       ShellInterpreter.bridgeConfig(),
-      ShellInterpreter.classWrap(ShellInterpreter.mergePrinters),
+      ShellInterpreter.wrap(classWrap = true),
       imports = new Imports(useClassWrapper = true)
     )
 }

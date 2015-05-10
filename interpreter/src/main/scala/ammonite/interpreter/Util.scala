@@ -171,3 +171,17 @@ object BacktickWrap{
     else "`" + escape(s) + "`"
   }
 }
+
+object NamesFor {
+  import scala.reflect.runtime.universe._
+
+  def apply(t: scala.reflect.runtime.universe.Type): Set[String] = {
+    val yours = t.members.map(_.name.toString)
+      .filterNot(_ endsWith nme.LOCAL_SUFFIX_STRING) // See http://stackoverflow.com/a/17248174/3714539
+      .toSet
+    val default = typeOf[Object].members.map(_.name.toString)
+    yours -- default
+  }
+
+  def apply[T: TypeTag]: Set[String] = apply(typeOf[T])
+}

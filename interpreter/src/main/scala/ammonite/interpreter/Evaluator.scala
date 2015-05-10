@@ -3,10 +3,8 @@ package ammonite.interpreter
 import java.lang.reflect.InvocationTargetException
 
 import acyclic.file
-import scala.reflect.runtime.universe._
 import scala.collection.mutable
 import scala.util.Try
-import scala.util.control.ControlThrowable
 
 /**
  * Takes source code and, with the help of a compiler and preprocessor,
@@ -35,25 +33,10 @@ trait Evaluator {
    * passing in the callback ensures the printing is still done lazily, but within
    * the exception-handling block of the `Evaluator`
    */
-  def processLine[B,C](input: Seq[Decl], process: B => C): Res[Evaluated[C]]
+  def processLine[T](input: Seq[Decl], process: AnyRef => T): Res[Evaluated[T]]
 }
 
 object Evaluator{
-  /**
-   * Thrown to exit the Evaluator cleanly
-   */
-  case object Exit extends ControlThrowable
-
-  def namesFor(t: scala.reflect.runtime.universe.Type): Set[String] = {
-    val yours = t.members.map(_.name.toString)
-      .filterNot(_ endsWith nme.LOCAL_SUFFIX_STRING) // See http://stackoverflow.com/a/17248174/3714539
-      .toSet
-    val default = typeOf[Object].members.map(_.name.toString)
-    yours -- default
-  }
-
-  def namesFor[T: TypeTag]: Set[String] = namesFor(typeOf[T])
-
   def apply(classLoader: => ClassLoader,
             wrap: (Seq[Decl], String, String) => String,
             compile: => (Array[Byte], String => Unit) => Compiler.Output,
@@ -110,7 +93,7 @@ object Evaluator{
     type InvEx = InvocationTargetException
     type InitEx = ExceptionInInitializerError
 
-    def processLine[B,C](input: Seq[Decl], process: B => C) = for {
+    def processLine[T](input: Seq[Decl], process: AnyRef => T) = for {
       wrapperName <- Res.Success("cmd" + getCurrentLine)
       _ <- Catching{ case e: ThreadDeath => interrupted() }
       wrappedLine = {
@@ -132,7 +115,7 @@ object Evaluator{
     } yield {
       // Exhaust the printer iterator now, before exiting the `Catching`
       // block, so any exceptions thrown get properly caught and handled
-      val value = evaluatorRunPrinter(process(evalMain(cls).asInstanceOf[B]))
+      val value = evaluatorRunPrinter(process(evalMain(cls)))
       Evaluated(
         wrapperName,
         newImports.map(id => id.copy(

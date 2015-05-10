@@ -8,7 +8,7 @@ import com.github.alexarchambault.ivylight.IvyHelper
 import scala.reflect.runtime.universe._
 import acyclic.file
 
-import ammonite.interpreter.{ Classes => _, _ }, Evaluator.Exit
+import ammonite.interpreter.{ Classes => _, _ }
 import ammonite.shell.util._
 
 
