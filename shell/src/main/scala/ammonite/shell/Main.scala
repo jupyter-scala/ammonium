@@ -60,6 +60,10 @@ class Main(input: InputStream,
       initialHistory = initialHistory
     )
 
+  // Run the predef. For now we assume that the whole thing is a single
+  // command, and will get compiled & run at once. We hard-code the
+  // line number to -1 if the predef exists so the first user-entered
+  // line becomes 0
   if (predef.nonEmpty) {
     val res1 = interp(predef, (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(print))
     val res2 = interp.handleOutput(res1)

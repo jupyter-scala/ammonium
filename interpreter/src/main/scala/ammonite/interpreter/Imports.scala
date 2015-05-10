@@ -20,11 +20,6 @@ class Imports(
     def isReplClassWrapImport(d: ImportData) =
       useClassWrapper && (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName)
 
-    def transpose[A](xs: List[List[A]]): List[List[A]] = xs.filter(_.nonEmpty) match {
-      case Nil    =>  Nil
-      case ys: List[List[A]] => ys.map{ _.head }::transpose(ys.map{ _.tail })
-    }
-
     def transformIfReplClassWrapImport(d: ImportData) =
       if (isReplClassWrapImport(d))
         d.copy(prefix = "$ref$" + d.prefix)
@@ -46,7 +41,7 @@ class Imports(
 
     val snippets = for {
       (prefix, allImports) <- previousImports0.values.toList.map(transformIfReplClassWrapImport).groupBy(_.prefix)
-      imports <- transpose(allImports.groupBy(_.fromName).values.toList).reverse
+      imports <- Util.transpose(allImports.groupBy(_.fromName).values.toList).reverse
     } yield {
       imports match{
         case Seq(imp) if imp.fromName == imp.toName =>
