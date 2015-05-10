@@ -68,18 +68,11 @@ object Wrap {
  */
 case object Exit extends ControlThrowable
 
-/**
- * A convenient bundle of all the functionality necessary
- * to interpret Scala code.
- */
-
 trait InterpreterInternals {
 
-  def apply[T](
-                line: String,
-                saveHistory: (String => Unit, String) => Unit = _(_),
-                printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]
-                ): Res[Evaluated[T]]
+  def apply[T](line: String,
+               saveHistory: (String => Unit, String) => Unit = _(_),
+               printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]]
 
   // def evalClass(code: String, wrapperName: String) // return type???
   def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]]
@@ -87,14 +80,16 @@ trait InterpreterInternals {
 
 }
 
-class Interpreter(
-  val bridgeConfig: BridgeConfig = BridgeConfig.empty,
-  val wrapper: (Seq[Decl], String, String) => String = Wrap.default,
-  val imports: api.Imports = new Imports(),
-  val classes: api.Classes = new Classes(),
-  startingLine: Int = 0,
-  initialHistory: Seq[String] = Nil
-) extends api.Interpreter with InterpreterInternals {
+/**
+ * A convenient bundle of all the functionality necessary
+ * to interpret Scala code.
+ */
+class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
+                  val wrapper: (Seq[Decl], String, String) => String = Wrap.default,
+                  val imports: api.Imports = new Imports(),
+                  val classes: api.Classes = new Classes(),
+                  startingLine: Int = 0,
+                  initialHistory: Seq[String] = Nil) extends api.Interpreter with InterpreterInternals {
 
   imports.update(bridgeConfig.imports)
 
@@ -152,11 +147,9 @@ class Interpreter(
     }
   }
 
-  def apply[T](
-    line: String,
-    saveHistory: (String => Unit, String) => Unit = _(_),
-    printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]
-  ) =
+  def apply[T](line: String,
+               saveHistory: (String => Unit, String) => Unit = _(_),
+               printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]) =
     for{
       _ <- Catching { case Ex(x@_*) =>
         val Res.Failure(trace) = Res.Failure(x)
