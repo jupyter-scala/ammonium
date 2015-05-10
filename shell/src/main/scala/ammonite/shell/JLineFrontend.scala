@@ -19,6 +19,7 @@ trait JLineFrontend{
   def width: Int
   def action(buffered: String): Res[String]
   def update(buffered: String, r: Res[Evaluated[_]]): Unit
+  def reset(): Unit
 }
 object JLineFrontend{
   def apply(input: InputStream,
@@ -29,6 +30,8 @@ object JLineFrontend{
             = new JLineFrontend with jline.console.completer.Completer {
 
     val term = new jline.UnixTerminal()
+
+    def reset() = term.reset()
 
     term.init()
     val reader = new ConsoleReader(input, output, term)

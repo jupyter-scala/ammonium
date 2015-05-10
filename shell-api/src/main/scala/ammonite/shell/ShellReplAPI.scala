@@ -9,6 +9,11 @@ trait ShellReplAPI {
   def clear: Unit
 
   /**
+   *
+   */
+  def reset(): Unit
+
+  /**
    * Read/writable prompt for the shell. Use this to change the
    * REPL prompt at any time!
    */

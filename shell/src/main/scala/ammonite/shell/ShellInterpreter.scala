@@ -35,6 +35,7 @@ object ShellInterpreter {
     startIvys: Seq[(String, String, String)] = Nil,
     startResolvers: Seq[DependencyResolver] = Seq(ResolverHelpers.localRepo, ResolverHelpers.defaultMaven),
     shellPrompt: => Ref[String] = Ref("@"),
+    reset: => Unit = (),
     pprintConfig: pprint.Config = pprint.Config.Defaults.PPrintConfig,
     colors: ColorSet = ColorSet.BlackWhite
   ): BridgeConfig =
@@ -46,6 +47,7 @@ object ShellInterpreter {
          def _colors = colors
          def _shellPrompt = shellPrompt
          def _pprintConfig = pprintConfig
+         def _reset() = reset
 
          var replApi: ReplAPI with FullShellReplAPI = null
 
@@ -55,6 +57,7 @@ object ShellInterpreter {
                def colors = _colors
                def shellPrompt0 = _shellPrompt
                def pprintConfig = _pprintConfig
+               def reset() = _reset()
              }
 
            ReplAPIHolder.initReplBridge(
