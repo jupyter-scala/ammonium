@@ -13,6 +13,7 @@ trait Classes {
   def addClass(name: String, b: Array[Byte]): Unit
   def fromAddedClasses(name: String): Option[Array[Byte]]
   def onJarsAdded(action: Seq[File] => Unit): Unit
+  def classLoaderClone(): ClassLoader
 }
 
 object Classes {
@@ -115,12 +116,17 @@ class DefaultClassesImpl(
     classLoader = new AddURLClassLoader(classLoader, tmpClassDir)
   }
 
-  def resetClassLoader() = {
-    lazy val classLoaders0 = classLoaders.toList
-    classLoader = new AddURLClassLoader(startClassLoader, tmpClassDir)
+  def classLoaderClone(): AddURLClassLoader = {
+    val classLoaders0 = classLoaders.toList
+    val classLoader = new AddURLClassLoader(startClassLoader, tmpClassDir)
     extraJars.foreach(classLoader addURL _.toURI.toURL)
     classLoaders0.foreach(classLoader.dirs ++= _.dirs)
     classLoaders0.foreach(classLoader.map ++= _.map)
+    classLoader
+  }
+
+  def resetClassLoader() = {
+    classLoader = classLoaderClone()
   }
 
   var extraJars = Seq.empty[File]
