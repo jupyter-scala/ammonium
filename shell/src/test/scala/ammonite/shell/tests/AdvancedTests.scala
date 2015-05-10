@@ -4,9 +4,7 @@ package tests
 import ammonite.interpreter.Res
 import utest._
 
-import scala.collection.{immutable => imm}
-
-class AdvancedTests(check0: => AmmoniteChecker, hasMacros: Boolean = true, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
+class AdvancedTests(check0: => Checker, hasMacros: Boolean = true, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
 
   val tests = TestSuite{
     val check = check0

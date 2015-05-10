@@ -7,12 +7,29 @@ trait Checker {
   def session(sess: String): Unit
   def fail(input: String, failureCheck: String => Boolean = _ => true): Unit
   def complete(cursor: Int, buf: String): (Int, Seq[String], Seq[String])
+  def run(input: String): (Res[Evaluated[Unit]], Res[String])
 
   def captureOut: Boolean
   def captureOut_=(v: Boolean): Unit
 
   def session(sess: String, finally0: String): Unit =
     try session(sess) finally session(finally0)
+
+  def apply(input: String,
+            expected: String = null) = {
+    val (processed, printed) = run(input)
+    if (expected != null){
+      val expectedRes = Res.Success(expected.trim)
+      failLoudly(assert(printed == expectedRes))
+    }
+  }
+
+  def result(input: String, expected: Res[Evaluated[_]]): Unit = {
+    val (processed, printed) = run(input)
+    assert(processed == expected)
+  }
+
+  def failLoudly[T](t: => T): T
 }
 
 class AmmoniteChecker extends Checker {
@@ -68,7 +85,7 @@ class AmmoniteChecker extends Checker {
     }
   }
 
-  def run(input: String) = {
+  def run(input: String): (Res[Evaluated[Unit]], Res[String]) = {
 //    println("RUNNING")
 //    println(input)
 //    print(".")
@@ -89,15 +106,6 @@ class AmmoniteChecker extends Checker {
     (processed, printed)
   }
 
-  def apply(input: String,
-            expected: String = null) = {
-    val (processed, printed) = run(input)
-    if (expected != null){
-      val expectedRes = Res.Success(expected.trim)
-      failLoudly(assert(printed == expectedRes))
-    }
-  }
-
   def fail(input: String,
            failureCheck: String => Boolean = _ => true): Unit = {
     val (processed, printed) = run(input)
@@ -110,10 +118,6 @@ class AmmoniteChecker extends Checker {
     }
   }
 
-  def result(input: String, expected: Res[Evaluated[_]]) = {
-    val (processed, printed) = run(input)
-    assert(processed == expected)
-  }
   def failLoudly[T](t: => T) = try{
       t
   } catch{ case e: utest.AssertionError =>

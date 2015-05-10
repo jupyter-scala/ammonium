@@ -3,8 +3,6 @@ package tests
 
 import utest._
 
-import scala.collection.{immutable => imm}
-
 class FailureTests(check0: => Checker, lightException: Boolean = false) extends TestSuite{
   val tests = TestSuite{
     val check = check0

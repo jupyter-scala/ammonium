@@ -3,9 +3,6 @@ package tests
 
 import utest._
 
-import scala.collection.{immutable => imm}
-import scala.reflect.internal.util.BatchSourceFile
-
 class AutocompleteTests(check0: => Checker) extends TestSuite{
 
   val tests = TestSuite{

@@ -2,8 +2,7 @@ package ammonite.shell
 package tests
 
 import utest._
-import ammonite.pprint.PPrint
-import ammonite.pprint.Config.Defaults._
+
 class EulerTests(check0: => Checker) extends TestSuite{
   val tests = TestSuite{
     val check = check0

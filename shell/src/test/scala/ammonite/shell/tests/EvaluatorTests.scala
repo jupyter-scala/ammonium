@@ -1,13 +1,7 @@
 package ammonite.shell
 package tests
 
-import ammonite.pprint.Config.Defaults._
-import ammonite.pprint.PPrint
 import utest._
-
-
-import scala.collection.{immutable => imm}
-import scala.reflect.io.VirtualDirectory
 
 class EvaluatorTests(check0: => Checker, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
 
