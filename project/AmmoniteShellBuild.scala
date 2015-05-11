@@ -74,13 +74,6 @@ object AmmoniteShellBuild extends Build {
       "com.lihaoyi" %% "utest" % "0.3.0" % "test"
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
-    testOptions in Test := {
-      sys.env.get("SPARK_HOME") match {
-        case None => Seq(Tests.Filter(s => !s.toLowerCase.contains("spark")))
-        case _ =>
-          Seq()
-      }
-    },
     publishArtifact in (Test, packageBin) := true,
     publishArtifact in (Test, packageSrc) := true
   )
