@@ -265,8 +265,6 @@ class AdvancedTests(check0: => Checker,
           @ def m: String = macro impl
           defined function m
 
-          @ if (scala.util.Properties.versionNumberString startsWith "2.10.") interpreter.init()
-
           @ m
           res4: java.lang.String = "Hello!"
         """)
