@@ -23,7 +23,7 @@ class SparkTests(checker: => Checker,
     if (loadAmmoniteSpark)
       s"""load.ivy("com.github.alexarchambault" % "ammonite-spark_${sparkVersion._1}.${sparkVersion._2}_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")"""
     else
-      ""
+      "()"
 
   val preamble = s"""
           @ $requisite
