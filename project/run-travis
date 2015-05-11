@@ -8,6 +8,6 @@ $SBT publish-local
 
 "$PWD/run-tests"
 
-if [[ "${TRAVIS_PULL_REQUEST}" == "false" && ${JAVA_HOME} == $(jdk_switcher home oraclejdk7) && "${TRAVIS_BRANCH}" == "master" ]]; then
+if [ "$TRAVIS_PULL_REQUEST" == "false" && "$JAVA_HOME" == "$1" && "$TRAVIS_BRANCH" == "master" ]; then
   $SBT publish
 fi
