@@ -192,7 +192,7 @@ class AdvancedTests(check0: => Checker, isAmmonite: Boolean = true, hasMacros: B
 
     'shapeless{
       check.session("""
-        @ load.ivy("com.chuusai" %% "shapeless" % "2.1.0")
+        @ load.ivy("com.chuusai" %% "shapeless" % "2.2.0-RC6")
 
         @ import shapeless._
 
