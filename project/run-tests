@@ -1,0 +1,18 @@
+#!/bin/bash
+set -ev
+
+SBT="sbt ++${TRAVIS_SCALA_VERSION:-2.11.6}"
+
+$SBT shell/test
+$SBT shell/test-only ammonite.shell.classwrapper.LocalSpark12Tests
+$SBT shell/test-only ammonite.shell.classwrapper.LocalSpark13Tests
+$SBT spark-12/test-only ammonite.spark.LocalTests
+$SBT spark-13/test-only ammonite.spark.LocalTests
+
+if [ "$SPARK_HOME" != "" ]; then
+  $SBT spark-12/test-only ammonite.spark.LocalClusterTests
+  $SBT spark-13/test-only ammonite.spark.LocalClusterTests
+  $SBT spark-12/test-only ammonite.spark.StandAloneClusterTests
+  $SBT spark-13/test-only ammonite.spark.StandAloneClusterTests
+fi
+

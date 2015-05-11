@@ -76,14 +76,9 @@ object AmmoniteShellBuild extends Build {
     testFrameworks += new TestFramework("utest.runner.Framework"),
     testOptions in Test := {
       sys.env.get("SPARK_HOME") match {
-        case None => Seq(Tests.Filter(s => s != "ammonite.spark.LocalClusterTests" && s != "ammonite.spark.StandAloneClusterTests"))
+        case None => Seq(Tests.Filter(s => !s.toLowerCase.contains("spark")))
         case _ =>
-          // FIXME This does not really work, if a docker container with hostname master exists, it will be found
-          // (even if we're not running from docker)
-          if (Try(java.net.InetAddress.getByName("master")).toOption.isEmpty)
-            Seq(Tests.Filter(s => s != "ammonite.spark.StandAloneClusterTests"))
-          else
-            Seq()
+          Seq()
       }
     },
     publishArtifact in (Test, packageBin) := true,
