@@ -1,5 +1,4 @@
 language: scala
-
 scala:
 - 2.11.6
 - 2.11.5
@@ -10,23 +9,18 @@ scala:
 - 2.10.5
 - 2.10.4
 - 2.10.3
-
 jdk:
 - oraclejdk7
 - oraclejdk8
-
-script: sbt ++${TRAVIS_SCALA_VERSION} $(if [[ "${TRAVIS_PULL_REQUEST}" ==
-  "false" && ${JAVA_HOME} == $(jdk_switcher home oraclejdk7) && "${TRAVIS_BRANCH}"
-  == "master" ]]; then echo "publish"; fi) test-only
-
+script: sbt ++${TRAVIS_SCALA_VERSION} $(if [[ "${TRAVIS_PULL_REQUEST}" == "false"
+  && ${JAVA_HOME} == $(jdk_switcher home oraclejdk7) && "${TRAVIS_BRANCH}" == "master"
+  ]]; then echo "publish"; fi) test-only
 sudo: false
-
-env:
-  global:
-  - secure: Exw9JwOsm+ksrIILCEuRRHmgXEJ2F+0V50YV0z3SZcGBfTj16EfOqeUOJa5EeyBuCBSpT28onwX9q6MlKBdVZ7PKItQoJcguqnVHFtkVSvH7BSwtv6uz5JBOMtDAglnWwTs22NxfTZjvwI5MSt0r2DEa2VDIPpUIMRVyxzprdBI=
-  - secure: A9N0cogCVOTYR+h8jV4h1Dwt5OKyeo+w5XNCzs9cQ7juE8xxdT8DMt9QJfxJSJF6Hr38KaAD3r0GHLA6uHQzUvkgaZnJs5lTmbBKJwy+ZQktsyMyXSM4RzbE1Q7XQDKRuwzqW61OqtUIaDuzQ8Q1Ej3vyDKWcWasMCnBkPH0Gtc=
-
 cache:
   directories:
   - $HOME/.ivy2/cache
   - $HOME/.sbt
+env:
+  global:
+  - secure: IahNxFoPWHeGgQ2Y96G9bTzGycDP0v+I15vvc+rbDLw38tQ/+9dAHWlJmvIiYZBgwK09IInXZCc7auFfKulINKvDVo3S2FAASeAkPCye4W3rGPpYm0ttxObfGlNyO4GTdR7iC4YnLi9TSf+FqZ5+2RIysjzMKKEPwHO+g/AT2ik=
+  - secure: d8A7m0CgpcqxgWrckvf5+hVeF4v1VGnEjhrQmpO88XP2SMp3C3pe9yBIyvpJ+A5WUabH/lVT5XV3Nd6T2nF1ZlzCQNjM1n+u5Ti4rNUw2OKcibAyMeKt+6hIg1bk53Jc9eyuHUNACIdcD/ILi+458XfrEQSiX2BhIK5wxaOeF/A=
