@@ -215,6 +215,7 @@ object Ammonite extends AppOf[Ammonite] {
       bridgeConfig(
         startJars = if (sharedLoader) startJars0 else startJars,
         startIvys = startIvys,
+        startResolvers = resolvers,
         jarMap = f => packJarMap.getOrElse(f.getName, f),
         shellPrompt = shellPromptRef,
         reset = reset,
