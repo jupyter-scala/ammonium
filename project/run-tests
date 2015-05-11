@@ -1,7 +1,8 @@
 #!/bin/bash
 set -ev
 
-SBT="sbt ++${TRAVIS_SCALA_VERSION:-2.11.6} -mem 512"
+export SBT_OPTS="-Xmx512M"
+SBT="sbt ++${TRAVIS_SCALA_VERSION:-2.11.6}"
 
 for TEST in AdvancedTests AutocompleteTests EulerTests EvaluatorTests FailureTests SerializationTests; do
   $SBT "shell/test-only ammonite.shell.$TEST"
