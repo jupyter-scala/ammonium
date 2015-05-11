@@ -158,7 +158,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val shell = Project(id = "shell", base = file("shell"))
     .dependsOn(shellApi, interpreter)
-    .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
+    .settings(sharedSettings ++ testSettings: _*)
+    .settings(xerial.sbt.Pack.packAutoSettings ++ xerial.sbt.Pack.publishPackTxzArchive ++ xerial.sbt.Pack.publishPackZipArchive: _*)
     .settings(
       name := "ammonite-shell",
       libraryDependencies ++= Seq(
