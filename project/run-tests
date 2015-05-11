@@ -11,15 +11,17 @@ for TEST in AdvancedTests AutocompleteTests EulerTests EvaluatorTests FailureTes
   $SBT "shell/test-only ammonite.shell.classwrapper.$TEST"
 done
 
-$SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark12Tests"
-$SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark13Tests"
-$SBT "spark-12/test-only ammonite.spark.LocalTests"
-$SBT "spark-13/test-only ammonite.spark.LocalTests"
+# Not running the spark tests on Travis for lack of memory
+if [ "$TRAVIS_SCALA_VERSION" = "" ]; then
+  $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark12Tests"
+  $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark13Tests"
+  $SBT "spark-12/test-only ammonite.spark.LocalTests"
+  $SBT "spark-13/test-only ammonite.spark.LocalTests"
 
-if [ "$SPARK_HOME" != "" ]; then
-  $SBT "spark-12/test-only ammonite.spark.LocalClusterTests"
-  $SBT "spark-13/test-only ammonite.spark.LocalClusterTests"
-  $SBT "spark-12/test-only ammonite.spark.StandAloneClusterTests"
-  $SBT "spark-13/test-only ammonite.spark.StandAloneClusterTests"
+  if [ "$SPARK_HOME" != "" ]; then
+    $SBT "spark-12/test-only ammonite.spark.LocalClusterTests"
+    $SBT "spark-13/test-only ammonite.spark.LocalClusterTests"
+    $SBT "spark-12/test-only ammonite.spark.StandAloneClusterTests"
+    $SBT "spark-13/test-only ammonite.spark.StandAloneClusterTests"
+  fi
 fi
-
