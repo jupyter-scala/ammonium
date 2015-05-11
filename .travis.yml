@@ -16,10 +16,6 @@ script: sbt ++${TRAVIS_SCALA_VERSION} publish-local shell/test spark-12/test spa
   && ${JAVA_HOME} == $(jdk_switcher home oraclejdk7) && "${TRAVIS_BRANCH}" == "master"
   ]]; then echo "publish"; fi)
 sudo: false
-cache:
-  directories:
-  - $HOME/.ivy2/cache
-  - $HOME/.sbt
 env:
   global:
   - secure: IahNxFoPWHeGgQ2Y96G9bTzGycDP0v+I15vvc+rbDLw38tQ/+9dAHWlJmvIiYZBgwK09IInXZCc7auFfKulINKvDVo3S2FAASeAkPCye4W3rGPpYm0ttxObfGlNyO4GTdR7iC4YnLi9TSf+FqZ5+2RIysjzMKKEPwHO+g/AT2ik=
