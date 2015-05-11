@@ -153,12 +153,16 @@ object Ammonite extends AppOf[Ammonite] {
   val scalaVersion = scala.util.Properties.versionNumberString
   val startIvys = Seq(
     ("org.scala-lang", "scala-library", scalaVersion),
-//    ("org.scala-lang", "scala-compiler", scalaVersion), // for macros
     ("com.github.alexarchambault", s"ammonite-shell-api_$scalaVersion", BuildInfo.version)
   )
   val startMacroIvys = startIvys ++ Seq(
     ("org.scala-lang", "scala-compiler", scalaVersion)
-  )
+  ) ++ {
+    if (scalaVersion startsWith "2.10.")
+      Seq(("org.scalamacros", s"paradise_$scalaVersion", "2.0.1"))
+    else
+      Seq()
+  }
 
   val resolvers = Seq(
     Resolver.localRepo,

@@ -123,7 +123,7 @@ object Compiler{
         jarDeps, dirDeps, dynamicClasspath, logger, scala.Console.RED
       )
       val scalac = new nsc.Global(settings, reporter) { g =>
-        override lazy val plugins = List(new AmmonitePlugin(g, lastImports = _))
+        override lazy val plugins = List(new AmmonitePlugin(g, lastImports = _)) ++ CompilerCompatibility.plugins(g)
         override def classPath = platform.classPath // Actually jcp, avoiding a path-dependent type issue in 2.10 here
         override lazy val platform: ThisPlatform = new JavaPlatform{
           val global: g.type = g

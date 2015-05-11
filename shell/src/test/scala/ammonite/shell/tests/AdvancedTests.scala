@@ -4,7 +4,10 @@ package tests
 import ammonite.interpreter.Res
 import utest._
 
-class AdvancedTests(check0: => Checker, isAmmonite: Boolean = true, hasMacros: Boolean = true, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
+class AdvancedTests(check0: => Checker,
+                    isAmmonite: Boolean = true,
+                    hasMacros: Boolean = !scala.util.Properties.versionNumberString.startsWith("2.10."),
+                    wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
 
   val tests = TestSuite{
     val check = check0
@@ -261,6 +264,8 @@ class AdvancedTests(check0: => Checker, isAmmonite: Boolean = true, hasMacros: B
 
           @ def m: String = macro impl
           defined function m
+
+          @ if (scala.util.Properties.versionNumberString startsWith "2.10.") interpreter.init()
 
           @ m
           res4: java.lang.String = "Hello!"
