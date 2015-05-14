@@ -174,26 +174,17 @@ object Ammonite extends AppOf[Ammonite] {
       Seq()
   }
 
-  /*
-   * Hackish workaround for when we're launched from an sbt-pack package:
-   * tries to substitute the JARs from the package (in our classpath)
-   * to the ones found by ivy.
-   * That soothes ClasspathFilter below, which is often pointed
-   * to the absolute path of JARs by class protection domains,
-   * and needs that to properly filter shared classes between
-   * the REPL and the interpreter.
-   */
-  lazy val packJarMap = Classes.defaultClassPath()._1.map(f => f.getName -> f).toMap
+  lazy val packJarMap = Classes.jarMap(getClass.getClassLoader)
 
   lazy val (startJars, startDirs) =
     Ivy.resolve(startIvys, resolvers).toSeq
-      .map(f => packJarMap.getOrElse(f.getName, f))
+      .map(packJarMap)
       .filter(_.exists())
       .partition(_.getName.endsWith(".jar"))
 
   lazy val (startMacroJars, startMacroDirs) =
     Ivy.resolve(startMacroIvys, resolvers).toSeq
-      .map(f => packJarMap.getOrElse(f.getName, f))
+      .map(packJarMap)
       .filter(_.exists())
       .partition(_.getName.endsWith(".jar"))
 
@@ -220,7 +211,7 @@ object Ammonite extends AppOf[Ammonite] {
         startJars = if (sharedLoader) startJars0 else startJars,
         startIvys = startIvys,
         startResolvers = resolvers,
-        jarMap = f => packJarMap.getOrElse(f.getName, f),
+        jarMap = packJarMap,
         shellPrompt = shellPromptRef,
         reset = reset,
         pprintConfig = pprintConfig,

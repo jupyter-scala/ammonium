@@ -100,6 +100,30 @@ object Classes {
 
     files.toVector.filter(_.exists).partition(_.toString.endsWith(".jar"))
   }
+
+  val ivyLocalPathOpt = sys.props.get("user.home").map { path =>
+    new File(new File(new File(path), ".ivy2"), "local") .toPath .toAbsolutePath
+  }
+
+  /**
+   * Maps JARs found by Ivy resolution to JARs in the classpath of @classLoader, if
+   * found there (else, just returns the original file).
+   *
+   * The resulting files can then be handed to ClassLoaderFilter and allow for a proper filtering.
+   */
+  def jarMap(classLoader: ClassLoader = Thread.currentThread().getContextClassLoader): File => File = {
+    val map = defaultClassPath(classLoader)._1.map(f => f.getName -> f).toMap
+
+    f =>
+      val name =
+        if (f.getName.endsWith(".jar") && ivyLocalPathOpt.exists(f.toPath.toAbsolutePath.startsWith)) {
+          val version = f.getParentFile.getParentFile.getName
+          s"${f.getName.stripSuffix(".jar")}-$version.jar"
+        } else
+          f.getName
+
+      map.getOrElse(name, f)
+  }
   
 }
 
