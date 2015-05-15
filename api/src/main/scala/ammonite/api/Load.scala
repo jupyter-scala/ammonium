@@ -38,8 +38,10 @@ trait Resolver
 
 object Resolver {
   case object Local extends Resolver
-  case object Central extends Resolver
   case class Maven(name: String, base: String) extends Resolver
+
+  val central = Maven("public", "https://repo1.maven.org/maven2/")
+  def sonatypeRepo(status: String) = Maven(s"sonatype-$status", s"https://oss.sonatype.org/content/repositories/$status")
 }
 
 object IvyConstructor {

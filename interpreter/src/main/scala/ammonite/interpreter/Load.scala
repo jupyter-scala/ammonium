@@ -93,7 +93,6 @@ class Load(intp: ammonite.api.Interpreter,
   def resolver(resolver: ApiResolver*): Unit = {
     userResolvers = userResolvers ++ resolver.map {
       case ApiResolver.Local => Resolver.localRepo
-      case ApiResolver.Central => Resolver.defaultMaven
       case ApiResolver.Maven(name, base) => Resolver.mavenResolver(name, base)
     }
   }
