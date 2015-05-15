@@ -224,6 +224,28 @@ class AdvancedTests(check0: => Checker,
         res3: scala.Option[Int] = Some(3)
       """)
     }
+    'scalazstream{
+      check.session("""
+        @ load.resolver("Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases")
+
+        @ load.ivy("org.scalaz.stream" %% "scalaz-stream" % "0.7a")
+
+        @ import scalaz.stream._
+        import scalaz.stream._
+
+        @ import scalaz.concurrent.Task
+        import scalaz.concurrent.Task
+
+        @ val p1 = Process.constant(1).toSource
+        p1: scalaz.stream.Process[scalaz.concurrent.Task,Int] = Append(Emit(Vector(1)),Vector(<function1>))
+
+        @ val pch = Process.constant((i:Int) => Task.now(())).take(3)
+        pch: scalaz.stream.Process[Nothing,Int => scalaz.concurrent.Task[Unit]] = Append(Halt(End),Vector(<function1>))
+
+        @ p1.to(pch).runLog.run.size == 3
+        res6: Boolean = true
+      """)
+    }
     'predef{
       if (isAmmonite) {
         val check2 = new AmmoniteChecker{

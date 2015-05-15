@@ -39,6 +39,7 @@ trait Resolver
 object Resolver {
   case object Local extends Resolver
   case object Central extends Resolver
+  case class Maven(name: String, base: String) extends Resolver
 }
 
 object IvyConstructor {
@@ -51,4 +52,9 @@ object IvyConstructor {
   implicit class ArtifactIdExt(t: (String, String)) {
     def %(version: String) = (t._1, t._2, version)
   }
+
+  implicit class ResolverNameExt(name: String) {
+    def at(location: String) = Resolver.Maven(name, location)
+  }
+  val Resolver = ammonite.api.Resolver
 }
