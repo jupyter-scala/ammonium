@@ -1,5 +1,7 @@
 package ammonite.interpreter
 
+import java.io.{ ByteArrayOutputStream, InputStream }
+
 import acyclic.file
 
 import scala.util.Try
@@ -112,10 +114,24 @@ object Ex{
   }
 }
 
-object Util{
+object Util {
   def transpose[A](xs: List[List[A]]): List[List[A]] = xs.filter(_.nonEmpty) match {
     case Nil    =>  Nil
     case ys: List[List[A]] => ys.map{ _.head }::transpose(ys.map{ _.tail })
+  }
+
+  def readFully(is: InputStream) = {
+    val buffer = new ByteArrayOutputStream()
+    val data = Array.ofDim[Byte](16384)
+
+    var nRead = is.read(data, 0, data.length)
+    while (nRead != -1) {
+      buffer.write(data, 0, nRead)
+      nRead = is.read(data, 0, data.length)
+    }
+
+    buffer.flush()
+    buffer.toByteArray
   }
 }
 

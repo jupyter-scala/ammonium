@@ -1,15 +1,19 @@
 package ammonite.interpreter
 
-import ammonite.api.{ Resolver => ApiResolver }
+import ammonite.api.{ Resolver => ApiResolver, AddDependency }
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
 import com.github.alexarchambault.ivylight.{ Resolver, Sbt, Ivy }
 import com.github.alexarchambault.ivylight.Sbt.Module
 
-import java.io.File
+import java.net.URL
+import java.nio.file.Files
+import java.io.{FileNotFoundException, File}
+
+import scala.collection.mutable
+
 
 import acyclic.file
-
 
 class Load(intp: ammonite.api.Interpreter,
            startJars: Seq[File],
@@ -24,6 +28,33 @@ class Load(intp: ammonite.api.Interpreter,
     }
   }
 
+  lazy val compiler: AddDependency = new AddDependency {
+    def jar(jar: File, jars: File*) = {
+      intp.classes.addCompilerJars(jar +: jars: _*)
+      intp.init()
+    }
+    def jar(url: URL, urls: URL*) =
+      (url +: urls).map(fromCache).toList match {
+        case h :: t => jar(h, t: _*)
+        case Nil =>
+      }
+    def jar(path: String, paths: String*) =
+      (path +: paths).map(fileFor).toList match {
+        case h :: t => jar(h, t: _*)
+        case Nil =>
+      }
+    var compilerIvys = Seq.empty[(String, String, String)]
+    def ivy(coordinates: (String, String, String)*) = {
+      compilerIvys = compilerIvys ++ coordinates
+      val ivyJars = Ivy.resolve((compilerIvys ++ userIvys ++ sbtIvys).filterNot(internalSbtIvys), userResolvers)
+        .map(jarMap)
+        .filterNot(intp.classes.compilerJars.toSet)
+      if (ivyJars.nonEmpty) {
+        jar(ivyJars(0), ivyJars.drop(1):_ *)
+      }
+    }
+  }
+
   private var userJars = startJars
   private var userIvys = startIvys
   private var sbtIvys = Seq.empty[(String, String, String)]
@@ -31,11 +62,52 @@ class Load(intp: ammonite.api.Interpreter,
   private var warnedJars = Set.empty[File]
   private var userResolvers = startResolvers
 
-  def jar(jar: File*): Unit = {
-    userJars = userJars ++ jar
-    intp.classes.addJars(jar: _*)
+  def jar(jar: File, jars: File*): Unit = {
+    val jars0 = jar +: jars
+    userJars = userJars ++ jars0
+    intp.classes.addJars(jars0: _*)
     intp.init()
   }
+
+  lazy val urlCacheDir = {
+    val d = Files.createTempDirectory("ammonite-url-cache")
+    d.toFile.deleteOnExit()
+    d
+  }
+  val urlCache = new mutable.HashMap[URL, File]
+  def fromCache(url: URL): File = {
+    urlCache.getOrElseUpdate(url, {
+      val bytes = Util.readFully(url.openStream())
+      val f = Files.createTempFile(urlCacheDir, url.getPath.split('/').last.stripSuffix(".jar"), ".jar")
+      Files.write(f, bytes)
+      urlCache += url -> f.toFile
+      f.toFile
+    })
+  }
+  def jar(url: URL, urls: URL*): Unit = {
+    (url +: urls).map(fromCache).toList match {
+      case h :: t => jar(h, t: _*)
+      case Nil =>
+    }
+  }
+
+  def fileFor(path: String): File = {
+    if (path.contains(":/"))
+      fromCache(new java.net.URL(path))
+    else {
+      val f = new File(path)
+      if (!f.exists()) throw new FileNotFoundException(path)
+      f
+    }
+  }
+
+  def jar(path: String, paths: String*): Unit = {
+    (path +: paths).map(fileFor).toList match {
+      case h :: t => jar(h, t: _*)
+      case Nil =>
+    }
+  }
+
   def ivy(coordinates: (String, String, String)*): Unit = {
     userIvys = userIvys ++ coordinates
     updateIvy()

@@ -195,7 +195,7 @@ class AdvancedTests(check0: => Checker,
 
     'shapeless{
       check.session("""
-        @ load.ivy("com.chuusai" %% "shapeless" % "2.2.0-RC6")
+        @ load.ivy("com.chuusai" %% "shapeless" % "2.2.0-RC6"); if (scala.util.Properties.versionNumberString.startsWith("2.10.")) load.compiler.ivy("org.scalamacros" % "paradise_2.10.5" % "2.0.1")
 
         @ import shapeless._
 

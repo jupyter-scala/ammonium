@@ -2,7 +2,6 @@ package ammonite.interpreter
 
 import scala.tools.nsc.Global
 import scala.tools.nsc.interactive.{ Global => InteractiveGlobal }
-import scala.tools.nsc.plugins.Plugin
 import scala.tools.nsc.typechecker.Analyzer
 
 object CompilerCompatibility {
@@ -18,6 +17,4 @@ object CompilerCompatibility {
 
   def trees(g: Global)(parser: g.syntaxAnalyzer.UnitParser): Seq[g.Tree] =
     parser.templateStats() ++ parser.topStatSeq()
-
-  def plugins(g: Global): List[Plugin] = List(new org.scalamacros.paradise.Plugin(g))
 }

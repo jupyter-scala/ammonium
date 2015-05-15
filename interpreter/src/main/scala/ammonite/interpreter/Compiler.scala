@@ -7,6 +7,7 @@ import scala.reflect.internal.util.Position
 import scala.reflect.io
 import scala.reflect.io._
 import scala.tools.nsc
+import scala.tools.nsc.plugins.Plugin
 import scala.tools.nsc.{Global, Settings}
 import scala.tools.nsc.backend.JavaPlatform
 import scala.tools.nsc.interactive.Response
@@ -36,6 +37,8 @@ trait Compiler{
    * Either the statements that were parsed or the error message
    */
   def parse(line: String): Either[String, Seq[(Global#Tree, Seq[Global#Name])]]
+
+  def plugins: Seq[(String, Class[_])]
 }
 object Compiler{
   /**
@@ -112,7 +115,38 @@ object Compiler{
             dirDeps: Seq[java.io.File],
             dynamicClasspath: VirtualDirectory,
             evalClassloader: => ClassLoader,
-            shutdownPressy: () => Unit): Compiler = new Compiler{
+            shutdownPressy: () => Unit): Compiler = new Compiler { self =>
+
+    val PluginXML = "scalac-plugin.xml"
+
+    lazy val plugins = {
+      import scala.collection.JavaConverters._
+      val loader = evalClassloader
+
+      val plugins =
+        loader.getResources(PluginXML).asScala
+          .toList
+          .map(url => scala.xml.XML.load(url.openStream()))
+          .map { el =>
+            val name = (el \\ "plugin" \ "name").text
+            val className = (el \\ "plugin" \ "classname").text
+            name -> className
+          }
+          .filter{ case (n, cn) => n.nonEmpty && cn.nonEmpty }
+          .map { case (name, className) =>
+            name -> (className,
+                try Some(loader.loadClass(className))
+                catch { case _: ClassNotFoundException => None })
+          }
+
+      val (found, notFound) = plugins.partition(_._2._2.nonEmpty)
+      if (notFound.nonEmpty) {
+        for ((name, (className, _)) <- notFound.sortBy(_._1))
+          Console.err.println(s"Implementation $className of plugin $name not found.")
+      }
+
+      found.map{ case (name, (_, Some(cls))) => name -> cls }
+    }
 
     var logger: String => Unit = s => ()
 
@@ -123,7 +157,9 @@ object Compiler{
         jarDeps, dirDeps, dynamicClasspath, logger, scala.Console.RED
       )
       val scalac = new nsc.Global(settings, reporter) { g =>
-        override lazy val plugins = List(new AmmonitePlugin(g, lastImports = _)) ++ CompilerCompatibility.plugins(g)
+        override lazy val plugins =
+          new AmmonitePlugin(g, lastImports = _) ::
+            self.plugins.map{case (_, cls) => Plugin.instantiate(cls, g) }
         override def classPath = platform.classPath // Actually jcp, avoiding a path-dependent type issue in 2.10 here
         override lazy val platform: ThisPlatform = new JavaPlatform{
           val global: g.type = g

@@ -1,31 +1,50 @@
 package ammonite.api
 
-trait Load {
+import java.io.File
+import java.net.URL
+
+trait AddDependency {
   /**
    * Load a `.jar` file
    */
-  def jar(jar: java.io.File*): Unit
+  def jar(jar: File, jars: File*): Unit
+  /**
+   * Load a `.jar` from a URL
+   */
+  def jar(url: URL, urls: URL*): Unit
+  /**
+   * Load a `.jar` from a path or URL
+   */
+  def jar(path: String, paths: String*): Unit
+
   /**
    * Load a module from its maven/ivy coordinates
    */
   def ivy(coordinates: (String, String, String)*): Unit
+}
+
+trait Load extends AddDependency {
   /**
    * Load one or several sbt project(s). Requires the sbt-detailed-settings
    * SBT plugin, and the sbt-extra launcher.
    */
-  def sbt(path: java.io.File, projects: String*): Unit
+  def sbt(path: File, projects: String*): Unit
   def sbt(path: String, projects: String*): Unit =
-    sbt(new java.io.File(path), projects: _*)
-
+    sbt(new File(path), projects: _*)
   /**
    * Just resolves some modules, does not load them
    */
-  def resolve(coordinates: (String, String, String)*): Seq[java.io.File]
+  def resolve(coordinates: (String, String, String)*): Seq[File]
 
   /**
-   *
+   * Add a resolver to Ivy module resolution
    */
   def resolver(resolver: Resolver*): Unit
+
+  /**
+   * Compiler dependencies can be added through this (e.g. compiler plugins)
+   */
+  def compiler: AddDependency
 
   /**
    * Loads a command into the REPL and

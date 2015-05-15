@@ -155,24 +155,12 @@ object Ammonite extends AppOf[Ammonite] {
     ("org.scala-lang", "scala-library", scalaVersion),
     ("com.github.alexarchambault", s"ammonite-shell-api_$scalaVersion", BuildInfo.version)
   )
-  val startMacroIvys = startIvys ++ Seq(
-    ("org.scala-lang", "scala-compiler", scalaVersion)
-  ) ++ {
-    if (scalaVersion startsWith "2.10.")
-      Seq(("org.scalamacros", s"paradise_$scalaVersion", "2.0.1"))
-    else
-      Seq()
-  }
+  val startCompilerIvys = startIvys ++ Seq(("org.scala-lang", "scala-compiler", scalaVersion))
 
-  val resolvers = Seq(
-    Resolver.localRepo,
-    Resolver.defaultMaven
-  ) ++ {
-    if (BuildInfo.version endsWith "-SNAPSHOT")
-      Seq(Resolver.sonatypeRepo("snapshots"))
-    else
-      Seq()
-  }
+  val resolvers =
+    Seq(Resolver.localRepo, Resolver.defaultMaven) ++ {
+      if (BuildInfo.version endsWith "-SNAPSHOT") Seq(Resolver.sonatypeRepo("snapshots")) else Seq()
+    }
 
   lazy val packJarMap = Classes.jarMap(getClass.getClassLoader)
 
@@ -182,8 +170,8 @@ object Ammonite extends AppOf[Ammonite] {
       .filter(_.exists())
       .partition(_.getName.endsWith(".jar"))
 
-  lazy val (startMacroJars, startMacroDirs) =
-    Ivy.resolve(startMacroIvys, resolvers).toSeq
+  lazy val (startCompilerJars, startCompilerDirs) =
+    Ivy.resolve(startCompilerIvys, resolvers).toSeq
       .map(packJarMap)
       .filter(_.exists())
       .partition(_.getName.endsWith(".jar"))
@@ -192,8 +180,8 @@ object Ammonite extends AppOf[Ammonite] {
   lazy val startClassLoader =
     new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startJars ++ startDirs).toSet)
 
-  lazy val startMacroClassLoader =
-    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startMacroJars ++ startMacroDirs).toSet)
+  lazy val startCompilerClassLoader =
+    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startCompilerJars ++ startCompilerDirs).toSet)
 
 
   def newInterpreter(predef: String,
@@ -223,7 +211,7 @@ object Ammonite extends AppOf[Ammonite] {
         if (sharedLoader)
           new Classes(Thread.currentThread().getContextClassLoader, (startJars0, startDirs0))
         else
-          new Classes(startClassLoader, (startJars, startDirs), startMacroClassLoader = startMacroClassLoader),
+          new Classes(startClassLoader, (startJars, startDirs), startCompilerClassLoader = startCompilerClassLoader),
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory
     )

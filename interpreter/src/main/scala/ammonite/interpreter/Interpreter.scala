@@ -276,14 +276,14 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       Classes.bootStartJars ++ classes.jars,
       Classes.bootStartDirs ++ classes.dirs,
       dynamicClasspath,
-      classes.currentMacroClassLoader,
+      classes.currentCompilerClassLoader,
       () => pressy.shutdownPressy()
     )
     pressy = Pressy(
       Classes.bootStartJars ++ classes.jars,
       Classes.bootStartDirs ++ classes.dirs,
       dynamicClasspath,
-      classes.currentMacroClassLoader
+      classes.currentCompilerClassLoader
     )
 
     // initializing the compiler so that it does not complain having no phase
