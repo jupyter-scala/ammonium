@@ -30,7 +30,7 @@ object Wrap {
           object $wrapperName$$Main {
             $previousImportBlock // FIXME Only import implicits here
 
-            def $$main() = {val $$user = $wrapperName.INSTANCE.$$user; $mainCode}
+            def $$main() = {val $$user: $wrapperName.INSTANCE.$$user.type = $wrapperName.INSTANCE.$$user; $mainCode}
           }
 
 
@@ -52,7 +52,7 @@ object Wrap {
         s"""$previousImportBlock
 
             object $wrapperName$$Main {
-              def $$main() = {val $$user = $wrapperName; $mainCode}
+              def $$main() = {val $$user: $wrapperName.type = $wrapperName; $mainCode}
             }
 
             object $wrapperName {
