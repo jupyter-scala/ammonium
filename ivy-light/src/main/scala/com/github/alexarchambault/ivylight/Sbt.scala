@@ -72,8 +72,7 @@ object Sbt {
 
   def projects(dir: File): (Option[String], Seq[String]) = {
     val proc = projectsBuilder.directory(dir).start()
-    val lines = Source.fromInputStream(proc.getInputStream).getLines().toList
-    Console.err println s"Lines:\n${lines mkString "\n"}\n"
+    val lines = Source.fromInputStream(proc.getInputStream).getLines().map{ line => println(line); line }.toList
 
     (defaultProject(lines), parseProjects(lines))
   }
@@ -85,9 +84,7 @@ object Sbt {
     val pb = new ProcessBuilder("sbt", "-sbt-version", "0.13.8", "-Dsbt.log.noformat=true", s"show $project/detailedModuleSettings", s"show $project/exportedProducts", s"show $project/unmanagedClasspath")
 
     val proc = pb.directory(dir).start()
-    val lines = Source.fromInputStream(proc.getInputStream).getLines().toList
-
-    Console.err println s"Lines:\n${lines mkString "\n"}\n"
+    val lines = Source.fromInputStream(proc.getInputStream).getLines().map{ line => println(line); line }.toList
 
     val lines0 = lines.dropWhile(!_.startsWith("[info] List")).drop(1)
 
