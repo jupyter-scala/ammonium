@@ -25,40 +25,42 @@ object Wrap {
       val code = decls.map(_.code) mkString " ; "
       val mainCode = displayCode(decls.flatMap(_.display))
 
-      if (classWrap)
-        s"""
-          object $wrapperName$$Main {
-            $previousImportBlock // FIXME Only import implicits here
-
-            def $$main() = {val $$user: $wrapperName.INSTANCE.$$user.type = $wrapperName.INSTANCE.$$user; $mainCode}
-          }
-
-
-          object $wrapperName {
-            val INSTANCE = new $wrapperName
-          }
-
-          class $wrapperName extends Serializable {
-            $previousImportBlock // FIXME Only import necessary imports here (implicits ones + the ones referenced in code)
-
-            class $$user extends Serializable {
-              $code
-            }
-
-            val $$user = new $$user
-          }
-       """
-      else
-        s"""$previousImportBlock
-
+      wrapperName -> {
+        if (classWrap)
+          s"""
             object $wrapperName$$Main {
-              def $$main() = {val $$user: $wrapperName.type = $wrapperName; $mainCode}
+              $previousImportBlock // FIXME Only import implicits here
+
+              def $$main() = {val $$user: $wrapperName.INSTANCE.$$user.type = $wrapperName.INSTANCE.$$user; $mainCode}
             }
+
 
             object $wrapperName {
-              $code
+              val INSTANCE = new $wrapperName
+            }
+
+            class $wrapperName extends Serializable {
+              $previousImportBlock // FIXME Only import necessary imports here (implicits ones + the ones referenced in code)
+
+              class $$user extends Serializable {
+                $code
+              }
+
+              val $$user = new $$user
             }
          """
+        else
+          s"""$previousImportBlock
+
+              object $wrapperName$$Main {
+                def $$main() = {val $$user: $wrapperName.type = $wrapperName; $mainCode}
+              }
+
+              object $wrapperName {
+                $code
+              }
+           """
+      }
   }
 }
 
@@ -87,7 +89,7 @@ trait InterpreterInternals {
  * to interpret Scala code.
  */
 class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
-                  val wrapper: (Seq[Decl], String, String) => String = Wrap.default,
+                  val wrapper: (Seq[Decl], String, String) => (String, String) = Wrap.default,
                   val imports: ammonite.api.Imports = new Imports(),
                   val classes: ammonite.api.Classes = new Classes(),
                   startingLine: Int = 0,
@@ -205,9 +207,9 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     try { Thread.currentThread().setContextClassLoader(classes.currentClassLoader)
 
       for {
-        wrapperName <- Res.Success("cmd" + getCurrentLine)
+        wrapperName0 <- Res.Success("cmd" + getCurrentLine)
         _ <- Catching{ case e: ThreadDeath => interrupted() }
-        wrappedLine = wrapper(input, imports.previousImportBlock(input.flatMap(_.referencedNames).toSet), wrapperName)
+        (wrapperName, wrappedLine) = wrapper(input, imports.previousImportBlock(input.flatMap(_.referencedNames).toSet), wrapperName0)
         (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")
         _ = currentLine += 1
         _ <- Catching{
