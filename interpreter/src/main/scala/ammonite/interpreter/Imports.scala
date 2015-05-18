@@ -18,7 +18,9 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
 
   def previousImportBlock(wanted: Set[String] = null): String = {
     def isReplClassWrapImport(d: ImportData) =
-      useClassWrapper && (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName)
+      useClassWrapper &&
+        (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName) &&
+        !d.wrapperName.startsWith("special")
 
     def transformIfReplClassWrapImport(d: ImportData) =
       if (isReplClassWrapImport(d))

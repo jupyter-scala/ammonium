@@ -20,13 +20,29 @@ object Wrap {
     case DisplayItem.LazyIdentity(ident) => s"""println("$ident = <lazy>")"""
   } .mkString(" ; "))
 
+  def hasObjWrapSpecialImport(d: Decl): Boolean = d.display.exists {
+    case DisplayItem.Import("special.wrap.obj") => true
+    case _ => false
+  }
+  def noObjWrapSpecialImport(d: Decl): Decl = d.copy(display = d.display.filter {
+    case DisplayItem.Import("special.wrap.obj") => false
+    case _ => true
+  })
+
   def apply(displayCode: Seq[DisplayItem] => String, classWrap: Boolean = false) = {
-    (decls: Seq[Decl], previousImportBlock: String, wrapperName: String) =>
+    (initialDecls: Seq[Decl], previousImportBlock: String, initialWrapperName: String) =>
+      val (doClassWrap, decls, wrapperName) = {
+        if (classWrap && initialDecls.exists(hasObjWrapSpecialImport))
+          (false, initialDecls.map(noObjWrapSpecialImport), "specialObj" + initialWrapperName.capitalize)
+        else
+          (classWrap, initialDecls, initialWrapperName)
+      }
+
       val code = decls.map(_.code) mkString " ; "
       val mainCode = displayCode(decls.flatMap(_.display))
 
       wrapperName -> {
-        if (classWrap)
+        if (doClassWrap)
           s"""
             object $wrapperName$$Main {
               $previousImportBlock // FIXME Only import implicits here
