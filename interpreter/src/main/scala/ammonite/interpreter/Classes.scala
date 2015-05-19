@@ -154,13 +154,37 @@ class Classes(
   startCompilerClassLoader: ClassLoader = null
 ) extends ammonite.api.Classes {
 
+  var actualStartClassLoader = startClassLoader
+  var actualStartCompilerClassLoader = startCompilerClassLoader
+
+  def useMacroClassLoader(value: Boolean): Unit = {
+    val currentStartClassLoader = actualStartClassLoader
+    val currentStartCompilerClassLoader = actualStartCompilerClassLoader
+
+    if (value) {
+      actualStartClassLoader = Option(startCompilerClassLoader) getOrElse startClassLoader
+      actualStartCompilerClassLoader = actualStartClassLoader
+    } else {
+      actualStartClassLoader = startClassLoader
+      actualStartCompilerClassLoader = startCompilerClassLoader
+    }
+
+    if (actualStartClassLoader != currentStartClassLoader) {
+      classLoader = classLoaderClone()
+      compilerClassLoader = null
+    }
+
+    if (actualStartCompilerClassLoader != currentStartCompilerClassLoader)
+      compilerClassLoader = null
+  }
+
   lazy val tmpClassDir = {
     val d = Files.createTempDirectory("ammonite-classes").toFile
     d.deleteOnExit()
     d
   }
 
-  var classLoader: AddURLClassLoader = new AddURLClassLoader(startClassLoader, tmpClassDir)
+  var classLoader: AddURLClassLoader = new AddURLClassLoader(actualStartClassLoader, tmpClassDir)
 
   def newClassLoader() = {
     classLoader = new AddURLClassLoader(classLoader, tmpClassDir)
@@ -169,7 +193,7 @@ class Classes(
 
   def classLoaderClone(baseClassLoader: ClassLoader = null): AddURLClassLoader = {
     val classLoaders0 = classLoaders.toList
-    val classLoader = new AddURLClassLoader(Option(baseClassLoader) getOrElse startClassLoader, tmpClassDir)
+    val classLoader = new AddURLClassLoader(Option(baseClassLoader) getOrElse actualStartClassLoader, tmpClassDir)
     extraJars.foreach(classLoader addURL _.toURI.toURL)
     classLoaders0.foreach(classLoader.dirs ++= _.dirs)
     classLoaders0.foreach(classLoader.map ++= _.map)
@@ -235,11 +259,11 @@ class Classes(
 
   var compilerClassLoader: AddURLClassLoader = null
   def currentCompilerClassLoader: ClassLoader =
-    if (startCompilerClassLoader == null || startCompilerClassLoader == startClassLoader)
+    if (actualStartCompilerClassLoader == null || actualStartCompilerClassLoader == actualStartClassLoader)
       currentClassLoader
     else {
       if (compilerClassLoader == null) {
-        compilerClassLoader = classLoaderClone(Option(startCompilerClassLoader) getOrElse startClassLoader)
+        compilerClassLoader = classLoaderClone(Option(actualStartCompilerClassLoader) getOrElse actualStartClassLoader)
         extraCompilerJars.foreach(f => compilerClassLoader.addURL(f.toURI.toURL))
       }
 
