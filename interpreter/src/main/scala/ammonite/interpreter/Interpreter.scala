@@ -285,11 +285,12 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
 
   var compiler: Compiler = _
   var pressy: Pressy = _
-  def init() = {
+  def init(options: Seq[String]) = {
     compiler = Compiler(
       Classes.bootStartJars ++ classes.jars,
       Classes.bootStartDirs ++ classes.dirs,
       dynamicClasspath,
+      options.toList,
       classes.currentCompilerClassLoader,
       () => pressy.shutdownPressy()
     )

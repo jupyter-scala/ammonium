@@ -79,10 +79,12 @@ object Compiler{
   def initGlobalBits(jarDeps: Seq[java.io.File],
                      dirDeps: Seq[java.io.File],
                      dynamicClasspath: VirtualDirectory,
+                     options: List[String],
                      logger: => String => Unit,
                      errorColor: String)= {
     val vd = new io.VirtualDirectory("(memory)", None)
     lazy val settings = new Settings
+    settings.processArguments(options, true)
     val settingsX = settings
     settingsX.Yrangepos.value = true
     val jCtx = new JavaContext()
@@ -114,6 +116,7 @@ object Compiler{
   def apply(jarDeps: Seq[java.io.File],
             dirDeps: Seq[java.io.File],
             dynamicClasspath: VirtualDirectory,
+            options: List[String],
             evalClassloader: => ClassLoader,
             shutdownPressy: () => Unit): Compiler = new Compiler { self =>
 
@@ -154,7 +157,7 @@ object Compiler{
 
     val (vd, reporter, compiler) = {
       val (settings, reporter, vd, jcp) = initGlobalBits(
-        jarDeps, dirDeps, dynamicClasspath, logger, scala.Console.RED
+        jarDeps, dirDeps, dynamicClasspath, options, logger, scala.Console.RED
       )
       val scalac = new nsc.Global(settings, reporter) { g =>
         override lazy val plugins =
