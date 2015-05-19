@@ -151,8 +151,11 @@ object Classes {
 class Classes(
   startClassLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
   startDeps: (Seq[File], Seq[File]) = Classes.defaultClassPath(),
-  startCompilerClassLoader: ClassLoader = null
+  startCompilerClassLoader: ClassLoader = null,
+  startCompilerDeps: (Seq[File], Seq[File]) = null
 ) extends ammonite.api.Classes {
+
+  val effectiveStartCompilerDeps = Option(startCompilerDeps) getOrElse startDeps
 
   var actualStartClassLoader = startClassLoader
   var actualStartCompilerClassLoader = startCompilerClassLoader
@@ -212,7 +215,11 @@ class Classes(
   var extraCompilerJars = Seq.empty[File]
 
   def addCompilerJars(jars: File*): Unit = {
-    val newJars = jars.filter(jar => !extraCompilerJars.contains(jar) && !startDeps._1.contains(jar) && !extraJars.contains(jar))
+    val newJars = jars.filter(jar =>
+      !extraCompilerJars.contains(jar) &&
+        !effectiveStartCompilerDeps._1.contains(jar) &&
+        !startDeps._1.contains(jar) &&
+        !extraJars.contains(jar))
     if (newJars.nonEmpty) {
       extraCompilerJars = extraCompilerJars ++ newJars
       compilerClassLoader = null
@@ -270,8 +277,9 @@ class Classes(
       compilerClassLoader
     }
   def jars = startDeps._1 ++ extraJars
-  def compilerJars = startDeps._1 ++ extraJars ++ extraCompilerJars
+  def compilerJars = jars ++ effectiveStartCompilerDeps._1 ++ extraCompilerJars
   def dirs = startDeps._2 ++ extraDirs
+  // FIXME Add compilerDirs
 
   var onJarsAddedHooks = Seq.empty[Seq[File] => Unit]
   def onJarsAdded(action: Seq[File] => Unit) = {

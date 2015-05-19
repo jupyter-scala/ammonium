@@ -287,16 +287,16 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   var pressy: Pressy = _
   def init(options: Seq[String]) = {
     compiler = Compiler(
-      Classes.bootStartJars ++ classes.jars,
-      Classes.bootStartDirs ++ classes.dirs,
+      Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),
+      Classes.bootStartDirs ++ classes.dirs, // FIXME Add Classes.compilerDirs, use it here
       dynamicClasspath,
       options.toList,
       classes.currentCompilerClassLoader,
       () => pressy.shutdownPressy()
     )
     pressy = Pressy(
-      Classes.bootStartJars ++ classes.jars,
-      Classes.bootStartDirs ++ classes.dirs,
+      Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),
+      Classes.bootStartDirs ++ classes.dirs, // FIXME Add Classes.compilerDirs, use it here too
       dynamicClasspath,
       classes.currentCompilerClassLoader
     )
