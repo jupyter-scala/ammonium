@@ -192,7 +192,7 @@ class Classes(
   }
 
   def classLoaderClone(baseClassLoader: ClassLoader = null): AddURLClassLoader = {
-    val classLoaders0 = classLoaders.toList
+    val classLoaders0 = classLoaders.toList.reverse // Reversing, so that dirs/classes added later override those previously added
     val classLoader = new AddURLClassLoader(Option(baseClassLoader) getOrElse actualStartClassLoader, tmpClassDir)
     extraJars.foreach(classLoader addURL _.toURI.toURL)
     classLoaders0.foreach(classLoader.dirs ++= _.dirs)
