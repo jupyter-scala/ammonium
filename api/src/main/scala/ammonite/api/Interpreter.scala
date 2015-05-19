@@ -54,4 +54,6 @@ trait Interpreter {
       wrapper(decls, imports.previousImportBlock(decls.flatMap(_.referencedNames).toSet), s"cmd$getCurrentLine")
     )
   }
+
+  def macroMode(): Unit
 }
