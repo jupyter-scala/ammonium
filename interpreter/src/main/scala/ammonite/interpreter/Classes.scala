@@ -151,8 +151,35 @@ object Classes {
 class Classes(
   startClassLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
   startDeps: (Seq[File], Seq[File]) = Classes.defaultClassPath(),
-  startCompilerClassLoader: ClassLoader = null
+  startCompilerClassLoader: ClassLoader = null,
+  startCompilerDeps: (Seq[File], Seq[File]) = null
 ) extends ammonite.api.Classes {
+
+  val effectiveStartCompilerDeps = Option(startCompilerDeps) getOrElse startDeps
+
+  var actualStartClassLoader = startClassLoader
+  var actualStartCompilerClassLoader = startCompilerClassLoader
+
+  def useMacroClassLoader(value: Boolean): Unit = {
+    val currentStartClassLoader = actualStartClassLoader
+    val currentStartCompilerClassLoader = actualStartCompilerClassLoader
+
+    if (value) {
+      actualStartClassLoader = Option(startCompilerClassLoader) getOrElse startClassLoader
+      actualStartCompilerClassLoader = actualStartClassLoader
+    } else {
+      actualStartClassLoader = startClassLoader
+      actualStartCompilerClassLoader = startCompilerClassLoader
+    }
+
+    if (actualStartClassLoader != currentStartClassLoader) {
+      classLoader = classLoaderClone()
+      compilerClassLoader = null
+    }
+
+    if (actualStartCompilerClassLoader != currentStartCompilerClassLoader)
+      compilerClassLoader = null
+  }
 
   lazy val tmpClassDir = {
     val d = Files.createTempDirectory("ammonite-classes").toFile
@@ -160,7 +187,7 @@ class Classes(
     d
   }
 
-  var classLoader: AddURLClassLoader = new AddURLClassLoader(startClassLoader, tmpClassDir)
+  var classLoader: AddURLClassLoader = new AddURLClassLoader(actualStartClassLoader, tmpClassDir)
 
   def newClassLoader() = {
     classLoader = new AddURLClassLoader(classLoader, tmpClassDir)
@@ -168,8 +195,8 @@ class Classes(
   }
 
   def classLoaderClone(baseClassLoader: ClassLoader = null): AddURLClassLoader = {
-    val classLoaders0 = classLoaders.toList
-    val classLoader = new AddURLClassLoader(Option(baseClassLoader) getOrElse startClassLoader, tmpClassDir)
+    val classLoaders0 = classLoaders.toList.reverse // Reversing, so that dirs/classes added later override those previously added
+    val classLoader = new AddURLClassLoader(Option(baseClassLoader) getOrElse actualStartClassLoader, tmpClassDir)
     extraJars.foreach(classLoader addURL _.toURI.toURL)
     classLoaders0.foreach(classLoader.dirs ++= _.dirs)
     classLoaders0.foreach(classLoader.map ++= _.map)
@@ -188,7 +215,11 @@ class Classes(
   var extraCompilerJars = Seq.empty[File]
 
   def addCompilerJars(jars: File*): Unit = {
-    val newJars = jars.filter(jar => !extraCompilerJars.contains(jar) && !startDeps._1.contains(jar) && !extraJars.contains(jar))
+    val newJars = jars.filter(jar =>
+      !extraCompilerJars.contains(jar) &&
+        !effectiveStartCompilerDeps._1.contains(jar) &&
+        !startDeps._1.contains(jar) &&
+        !extraJars.contains(jar))
     if (newJars.nonEmpty) {
       extraCompilerJars = extraCompilerJars ++ newJars
       compilerClassLoader = null
@@ -235,19 +266,20 @@ class Classes(
 
   var compilerClassLoader: AddURLClassLoader = null
   def currentCompilerClassLoader: ClassLoader =
-    if (startCompilerClassLoader == null || startCompilerClassLoader == startClassLoader)
+    if (actualStartCompilerClassLoader == null || actualStartCompilerClassLoader == actualStartClassLoader)
       currentClassLoader
     else {
       if (compilerClassLoader == null) {
-        compilerClassLoader = classLoaderClone(Option(startCompilerClassLoader) getOrElse startClassLoader)
+        compilerClassLoader = classLoaderClone(Option(actualStartCompilerClassLoader) getOrElse actualStartClassLoader)
         extraCompilerJars.foreach(f => compilerClassLoader.addURL(f.toURI.toURL))
       }
 
       compilerClassLoader
     }
   def jars = startDeps._1 ++ extraJars
-  def compilerJars = startDeps._1 ++ extraJars ++ extraCompilerJars
+  def compilerJars = jars ++ effectiveStartCompilerDeps._1 ++ extraCompilerJars
   def dirs = startDeps._2 ++ extraDirs
+  // FIXME Add compilerDirs
 
   var onJarsAddedHooks = Seq.empty[Seq[File] => Unit]
   def onJarsAdded(action: Seq[File] => Unit) = {

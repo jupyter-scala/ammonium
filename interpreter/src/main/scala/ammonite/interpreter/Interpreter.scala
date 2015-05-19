@@ -24,16 +24,12 @@ object Wrap {
     case DisplayItem.Import("special.wrap.obj") => true
     case _ => false
   }
-  def noObjWrapSpecialImport(d: Decl): Decl = d.copy(display = d.display.filter {
-    case DisplayItem.Import("special.wrap.obj") => false
-    case _ => true
-  })
 
   def apply(displayCode: Seq[DisplayItem] => String, classWrap: Boolean = false) = {
     (initialDecls: Seq[Decl], previousImportBlock: String, initialWrapperName: String) =>
       val (doClassWrap, decls, wrapperName) = {
         if (classWrap && initialDecls.exists(hasObjWrapSpecialImport))
-          (false, initialDecls.map(noObjWrapSpecialImport), "specialObj" + initialWrapperName.capitalize)
+          (false, initialDecls.filterNot(hasObjWrapSpecialImport), "specialObj" + initialWrapperName.capitalize)
         else
           (classWrap, initialDecls, initialWrapperName)
       }
@@ -289,23 +285,32 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
 
   var compiler: Compiler = _
   var pressy: Pressy = _
-  def init() = {
+  def init(options: Seq[String]) = {
     compiler = Compiler(
-      Classes.bootStartJars ++ classes.jars,
-      Classes.bootStartDirs ++ classes.dirs,
+      Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),
+      Classes.bootStartDirs ++ classes.dirs, // FIXME Add Classes.compilerDirs, use it here
       dynamicClasspath,
+      options.toList,
       classes.currentCompilerClassLoader,
       () => pressy.shutdownPressy()
     )
     pressy = Pressy(
-      Classes.bootStartJars ++ classes.jars,
-      Classes.bootStartDirs ++ classes.dirs,
+      Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),
+      Classes.bootStartDirs ++ classes.dirs, // FIXME Add Classes.compilerDirs, use it here too
       dynamicClasspath,
       classes.currentCompilerClassLoader
     )
 
     // initializing the compiler so that it does not complain having no phase
     compiler.compile("object $dummy".getBytes, _ => ())
+  }
+  def initBridge(): Unit = {
+    bridgeConfig.initClass(this,
+      evalClass(bridgeConfig.init, bridgeConfig.name).map(_._1) match {
+        case Res.Success(s) => s
+        case other => throw new Exception(s"Error while initializing REPL API: $other")
+      }
+    )
   }
 
   def stop() = {
@@ -316,12 +321,16 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
 
   init()
+  initBridge()
 
-  bridgeConfig.initClass(this,
-    evalClass(bridgeConfig.init, bridgeConfig.name).map(_._1) match {
-      case Res.Success(s) => s
-      case other => throw new Exception(s"Error while initializing REPL API: $other")
+  private var _macroMode = false
+  def macroMode(): Unit = {
+    if (!_macroMode) {
+      _macroMode = true
+      classes.useMacroClassLoader(true)
+      init()
+      initBridge()
     }
-  )
+  }
 }
 

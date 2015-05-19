@@ -111,7 +111,7 @@ object Pressy {
 
     def initPressy = {
       val (settings, reporter, _, jcp) = Compiler.initGlobalBits(
-        jarDeps, dirDeps, dynamicClasspath, _ => (), scala.Console.YELLOW
+        jarDeps, dirDeps, dynamicClasspath, Nil, _ => (), scala.Console.YELLOW
       )
       new nsc.interactive.Global(settings, reporter) {
         g =>

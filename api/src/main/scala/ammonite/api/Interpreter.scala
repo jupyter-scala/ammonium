@@ -39,7 +39,7 @@ trait Interpreter {
   /**
    * Throw away the current scala.tools.nsc.Global and get a new one
    */
-  def init(): Unit
+  def init(options: Seq[String] = Nil): Unit
 
   def stop(): Unit
   def onStop(action: => Unit): Unit
@@ -54,4 +54,6 @@ trait Interpreter {
       wrapper(decls, imports.previousImportBlock(decls.flatMap(_.referencedNames).toSet), s"cmd$getCurrentLine")
     )
   }
+
+  def macroMode(): Unit
 }

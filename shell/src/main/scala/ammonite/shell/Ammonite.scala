@@ -211,7 +211,7 @@ object Ammonite extends AppOf[Ammonite] {
         if (sharedLoader)
           new Classes(Thread.currentThread().getContextClassLoader, (startJars0, startDirs0))
         else
-          new Classes(startClassLoader, (startJars, startDirs), startCompilerClassLoader = startCompilerClassLoader),
+          new Classes(startClassLoader, (startJars, startDirs), startCompilerClassLoader = startCompilerClassLoader, startCompilerDeps = (startCompilerJars, startCompilerDirs)),
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory
     )
