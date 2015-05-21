@@ -38,7 +38,7 @@ object Preprocessor{
     def wrap(code: String)={
       import fastparse._
       import scalaparse.Scala._
-      val par = P( ( `implicit`.? ~ `lazy`.? ~ ( `var` | `val` ) ~! BindPattern.rep(1, fastparse.wspStr(",") ~! Pass) ~ (`:` ~! Type).?).! ~ (`=` ~! StatCtx.Expr.!) )
+      val par = P( ( Annot.rep ~ `private`.? ~ `implicit`.? ~ `lazy`.? ~ ( `var` | `val` ) ~! BindPattern.rep(1, fastparse.wspStr(",") ~! Pass) ~ (`:` ~! Type).?).! ~ (`=` ~! StatCtx.Expr.!) )
       val Result.Success((lhs, rhs), _) = par.parse(code)
       //Rebuilding definition from parsed data to lift rhs to anon function
       s"$lhs = { () =>\n $rhs \n}.apply"
@@ -55,7 +55,7 @@ object Preprocessor{
       // Try to leave out all synthetics; we don't actually have proper
       // synthetic flags right now, because we're dumb-parsing it and not putting
       // it through a full compilation
-      if (t.name.decoded.contains("$")) Nil
+      if (t.name.decoded.contains("$") || t.mods.hasFlag(Flags.PRIVATE)) Nil
       else if (!t.mods.hasFlag(Flags.LAZY)) Seq(Identity(BacktickWrap.apply(t.name.decoded)))
       else Seq(LazyIdentity(BacktickWrap.apply(t.name.decoded))),
       refNames.map(_.toString)
@@ -80,14 +80,17 @@ object Preprocessor{
   def apply(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], code: String, wrapperId: String): Res[Seq[Decl]] = {
     import fastparse._
     import scalaparse.Scala._
-    val Prelude = P( Annot.rep ~ `implicit`.? ~ `lazy`.? ~ LocalMod.rep )
+    val Prelude = P( Annot.rep ~ `private`.? ~ `implicit`.? ~ `lazy`.? ~ LocalMod.rep )
     val Splitter = P( Semis.? ~ (scalaparse.Scala.Import | Prelude ~ BlockDef | StatCtx.Expr).!.rep(sep=Semis) ~ Semis.? ~ WL ~ End)
 
 
     Splitter.parse(code) match {
       case Result.Failure(_, index) if index == code.length => Res.Buffer(code)
-      case f @ Result.Failure(p, index) =>
-        Res.Failure(parse(code).left.get)
+      case f: Result.Failure =>
+        Res.Failure(parse(code) match {
+          case Left(err) => err
+          case Right(_) => s"Preprocessor: '${f.input}':\n${f.trace}"
+        })
       case Result.Success(Nil, _) => Res.Skip
       case Result.Success(postSplit: Seq[String], _) => complete(parse, code, wrapperId, postSplit.map(_.trim))
     }

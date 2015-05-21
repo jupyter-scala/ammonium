@@ -118,11 +118,12 @@ object Compiler{
             dynamicClasspath: VirtualDirectory,
             options: List[String],
             evalClassloader: => ClassLoader,
-            shutdownPressy: () => Unit): Compiler = new Compiler { self =>
+            shutdownPressy: () => Unit,
+            enableCompilerPlugins: Boolean = true): Compiler = new Compiler { self =>
 
     val PluginXML = "scalac-plugin.xml"
 
-    lazy val plugins = {
+    lazy val plugins = if (enableCompilerPlugins) {
       import scala.collection.JavaConverters._
       val loader = evalClassloader
 
@@ -149,7 +150,7 @@ object Compiler{
       }
 
       found.map{ case (name, (_, Some(cls))) => name -> cls }
-    }
+    } else Nil
 
     var logger: String => Unit = s => ()
 
