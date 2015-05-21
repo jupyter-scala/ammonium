@@ -246,6 +246,23 @@ class AdvancedTests(check0: => Checker,
         res6: Boolean = true
       """)
     }
+    'scalaparse{
+      // Prevent regressions when wildcard-importing things called `macro` or `_`
+      check.session("""
+        @ load.ivy("com.github.alexarchambault.tmp" %% "scalaparse" % "0.1.6-SNAPSHOT")
+
+        @ import scalaparse.Scala._
+
+        @ 1
+        res2: Int = 1
+
+        @ ExprCtx.Parened.parse("1 + 1")
+        res3: fastparse.core.Result[Unit] = Failure(Parened:0 / "(":0 / "(":0 ..."1 + 1", false)
+
+        @ ExprCtx.Parened.parse("(1 + 1)")
+        res4: fastparse.core.Result[Unit] = Success((), 7)
+      """)
+    }
     'predef{
       if (isAmmonite) {
         val check2 = new AmmoniteChecker{
