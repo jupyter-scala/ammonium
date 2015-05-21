@@ -38,7 +38,7 @@ class FailureTests(check0: => Checker, lightException: Boolean = false) extends 
         x.contains("java.lang.Exception: lol") &&
         x.contains("java.lang.Exception: hoho") &&
         // and none of the stuff we don't want
-        x.lines.length == (if (lightException) 3 else 6) &&
+        x.lines.length == (if (lightException) 6 else 10) &&
         !x.contains("Something unexpected went wrong =(")
       )
     }

@@ -2,6 +2,7 @@ import sbt._, Keys._
 import sbtbuildinfo.Plugin._
 import sbtrelease.ReleasePlugin.{ ReleaseKeys, releaseSettings }
 import com.typesafe.sbt.SbtPgp.autoImport.PgpKeys
+import xerial.sbt.Pack._
 
 import scala.util.Try
 
@@ -110,7 +111,7 @@ object AmmoniteShellBuild extends Build {
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-compiler" % scalaVersion.value,
         "org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full,
-        "com.lihaoyi" %% "scala-parser" % "0.1.4"
+        "com.github.alexarchambault.tmp" %% "scalaparse" % "0.1.6-SNAPSHOT"
       )
     )
 
@@ -140,7 +141,7 @@ object AmmoniteShellBuild extends Build {
 
     Project(id = s"spark-$shortBinaryVersion", base = file("spark"))
       .dependsOn(shellApi, shell % "test->test")
-      .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
+      .settings(sharedSettings ++ testSettings ++ packAutoSettings: _*)
       .settings(
         name := s"ammonite-spark-$shortBinaryVersion",
         moduleName := s"ammonite-spark_$binaryVersion",
@@ -159,7 +160,14 @@ object AmmoniteShellBuild extends Build {
   lazy val shell = Project(id = "shell", base = file("shell"))
     .dependsOn(shellApi, interpreter)
     .settings(sharedSettings ++ testSettings: _*)
-    .settings(xerial.sbt.Pack.packAutoSettings ++ xerial.sbt.Pack.publishPackTxzArchive ++ xerial.sbt.Pack.publishPackZipArchive: _*)
+    .settings(packAutoSettings ++ publishPackTxzArchive ++ publishPackZipArchive: _*)
+    .settings(
+      // overriding these three settings so that the directory name in the published packages matches the package file names.
+      // e.g. directory ammonite-shell_2.11.6-0.3.1 in package ammonite-shell_2.11.6-0.3.1.tar.xz
+      packArchivePrefix := s"ammonite-shell_${scalaVersion.value}",
+      packArchiveTxzArtifact := Artifact("ammonite-shell", "arch", "tar.xz"),
+      packArchiveZipArtifact := Artifact("ammonite-shell", "arch", "zip")
+    )
     .settings(
       name := "ammonite-shell",
       libraryDependencies ++= Seq(

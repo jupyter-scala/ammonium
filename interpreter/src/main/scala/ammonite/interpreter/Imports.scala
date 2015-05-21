@@ -45,7 +45,9 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
       (prefix, allImports) <- previousImports0.values.toList.map(transformIfReplClassWrapImport).groupBy(_.prefix)
       imports <- Util.transpose(allImports.groupBy(_.fromName).values.toList).reverse
     } yield {
-      imports match{
+      // Don't import importable variables called `_`. They seem to
+      // confuse Scala into thinking it's a wildcard even when it isn't
+      imports.filter(_.fromName != "_") match{
         case Seq(imp) if imp.fromName == imp.toName =>
           s"import ${imp.prefix}.${BacktickWrap(imp.fromName)}"
         case imports =>

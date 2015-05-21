@@ -41,6 +41,11 @@ trait Interpreter {
    */
   def init(options: Seq[String] = Nil): Unit
 
+  /**
+   * Provide these to `init` above to keep the current compiler options
+   */
+  def currentCompilerOptions: Seq[String]
+
   def stop(): Unit
   def onStop(action: => Unit): Unit
 

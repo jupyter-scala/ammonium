@@ -1,7 +1,6 @@
 package ammonite.interpreter
 
 import acyclic.file
-import org.parboiled2.ParseError
 
 import scala.reflect.internal.Flags
 import scala.tools.nsc.{Global => G}
@@ -35,8 +34,24 @@ object Preprocessor{
   val TypeDef = DefProc("type"){ case m: G#TypeDef => m.name }
 
   val PatVarDef = Processor { case (name, code, t: G#ValDef, refNames: Seq[G#Name]) =>
+    //Function to lift lhs expressions into anonymous functions so they will be JITed
+    def wrap(code: String)={
+      import fastparse._
+      import scalaparse.Scala._
+      val par = P( ( `implicit`.? ~ `lazy`.? ~ ( `var` | `val` ) ~! BindPattern.rep(1, fastparse.wspStr(",") ~! Pass) ~ (`:` ~! Type).?).! ~ (`=` ~! StatCtx.Expr.!) )
+      val Result.Success((lhs, rhs), _) = par.parse(code)
+      //Rebuilding definition from parsed data to lift rhs to anon function
+      s"$lhs = { () =>\n $rhs \n}.apply"
+    }
+
     Decl(
-      code,
+      //Only wrap rhs in function if it is not a function
+      //Wrapping functions causes type inference errors.
+      t.rhs match {
+        case _: G#Function => code //simple anon function
+        case _: G#Match => code   //anon partial function
+        case _ => wrap(code)
+      },
       // Try to leave out all synthetics; we don't actually have proper
       // synthetic flags right now, because we're dumb-parsing it and not putting
       // it through a full compilation
@@ -53,8 +68,9 @@ object Preprocessor{
       Decl(code, Seq(DisplayItem.Import(body)), refNames.map(_.toString))
   }
 
-  val Expr = Processor{
-    case (name, code, tree, refNames: Seq[G#Name]) => Decl(s"val $name = (\n$code\n)", Seq(Identity(name)), refNames.map(_.toString))
+  val Expr = Processor{ case (name, code, tree, refNames: Seq[G#Name]) =>
+    //Expressions are lifted to anon function applications so they will be JITed
+    Decl(s"val $name = { () =>\n$code\n}.apply", Seq(Identity(name)), refNames.map(_.toString))
   }
 
   val decls = Seq[(String, String, G#Tree, Seq[G#Name]) => Option[Decl]](
@@ -62,17 +78,18 @@ object Preprocessor{
   )
 
   def apply(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], code: String, wrapperId: String): Res[Seq[Decl]] = {
-    val splitter = new scalaParser.Scala(code){
-      def Split = {
-        def Prelude = rule( Annot.* ~ `implicit`.? ~ `lazy`.? ~ LocalMod.* )
-        rule( Semis.? ~ capture(Import | Prelude ~ BlockDef | StatCtx.Expr).*(Semis) ~ Semis.? ~ WL ~ EOI)
-      }
-    }
-    splitter.Split.run() match {
-      case scala.util.Failure(e @ ParseError(p, pp, t)) if p.index == code.length => Res.Buffer(code)
-      case scala.util.Failure(e) => Res.Failure(parse(code).left.get)
-      case scala.util.Success(Nil) => Res.Skip
-      case scala.util.Success(postSplit: Seq[String]) => complete(parse, code, wrapperId, postSplit.map(_.trim))
+    import fastparse._
+    import scalaparse.Scala._
+    val Prelude = P( Annot.rep ~ `implicit`.? ~ `lazy`.? ~ LocalMod.rep )
+    val Splitter = P( Semis.? ~ (scalaparse.Scala.Import | Prelude ~ BlockDef | StatCtx.Expr).!.rep(sep=Semis) ~ Semis.? ~ WL ~ End)
+
+
+    Splitter.parse(code) match {
+      case Result.Failure(_, index) if index == code.length => Res.Buffer(code)
+      case f @ Result.Failure(p, index) =>
+        Res.Failure(parse(code).left.get)
+      case Result.Success(Nil, _) => Res.Skip
+      case Result.Success(postSplit: Seq[String], _) => complete(parse, code, wrapperId, postSplit.map(_.trim))
     }
   }
 
