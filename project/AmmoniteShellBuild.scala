@@ -150,12 +150,32 @@ object AmmoniteShellBuild extends Build {
           "org.apache.spark" %% "spark-core" % sparkVersion,
           "org.apache.spark" %% "spark-sql" % sparkVersion,
           "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
-        )
+        ),
+        unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / "extra"
       )
   }
 
   lazy val spark13 = sparkProject("1.3.1")
   lazy val spark12 = sparkProject("1.2.2")
+
+  // only built on a specific scala 2.10 only branch
+  /*
+  lazy val spark11 =
+    Project(id = s"spark-11", base = file("spark"))
+      .dependsOn(shellApi, shell % "test->test")
+      .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
+      .settings(
+        name := s"ammonite-spark-11",
+        moduleName := s"ammonite-spark_1.1",
+        target := target.value / s"spark-1.1",
+        libraryDependencies ++= Seq(
+          "org.apache.spark" %% "spark-core" % "1.1.1",
+          "org.apache.spark" %% "spark-sql" % "1.1.1",
+          "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
+        ),
+        unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / "extra-1.1"
+      )
+  */
 
   lazy val shell = Project(id = "shell", base = file("shell"))
     .dependsOn(shellApi, interpreter)

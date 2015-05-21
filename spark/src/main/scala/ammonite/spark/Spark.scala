@@ -4,21 +4,24 @@ import java.io.IOException
 import java.net._
 import java.io.File
 import java.nio.file.Files
-import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
+import javax.servlet.http.{ HttpServletResponse, HttpServletRequest }
 
 import ammonite.api.IvyConstructor._
+import ammonite.spark.Compat.sparkVersion
 
-import org.apache.spark.{ SparkContext, SparkConf, SPARK_VERSION => sparkVersion }
+import org.apache.spark.{ SparkContext, SparkConf }
 import org.apache.spark.sql.SQLContext
 
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 
+import scala.annotation.meta.field
+
 /** The spark entry point from an Ammonite session */
 class Spark(implicit
-            interpreter: ammonite.api.Interpreter,
-            load: ammonite.api.Load) extends Serializable { api =>
+            @(transient @field) interpreter: ammonite.api.Interpreter,
+            @(transient @field) load: ammonite.api.Load) extends Serializable { api =>
 
   private lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
@@ -161,7 +164,7 @@ class Spark(implicit
         throw new IllegalArgumentException(s"Spark master set to $master and spark.home not set")
 
       _sc = new SparkContext(sparkConf) {
-        override def toString() = "org.apache.spark.SparkContext"
+        override def toString = "org.apache.spark.SparkContext"
       }
     }
 
