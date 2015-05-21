@@ -148,7 +148,7 @@ object Ammonite extends AppOf[Ammonite] {
     }
 
   def wrap(classWrap: Boolean) =
-    Wrap(_.map(ShellDisplay(_)).reduceOption(_ + "++ Iterator(\"\\n\") ++" + _).getOrElse("Iterator()"), classWrap)
+    Wrap(_.map(ShellDisplay(_)).reduceOption(_ + "++ _root_.scala.collection.Iterator(\"\\n\") ++" + _).getOrElse("_root_.scala.collection.Iterator()"), classWrap)
 
   val scalaVersion = scala.util.Properties.versionNumberString
   val startIvys = Seq(

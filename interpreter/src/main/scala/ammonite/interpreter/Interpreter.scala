@@ -51,10 +51,10 @@ object Wrap {
               val INSTANCE = new $wrapperName
             }
 
-            class $wrapperName extends Serializable {
+            class $wrapperName extends _root_.java.io.Serializable {
               $previousImportBlock // FIXME Only import necessary imports here (implicits ones + the ones referenced in code)
 
-              class $$user extends Serializable {
+              class $$user extends _root_.java.io.Serializable {
                 $code
               }
 
@@ -283,14 +283,18 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     }
   }
 
+  var currentCompilerOptions = List.empty[String]
+
   var compiler: Compiler = _
   var pressy: Pressy = _
   def init(options: Seq[String]) = {
+    currentCompilerOptions = options.toList
+
     compiler = Compiler(
       Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),
       Classes.bootStartDirs ++ classes.dirs, // FIXME Add Classes.compilerDirs, use it here
       dynamicClasspath,
-      options.toList,
+      currentCompilerOptions,
       classes.currentCompilerClassLoader,
       () => pressy.shutdownPressy()
     )
@@ -320,7 +324,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   var onStopHooks = Seq.empty[() => Unit]
   def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
 
-  init()
+  init(currentCompilerOptions)
   initBridge()
 
   private var _macroMode = false
@@ -328,7 +332,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     if (!_macroMode) {
       _macroMode = true
       classes.useMacroClassLoader(true)
-      init()
+      init(currentCompilerOptions)
       initBridge()
     }
   }
