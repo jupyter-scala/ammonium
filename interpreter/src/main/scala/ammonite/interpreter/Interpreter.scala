@@ -41,7 +41,7 @@ object Wrap {
         if (doClassWrap)
           s"""
             object $wrapperName$$Main {
-              $previousImportBlock // FIXME Only import implicits here
+              $previousImportBlock
 
               def $$main() = {val $$user: $wrapperName.INSTANCE.$$user.type = $wrapperName.INSTANCE.$$user; $mainCode}
             }
@@ -52,7 +52,7 @@ object Wrap {
             }
 
             class $wrapperName extends _root_.java.io.Serializable {
-              $previousImportBlock // FIXME Only import necessary imports here (implicits ones + the ones referenced in code)
+              $previousImportBlock
 
               class $$user extends _root_.java.io.Serializable {
                 $code
