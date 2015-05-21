@@ -38,7 +38,7 @@ object Preprocessor{
     def wrap(code: String)={
       import fastparse._
       import scalaparse.Scala._
-      val par = P( ( `implicit`.? ~ `lazy`.? ~ ( `var` | `val` ) ~! BindPattern.rep(1, "," ~! Pass) ~ (`:` ~! Type).?).! ~ (`=` ~! StatCtx.Expr.!) )
+      val par = P( ( `implicit`.? ~ `lazy`.? ~ ( `var` | `val` ) ~! BindPattern.rep(1, fastparse.wspStr(",") ~! Pass) ~ (`:` ~! Type).?).! ~ (`=` ~! StatCtx.Expr.!) )
       val Result.Success((lhs, rhs), _) = par.parse(code)
       //Rebuilding definition from parsed data to lift rhs to anon function
       s"$lhs = { () =>\n $rhs \n}.apply"
