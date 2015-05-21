@@ -105,7 +105,8 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
                   val imports: ammonite.api.Imports = new Imports(),
                   val classes: ammonite.api.Classes = new Classes(),
                   startingLine: Int = 0,
-                  initialHistory: Seq[String] = Nil) extends ammonite.api.Interpreter with InterpreterInternals {
+                  initialHistory: Seq[String] = Nil,
+                  enableCompilerPlugins: Boolean = true) extends ammonite.api.Interpreter with InterpreterInternals {
 
   imports.update(bridgeConfig.imports)
 
@@ -296,7 +297,8 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       dynamicClasspath,
       currentCompilerOptions,
       classes.currentCompilerClassLoader,
-      () => pressy.shutdownPressy()
+      () => pressy.shutdownPressy(),
+      enableCompilerPlugins = enableCompilerPlugins
     )
     pressy = Pressy(
       Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),
