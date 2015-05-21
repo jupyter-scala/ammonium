@@ -1,7 +1,6 @@
 package ammonite.interpreter
 
 import acyclic.file
-import org.parboiled2.ParseError
 
 import scala.reflect.internal.Flags
 import scala.tools.nsc.{Global => G}
@@ -62,17 +61,20 @@ object Preprocessor{
   )
 
   def apply(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], code: String, wrapperId: String): Res[Seq[Decl]] = {
-    val splitter = new scalaParser.Scala(code){
-      def Split = {
-        def Prelude = rule( Annot.* ~ `implicit`.? ~ `lazy`.? ~ LocalMod.* )
-        rule( Semis.? ~ capture(Import | Prelude ~ BlockDef | StatCtx.Expr).*(Semis) ~ Semis.? ~ WL ~ EOI)
-      }
-    }
-    splitter.Split.run() match {
-      case scala.util.Failure(e @ ParseError(p, pp, t)) if p.index == code.length => Res.Buffer(code)
-      case scala.util.Failure(e) => Res.Failure(parse(code).left.get)
-      case scala.util.Success(Nil) => Res.Skip
-      case scala.util.Success(postSplit: Seq[String]) => complete(parse, code, wrapperId, postSplit.map(_.trim))
+    import fastparse._
+    import scalaparse.Scala._
+    val Prelude = P( Annot.rep ~ `implicit`.? ~ `lazy`.? ~ LocalMod.rep )
+    val Splitter = P( Semis.? ~ (scalaparse.Scala.Import | Prelude ~ BlockDef | StatCtx.Expr).!.rep(Semis) ~ Semis.? ~ WL ~ End)
+
+
+    Splitter.parse(code) match {
+      case Result.Failure(_, index) if index == code.length => Res.Buffer(code)
+      case f @ Result.Failure(p, index) =>
+        println(s"|$code|\nFAILURE $p $index ${code.length}")
+        println(f)
+        Res.Failure(parse(code).left.get)
+      case Result.Success(Nil, _) => Res.Skip
+      case Result.Success(postSplit: Seq[String], _) => complete(parse, code, wrapperId, postSplit.map(_.trim))
     }
   }
 

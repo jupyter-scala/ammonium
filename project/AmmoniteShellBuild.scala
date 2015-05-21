@@ -110,7 +110,7 @@ object AmmoniteShellBuild extends Build {
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-compiler" % scalaVersion.value,
         "org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full,
-        "com.lihaoyi" %% "scala-parser" % "0.1.4"
+        "com.lihaoyi" %% "scalaparse" % "0.1.4"
       )
     )
 
