@@ -301,7 +301,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
 
   var compiler: Compiler = _
   var pressy: Pressy = _
-  def init(options: Seq[String]) = {
+  def init(options: String*) = {
     currentCompilerOptions = options.toList
 
     compiler = Compiler(
@@ -339,7 +339,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   var onStopHooks = Seq.empty[() => Unit]
   def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
 
-  init(currentCompilerOptions)
+  init(currentCompilerOptions: _*)
   initBridge()
 
   private var _macroMode = false
@@ -347,7 +347,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     if (!_macroMode) {
       _macroMode = true
       classes.useMacroClassLoader(true)
-      init(currentCompilerOptions)
+      init(currentCompilerOptions: _*)
       initBridge()
     }
   }

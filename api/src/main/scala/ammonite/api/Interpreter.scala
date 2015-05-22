@@ -39,7 +39,7 @@ trait Interpreter {
   /**
    * Throw away the current scala.tools.nsc.Global and get a new one
    */
-  def init(options: Seq[String] = Nil): Unit
+  def init(options: String*): Unit
 
   /**
    * Provide these to `init` above to keep the current compiler options
