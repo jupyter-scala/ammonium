@@ -41,7 +41,7 @@ object Wrap {
         if (doClassWrap)
           s"""
             object $wrapperName$$Main {
-              $previousImportBlock // FIXME Only import implicits here
+              $previousImportBlock
 
               def $$main() = {val $$user: $wrapperName.INSTANCE.$$user.type = $wrapperName.INSTANCE.$$user; $mainCode}
             }
@@ -52,7 +52,7 @@ object Wrap {
             }
 
             class $wrapperName extends _root_.java.io.Serializable {
-              $previousImportBlock // FIXME Only import necessary imports here (implicits ones + the ones referenced in code)
+              $previousImportBlock
 
               class $$user extends _root_.java.io.Serializable {
                 $code
@@ -108,7 +108,23 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
                   initialHistory: Seq[String] = Nil,
                   enableCompilerPlugins: Boolean = true) extends ammonite.api.Interpreter with InterpreterInternals {
 
-  imports.update(bridgeConfig.imports)
+  var currentCompilerOptions = List.empty[String]
+
+  def updateImports(newImports: Seq[ImportData]): Unit = {
+    imports.update(newImports)
+
+    /* This is required by the use of WeakTypeTag in the printers,
+       whose implicits get replaced by calls to implicitly */
+    if (currentCompilerOptions.contains("-Yno-imports")) {
+      // FIXME And -Yno-predef too?
+      // FIXME Remove the import when the option is dropped
+      imports.update(Seq(
+        ImportData("implicitly", "implicitly", "", "scala.Predef", isImplicit = true /* Forces the import even if there's no explicit reference to it */)
+      ))
+    }
+  }
+
+  updateImports(bridgeConfig.imports)
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
 
@@ -153,7 +169,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   def run(code: String) = {
     apply(code, (_, _) => (), bridgeConfig.defaultPrinter) match {
       case Res.Success(ev) =>
-        imports.update(ev.imports)
+        updateImports(ev.imports)
         Right(())
       case Res.Buffer(s) =>
         throw new IllegalArgumentException(s"Incomplete statement: $s")
@@ -258,7 +274,6 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
    */
   def evaluatorRunPrinter[T](f: => T): T = f
 
-
   def handleOutput(res: Res[Evaluated[_]]) = {
     res match{
       case Res.Skip =>
@@ -276,7 +291,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
         false
       case Res.Success(ev) =>
         buffered = ""
-        imports.update(ev.imports)
+        updateImports(ev.imports)
         true
       case Res.Failure(msg) =>
         buffered = ""
@@ -284,11 +299,9 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     }
   }
 
-  var currentCompilerOptions = List.empty[String]
-
   var compiler: Compiler = _
   var pressy: Pressy = _
-  def init(options: Seq[String]) = {
+  def init(options: String*) = {
     currentCompilerOptions = options.toList
 
     compiler = Compiler(
@@ -326,7 +339,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   var onStopHooks = Seq.empty[() => Unit]
   def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
 
-  init(currentCompilerOptions)
+  init(currentCompilerOptions: _*)
   initBridge()
 
   private var _macroMode = false
@@ -334,7 +347,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     if (!_macroMode) {
       _macroMode = true
       classes.useMacroClassLoader(true)
-      init(currentCompilerOptions)
+      init(currentCompilerOptions: _*)
       initBridge()
     }
   }

@@ -31,7 +31,7 @@ class Load(intp: ammonite.api.Interpreter,
   lazy val compiler: AddDependency = new AddDependency {
     def jar(jar: File, jars: File*) = {
       intp.classes.addCompilerJars(jar +: jars: _*)
-      intp.init(intp.currentCompilerOptions)
+      intp.init(intp.currentCompilerOptions: _*)
     }
     def jar(url: URL, urls: URL*) =
       (url +: urls).map(fromCache).toList match {
@@ -66,7 +66,7 @@ class Load(intp: ammonite.api.Interpreter,
     val jars0 = jar +: jars
     userJars = userJars ++ jars0
     intp.classes.addJars(jars0: _*)
-    intp.init(intp.currentCompilerOptions)
+    intp.init(intp.currentCompilerOptions: _*)
   }
 
   lazy val urlCacheDir = {
@@ -129,7 +129,7 @@ class Load(intp: ammonite.api.Interpreter,
     warnedJars = removedJars
 
     intp.classes.addJars(newJars ++ extra: _*)
-    intp.init(intp.currentCompilerOptions)
+    intp.init(intp.currentCompilerOptions: _*)
   }
   def resolve(coordinates: (String, String, String)*): Seq[File] = {
     Ivy.resolve(coordinates, userResolvers).map(jarMap)
