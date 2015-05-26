@@ -1,10 +1,12 @@
 #!/bin/bash
 set -ev
 
+SCALA_VERSION="${TRAVIS_SCALA_VERSION:-2.11.6}"
+
 # Tests are run in a forked JVM
 # On Travis, this leaves more memory to the forked JVM
 export SBT_OPTS="-J-Xmx512m -J-Xms512m"
-SBT="sbt ++${TRAVIS_SCALA_VERSION:-2.11.6}"
+SBT="sbt ++$SCALA_VERSION"
 
 for TEST in AdvancedTests AutocompleteTests EulerTests EvaluatorTests FailureTests SerializationTests; do
   $SBT "shell/test-only ammonite.shell.$TEST"
@@ -17,11 +19,4 @@ if [ "$TRAVIS_SCALA_VERSION" = "" ]; then
   $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark13Tests"
   $SBT "spark-12/test-only ammonite.spark.LocalTests"
   $SBT "spark-13/test-only ammonite.spark.LocalTests"
-
-  if [ "$SPARK_HOME" != "" ]; then
-    $SBT "spark-12/test-only ammonite.spark.LocalClusterTests"
-    $SBT "spark-13/test-only ammonite.spark.LocalClusterTests"
-    $SBT "spark-12/test-only ammonite.spark.StandAloneClusterTests"
-    $SBT "spark-13/test-only ammonite.spark.StandAloneClusterTests"
-  fi
 fi
