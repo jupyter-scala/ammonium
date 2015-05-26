@@ -33,26 +33,17 @@ class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLCl
       None
   }
 
-  override def loadClass(name: String, resolve: Boolean): Class[_] = {
-    val cls =
-      try super.loadClass(name, false)
-      catch{ case e: ClassNotFoundException =>
-        try findClass(name)
-        catch{ case e: ClassNotFoundException =>
-          fromDirs(name) .getOrElse {
-            map.get(name) match {
-              case Some(bytes) => defineClass(name, bytes, 0, bytes.length)
-              case None =>
-                throw e
-            }
-          }
+  override def findClass(name: String): Class[_] = {
+    try super.findClass(name)
+    catch{ case e: ClassNotFoundException =>
+      fromDirs(name) .getOrElse {
+        map.get(name) match {
+          case Some(bytes) => defineClass(name, bytes, 0, bytes.length)
+          case None =>
+            throw e
         }
       }
-
-    if (resolve)
-      resolveClass(cls)
-
-    cls
+    }
   }
 
   override def getResource(name: String) =
