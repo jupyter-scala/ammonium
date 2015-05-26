@@ -37,7 +37,12 @@ object AmmonitePlugin{
     }
 
     val stats = unit.body.children.last match {
-      case m: g.ModuleDef => m.impl.body
+      case m: g.ModuleDef =>
+        def inner(m: g.ModuleDef) =
+          m.impl.body.collectFirst{case t: g.ModuleDef if t.name.toString == "$user" => t}
+            .getOrElse(m)
+
+        inner(m).impl.body
       case c: g.ClassDef =>
         def inner(c: g.ClassDef) =
           c.impl.body.collectFirst{case t: g.ClassDef => t}

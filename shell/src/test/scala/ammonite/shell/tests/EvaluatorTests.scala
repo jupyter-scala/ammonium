@@ -3,7 +3,7 @@ package tests
 
 import utest._
 
-class EvaluatorTests(check0: => Checker, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
+class EvaluatorTests(check0: => Checker, wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref.$$user") extends TestSuite{
 
   val tests = TestSuite{
     val check = check0

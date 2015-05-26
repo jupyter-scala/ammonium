@@ -62,15 +62,20 @@ object Wrap {
             }
          """
         else
-          s"""$previousImportBlock
+          s"""
+            object $wrapperName$$Main {
+              $previousImportBlock
 
-              object $wrapperName$$Main {
-                def $$main() = {val $$user: $wrapperName.type = $wrapperName; $mainCode}
-              }
+              def $$main() = {val $$user: $wrapperName.$$user.type = $wrapperName.$$user; $mainCode}
+            }
 
-              object $wrapperName {
+            object $wrapperName {
+              $previousImportBlock
+
+              object $$user {
                 $code
               }
+            }
            """
       }
   }

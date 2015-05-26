@@ -4,7 +4,7 @@ package tests
 import utest._
 
 class SerializationTests(check0: => Checker,
-                         wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref",
+                         wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref.$$user",
                          expectReinitializing: Boolean = true) extends TestSuite {
 
   val tests = TestSuite{

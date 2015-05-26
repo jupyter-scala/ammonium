@@ -22,9 +22,16 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
         (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName) &&
         !d.wrapperName.startsWith("special")
 
+    def isReplObjectWrapImport(d: ImportData) =
+      !useClassWrapper &&
+        (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName) &&
+        !d.wrapperName.startsWith("special") // keep this condition?
+
     def transformIfReplClassWrapImport(d: ImportData) =
       if (isReplClassWrapImport(d))
         d.copy(prefix = "$ref$" + d.prefix)
+      else if (isReplObjectWrapImport(d))
+        d.copy(prefix = d.wrapperName + ".$user" + d.prefix.stripPrefix(d.wrapperName))
       else
         d
 
