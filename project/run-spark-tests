@@ -3,8 +3,6 @@ set -ev
 
 PWD="$(cd "$(dirname "$0")"; pwd)"
 
-sbt ++2.10.5 "shell/test"
-sbt "shell/test"
 # sbt ++2.10.5 "spark-11/test-only ammonite.spark.LocalTests"
 sbt ++2.10.5 "spark-12/test-only ammonite.spark.LocalTests"
 sbt "spark-12/test-only ammonite.spark.LocalTests"
