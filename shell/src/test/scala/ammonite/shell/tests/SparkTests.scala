@@ -45,6 +45,12 @@ class SparkTests(checker: => Checker,
           @ Spark.stop()
     """
 
+  /*
+   * Most of these come from
+   * https://github.com/apache/spark/blob/master/repl/scala-2.11/src/test/scala/org/apache/spark/repl/ReplSuite.scala
+   * and were adapted to Ammonite/utest
+   */
+
   val tests = TestSuite {
     val check = checker
 
