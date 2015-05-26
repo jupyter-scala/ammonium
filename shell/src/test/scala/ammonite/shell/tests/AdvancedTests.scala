@@ -7,7 +7,7 @@ import utest._
 class AdvancedTests(check0: => Checker,
                     isAmmonite: Boolean = true,
                     hasMacros: Boolean = !scala.util.Properties.versionNumberString.startsWith("2.10."),
-                    wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref") extends TestSuite{
+                    wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref.$$user") extends TestSuite{
 
   val tests = TestSuite{
     val check = check0
