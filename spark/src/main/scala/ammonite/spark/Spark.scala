@@ -109,6 +109,7 @@ class Spark(implicit
     "org.apache.spark" %% "spark-sql" % sparkVersion
   ).toSet
 
+  /** Called before creation of the `SparkContext` to setup the `SparkConf`. */
   def setConfDefaults(conf: SparkConf): Unit = {
     implicit class SparkConfExtensions(val conf: SparkConf) {
       def setIfMissingLazy(key: String, value: => String): conf.type = {
@@ -137,6 +138,7 @@ class Spark(implicit
   @transient private var _sparkConf: SparkConf = null
   @transient private var _sc: SparkContext = null
 
+  /** The `SparkConf` associated to this handle */
   def sparkConf: SparkConf = {
     if (_sparkConf == null)
       _sparkConf = new SparkConf()
@@ -144,6 +146,7 @@ class Spark(implicit
     _sparkConf
   }
 
+  /** Helper function to add custom settings to the `SparkConf` associated to this handle */
   def withConf(f: SparkConf => SparkConf): Unit =
     _sparkConf = f(sparkConf)
 
@@ -156,6 +159,23 @@ class Spark(implicit
     stop()
   }
 
+  /**
+   * The `SparkContext` associated to this handle.
+   *
+   * Lazily initialized on first call.
+   *
+   * Its config can be customized prior to its initialization through `sparkConf`
+   * or with the `withConf` method.
+   *
+   * Its launch triggers the launch of a web server that serves the REPL build
+   * products.
+   *
+   * Gets automatically stopped upon host interpreter stopping. Can also be stopped
+   * manually with the `stop` method.
+   *
+   * If stopped through the `stop` method, calling `sc` again will trigger the creation
+   * of a new SparkContext.
+   */
   def sc: SparkContext = {
     if (_sc == null) {
       setConfDefaults(sparkConf)
@@ -163,19 +183,27 @@ class Spark(implicit
       if ((!master.startsWith("local") || master.contains("cluster")) && sparkConf.getOption("spark.home").isEmpty)
         throw new IllegalArgumentException(s"Spark master set to $master and spark.home not set")
 
-      _sc = new SparkContext(sparkConf) {
-        override def toString = "org.apache.spark.SparkContext"
-      }
+      _sc = new Spark.SparkContext(sparkConf)
     }
 
     _sc
   }
 
-  /** Helper to force the initialization of the SparkContext */
+  /** Alias for `sc` */
+  def sparkContext = sc
+
+  /** Triggers the initialization of the SparkContext, if not already started. */
   def start(): Unit = {
     sc
   }
 
+  /**
+   * Stops the `SparkContext` associated to this handle. The context previously
+   * returned should not be considered valid after that. The web server launched
+   * along with the context will be stopped too.
+   *
+   * Calling `sc` again will trigger the creation of a new `SparkContext`
+   */
   def stop() = {
     if (_sc != null) {
       _sc.stop()
@@ -189,8 +217,16 @@ class Spark(implicit
       _classServerURI = null
   }
 
+  /** SparkSQL context associated to this handle. Lazily initialized on first call. */
   lazy val sqlContext: SQLContext = new SQLContext(sc)
 
   override def toString: String =
     "Spark" + (if (_sc == null) "(uninitialized)" else "")
+}
+
+object Spark {
+  class SparkContext(sparkConf: SparkConf)
+    extends org.apache.spark.SparkContext(sparkConf) {
+    override def toString = "SparkContext"
+  }
 }

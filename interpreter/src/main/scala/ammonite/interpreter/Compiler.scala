@@ -164,8 +164,15 @@ object Compiler{
         override lazy val plugins =
           new AmmonitePlugin(g, lastImports = _) ::
             self.plugins
-              .map{case (_, cls) => Plugin.instantiate(cls, g) }
-              .filter{ plg => CompilerCompatibility.pluginInit(plg, Nil, g.globalError) }
+              .map{case (name, cls) => name -> Plugin.instantiate(cls, g) }
+              .filter{case (name, plg) =>
+                try CompilerCompatibility.pluginInit(plg, Nil, g.globalError)
+                catch { case ex: Exception =>
+                  Console.err.println(s"Warning: disabling plugin $name, initialization failed: $ex")
+                  false
+                }
+              }
+              .map(_._2)
         override def classPath = platform.classPath // Actually jcp, avoiding a path-dependent type issue in 2.10 here
         override lazy val platform: ThisPlatform = new JavaPlatform{
           val global: g.type = g
