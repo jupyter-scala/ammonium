@@ -1,7 +1,9 @@
 #!/bin/bash
 set -ev
 
-SCALA_VERSION="${TRAVIS_SCALA_VERSION:-2.11.6}"
+SCALA_VERSION="${TRAVIS_SCALA_VERSION:-2.10.5}"
+
+# Spark 1.1 specific script
 
 # Tests are run in a forked JVM
 # On Travis, this leaves more memory to the forked JVM
@@ -15,8 +17,6 @@ done
 
 # Not running the spark tests on Travis for lack of memory
 if [ "$TRAVIS_SCALA_VERSION" = "" ]; then
-  $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark12Tests"
-  $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark13Tests"
-  $SBT "spark-12/test-only ammonite.spark.LocalTests"
-  $SBT "spark-13/test-only ammonite.spark.LocalTests"
+  $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark11Tests"
+  $SBT "spark-11/test-only ammonite.spark.LocalTests"
 fi

@@ -19,10 +19,9 @@ object AmmoniteShellBuild extends Build {
     autoCompilerPlugins := true,
     addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.2"),
     libraryDependencies += "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided",
-    scalaVersion := "2.11.6",
+    scalaVersion := "2.10.5",
     crossScalaVersions := Seq(
-      "2.10.5", "2.10.4", "2.10.3",
-      "2.11.6", "2.11.5", "2.11.4", "2.11.3", "2.11.2", "2.11.1", "2.11.0"
+      "2.10.5", "2.10.4", "2.10.3"
     ),
     crossVersion := CrossVersion.full,
     ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) },
@@ -158,8 +157,7 @@ object AmmoniteShellBuild extends Build {
   lazy val spark13 = sparkProject("1.3.1")
   lazy val spark12 = sparkProject("1.2.2")
 
-  // only built on a specific scala 2.10 only branch
-  /*
+  // only built on this specific scala 2.10 only branch
   lazy val spark11 =
     Project(id = s"spark-11", base = file("spark"))
       .dependsOn(shellApi, shell % "test->test")
@@ -175,7 +173,6 @@ object AmmoniteShellBuild extends Build {
         ),
         unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / "extra-1.1"
       )
-  */
 
   lazy val shell = Project(id = "shell", base = file("shell"))
     .dependsOn(shellApi, interpreter)
@@ -205,8 +202,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(api, ivyLight, interpreter, shellApi, spark13, spark12, shell)
-    .dependsOn(api, ivyLight, interpreter, shellApi, spark13, spark12, shell)
+    .aggregate(api, ivyLight, interpreter, shellApi, spark13, spark12, spark11, shell)
+    .dependsOn(api, ivyLight, interpreter, shellApi, spark13, spark12, spark11, shell)
     .settings(
       publish := {},
       publishLocal := {},
