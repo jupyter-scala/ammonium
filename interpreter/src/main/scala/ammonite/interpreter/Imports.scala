@@ -22,15 +22,19 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
         (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName) &&
         !d.wrapperName.startsWith("special")
 
+    def isReplSpecialObjectWrapImport(d: ImportData) =
+      useClassWrapper &&
+        (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName) &&
+        d.wrapperName.startsWith("special")
+
     def isReplObjectWrapImport(d: ImportData) =
       !useClassWrapper &&
-        (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName) &&
-        !d.wrapperName.startsWith("special") // keep this condition?
+        (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName)
 
-    def transformIfReplClassWrapImport(d: ImportData) =
+    def transformIfReplImport(d: ImportData) =
       if (isReplClassWrapImport(d))
         d.copy(prefix = "$ref$" + d.prefix)
-      else if (isReplObjectWrapImport(d))
+      else if (isReplObjectWrapImport(d) || isReplSpecialObjectWrapImport(d))
         d.copy(prefix = d.wrapperName + ".$user" + d.prefix.stripPrefix(d.wrapperName))
       else
         d
@@ -49,7 +53,7 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
       }
 
     val snippets = for {
-      (prefix, allImports) <- previousImports0.values.toList.map(transformIfReplClassWrapImport).groupBy(_.prefix)
+      (prefix, allImports) <- previousImports0.values.toList.map(transformIfReplImport).groupBy(_.prefix)
       imports <- Util.transpose(allImports.groupBy(_.fromName).values.toList).reverse
     } yield {
       // Don't import importable variables called `_`. They seem to
