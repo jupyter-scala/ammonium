@@ -31,6 +31,45 @@ abstract class ReplAPIImpl(intp: ammonite.api.Interpreter,
   def shellPrompt: String = shellPromptRef()
   def shellPrompt_=(s: String) = shellPromptRef() = s
 
+  def search(target: scala.reflect.runtime.universe.Type) = {
+    val mirror = scala.reflect.runtime.universe.runtimeMirror(intp.classes.currentClassLoader)
+
+    def resolve(path: String*): scala.reflect.runtime.universe.Symbol = {
+      var curr = path.toList
+      var start: scala.reflect.runtime.universe.Symbol = mirror.RootClass
+      while(curr != Nil){
+        val head :: rest = curr
+        start = start.typeSignature.member(scala.reflect.runtime.universe.newTermName(head))
+        curr = rest
+      }
+      start
+    }
+
+    var thingsInScope = Map[scala.reflect.runtime.universe.Symbol, List[scala.reflect.runtime.universe.Name]](
+      resolve() -> List(),
+      resolve("java", "lang") -> List(),
+      resolve("scala") -> List(),
+      resolve("scala", "Predef") -> List()
+    )
+
+    var level = 5
+    var found: Option[String] = None
+
+    while(level > 0){
+      thingsInScope = for {
+        (sym, path) <- thingsInScope
+        // No clue why this one blows up
+        m <- scala.util.Try(sym.typeSignature.members).toOption.toSeq.flatten
+      } yield (m, m.name :: path)
+      thingsInScope.find(target.typeSymbol.fullName == _._1.fullName).foreach{ path =>
+        level = 0
+        found = Some(path._2.mkString("."))
+      }
+    }
+
+    found
+  }
+
   def shellPPrint[T: WeakTypeTag](value: => T, ident: String) = {
     colors.ident + ident + colors.reset + ": " +
       colors.`type` + weakTypeOf[T].toString + colors.reset

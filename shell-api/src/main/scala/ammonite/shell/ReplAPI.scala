@@ -52,6 +52,7 @@ trait ReplAPI {
  * Things that are part of the ReplAPI that aren't really "public"
  */
 trait FullReplAPI extends ReplAPI {
+  def search(target: scala.reflect.runtime.universe.Type): Option[String]
   def shellPPrint[T: WeakTypeTag](value: => T, ident: String): String
   def shellPrintDef(definitionLabel: String, ident: String): String
   def shellPrintImport(imported: String): String
