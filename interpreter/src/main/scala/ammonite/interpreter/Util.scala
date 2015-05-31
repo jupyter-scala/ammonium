@@ -183,10 +183,6 @@ object Parsers{
   }
 
   def backtickWrap(s: String) = {
-    import fastparse._
-    import scalaparse.Scala._
-
-
     Id2.parse(s) match{
       case _: Result.Success[_] => s
       case _ => "`" + escape(s) + "`"
