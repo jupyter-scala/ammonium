@@ -153,15 +153,6 @@ class AdvancedTests(check0: => Checker,
         )
       """)
     }
-    'multiline{
-      check.result("{ 1 +", Res.Buffer("{ 1 +"))
-      check("1 }", "res0: Int = 2")
-      check.result("(", Res.Buffer("("))
-      check.result("1", Res.Buffer("(\n1"))
-      check.result("+", Res.Buffer("(\n1\n+"))
-      check.result("2", Res.Buffer("(\n1\n+\n2"))
-      check(")", "res1: Int = 3")
-    }
     'exit{
       if (isAmmonite)
         check.result("exit", Res.Exit)

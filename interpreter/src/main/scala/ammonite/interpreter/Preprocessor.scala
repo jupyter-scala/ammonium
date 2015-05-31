@@ -22,7 +22,7 @@ object Preprocessor{
       cond.lift(tree).map{ name =>
         Decl(
           code,
-          Seq(Definition(definitionLabel, BacktickWrap(name.decoded))),
+          Seq(Definition(definitionLabel, Parsers.backtickWrap(name.decoded))),
           refNames.map(_.toString)
         )
       }
@@ -56,8 +56,8 @@ object Preprocessor{
       // synthetic flags right now, because we're dumb-parsing it and not putting
       // it through a full compilation
       if (t.name.decoded.contains("$") || t.mods.hasFlag(Flags.PRIVATE)) Nil
-      else if (!t.mods.hasFlag(Flags.LAZY)) Seq(Identity(BacktickWrap.apply(t.name.decoded)))
-      else Seq(LazyIdentity(BacktickWrap.apply(t.name.decoded))),
+      else if (!t.mods.hasFlag(Flags.LAZY)) Seq(Identity(Parsers.backtickWrap(t.name.decoded)))
+      else Seq(LazyIdentity(Parsers.backtickWrap(t.name.decoded))),
       refNames.map(_.toString)
     )
   }
@@ -77,22 +77,10 @@ object Preprocessor{
     ObjectDef, ClassDef, TraitDef, DefDef, TypeDef, PatVarDef, Import, Expr
   )
 
-  def apply(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], code: String, wrapperId: String): Res[Seq[Decl]] = {
-    import fastparse._
-    import scalaparse.Scala._
-    val Prelude = P( Annot.rep ~ `private`.? ~ `implicit`.? ~ `lazy`.? ~ LocalMod.rep )
-    val Splitter = P( Semis.? ~ (scalaparse.Scala.Import | Prelude ~ BlockDef | StatCtx.Expr).!.rep(sep=Semis) ~ Semis.? ~ WL ~ End)
-
-
-    Splitter.parse(code) match {
-      case Result.Failure(_, index) if index == code.length => Res.Buffer(code)
-      case f: Result.Failure =>
-        Res.Failure(parse(code) match {
-          case Left(err) => err
-          case Right(_) => s"Preprocessor: '${f.input}':\n${f.trace}"
-        })
-      case Result.Success(Nil, _) => Res.Skip
-      case Result.Success(postSplit: Seq[String], _) => complete(parse, code, wrapperId, postSplit.map(_.trim))
+  def apply(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], stmts: Seq[String], wrapperId: String): Res[Seq[Decl]] = {
+    stmts match{
+      case Nil => Res.Skip
+      case postSplit => complete(parse, stmts.mkString, wrapperId, postSplit.map(_.trim))
     }
   }
 

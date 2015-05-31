@@ -71,7 +71,7 @@ abstract class ReplAPIImpl(intp: ammonite.api.Interpreter,
 
   def shellPPrint[T: TPrint](value: => T, ident: String) = {
     colors.ident + ident + colors.reset + ": " +
-      colors.`type` + implicitly[TPrint[T]].value + colors.reset
+      colors.`type` + (??? /* implicitly[TPrint[T]].value */) + colors.reset
   }
   def shellPrintDef(definitionLabel: String, ident: String) = {
     s"defined ${colors.`type`}$definitionLabel ${colors.ident}$ident${colors.reset}"
