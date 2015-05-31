@@ -191,14 +191,17 @@ class AdvancedTests(check0: => Checker,
 
         @ import shapeless._
 
-        @ (1 :: "lol" :: List(1, 2, 3) :: HNil)(1)
-        res2: String = "lol"
+        @ (1 :: "lol" :: List(1, 2, 3) :: HNil)
+        res2: Int :: String :: List[Int] :: HNil = ::(1, ::("lol", ::(List(1, 2, 3), HNil)))
+
+        @ res2(1)
+        res3: String = "lol"
 
         @ case class Foo(i: Int, blah: String, b: Boolean)
         defined class Foo
 
         @ Generic[Foo].to(Foo(2, "a", true))
-        res4: shapeless.::[Int,shapeless.::[java.lang.String,shapeless.::[Boolean,shapeless.HNil]]] = ::(2, ::("a", ::(true, HNil)))
+        res5: Int :: String :: Boolean :: HNil = ::(2, ::("a", ::(true, HNil)))
       """)
     }
 
