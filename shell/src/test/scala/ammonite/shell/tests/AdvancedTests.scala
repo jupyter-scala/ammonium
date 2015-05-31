@@ -10,6 +10,7 @@ class AdvancedTests(check0: => Checker,
                     wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref.$$user") extends TestSuite{
 
   val tests = TestSuite{
+    println("AdvancedTests")
     val check = check0
     'load{
       'ivy{
@@ -161,17 +162,11 @@ class AdvancedTests(check0: => Checker,
       check.result("2", Res.Buffer("(\n1\n+\n2"))
       check(")", "res1: Int = 3")
     }
-<<<<<<< HEAD:shell/src/test/scala/ammonite/shell/tests/AdvancedTests.scala
-    'exit{
-      if (isAmmonite)
-        check.result("exit", Res.Exit)
-    }
-=======
     // This makes the test suite hang for some reason
 //    'exit{
-//      check.result("exit", Res.Exit)
+//      if (isAmmonite)
+//        check.result("exit", Res.Exit)
 //    }
->>>>>>> e8573a232a4b33cce93d600dc68cc276f1543801:repl/src/test/scala/ammonite/repl/AdvancedTests.scala
     'skip{
       check("1", "res0: Int = 1")
       check.result("", Res.Skip)

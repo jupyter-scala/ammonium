@@ -6,6 +6,7 @@ import utest._
 class AutocompleteTests(check0: => Checker, checkSignatures: Boolean = true) extends TestSuite{
 
   val tests = TestSuite{
+    println("AutocompleteTests")
     val check = check0
     def complete(caretCode: String,
                  cmp: (Set[String]) => Set[String],

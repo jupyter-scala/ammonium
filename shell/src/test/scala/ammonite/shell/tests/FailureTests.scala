@@ -6,6 +6,7 @@ import utest._
 class FailureTests(check0: => Checker, lightException: Boolean = false) extends TestSuite{
   val tests = TestSuite{
     val check = check0
+    println("FailureTests")
     'compileFailure {
       check.session("""
         @ doesnt_exist

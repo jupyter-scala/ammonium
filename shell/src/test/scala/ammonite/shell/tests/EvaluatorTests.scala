@@ -8,6 +8,7 @@ class EvaluatorTests(check0: => Checker, wrapperInstance: (Int, Int) => String =
 
   val tests = TestSuite{
     val check = check0
+    println("EvaluatorTests")
     'simpleExpressions{
       check.session("""
         @ 1 + 2
