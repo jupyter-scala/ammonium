@@ -1,6 +1,6 @@
 package ammonite.shell
 
-import ammonite.pprint.TPrint
+import ammonite.pprint.{Config, TPrint}
 
 trait ReplAPI {
   /**
@@ -53,7 +53,7 @@ trait ReplAPI {
  */
 trait FullReplAPI extends ReplAPI {
   def search(target: scala.reflect.runtime.universe.Type): Option[String]
-  def shellPPrint[T: TPrint](value: => T, ident: String): String
+  def shellPPrint[T: TPrint](value: => T, ident: String)(implicit cfg: Config): String
   def shellPrintDef(definitionLabel: String, ident: String): String
   def shellPrintImport(imported: String): String
 }

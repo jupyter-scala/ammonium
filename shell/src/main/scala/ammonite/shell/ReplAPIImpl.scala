@@ -2,7 +2,7 @@ package ammonite.shell
 
 import ammonite.interpreter._
 import ammonite.pprint
-import ammonite.pprint.TPrint
+import ammonite.pprint.{Config, TPrint}
 import ammonite.shell.util._
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
@@ -69,9 +69,9 @@ abstract class ReplAPIImpl(intp: ammonite.api.Interpreter,
     found
   }
 
-  def shellPPrint[T: TPrint](value: => T, ident: String) = {
+  def shellPPrint[T: TPrint](value: => T, ident: String)(implicit cfg: Config) = {
     colors.ident + ident + colors.reset + ": " +
-      colors.`type` + (??? /* implicitly[TPrint[T]].value */) + colors.reset
+      implicitly[TPrint[T]].render(cfg)
   }
   def shellPrintDef(definitionLabel: String, ident: String) = {
     s"defined ${colors.`type`}$definitionLabel ${colors.ident}$ident${colors.reset}"
