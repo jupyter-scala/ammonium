@@ -6,8 +6,7 @@ import utest._
 
 class AdvancedTests(check0: => Checker,
                     isAmmonite: Boolean = true,
-                    hasMacros: Boolean = !scala.util.Properties.versionNumberString.startsWith("2.10."),
-                    wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref.$$user") extends TestSuite{
+                    hasMacros: Boolean = !scala.util.Properties.versionNumberString.startsWith("2.10.")) extends TestSuite{
 
   val tests = TestSuite{
     println("AdvancedTests")
@@ -232,10 +231,10 @@ class AdvancedTests(check0: => Checker,
         import scalaz.concurrent.Task
 
         @ val p1 = Process.constant(1).toSource
-        p1: scalaz.stream.Process[scalaz.concurrent.Task,Int] = Append(Emit(Vector(1)),Vector(<function1>))
+        p1: Process[Task, Int] = Append(Emit(Vector(1)),Vector(<function1>))
 
         @ val pch = Process.constant((i:Int) => Task.now(())).take(3)
-        pch: scalaz.stream.Process[Nothing,Int => scalaz.concurrent.Task[Unit]] = Append(Halt(End),Vector(<function1>))
+        pch: Process[Nothing, Int => Task[Unit]] = Append(Halt(End),Vector(<function1>))
 
         @ p1.to(pch).runLog.run.size == 3
         res6: Boolean = true

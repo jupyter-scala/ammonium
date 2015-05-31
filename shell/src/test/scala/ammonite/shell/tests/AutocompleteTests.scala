@@ -46,7 +46,7 @@ class AutocompleteTests(check0: => Checker, checkSignatures: Boolean = true) ext
 
     'import{
       complete("""import <caret>""", Set("java", "javax", "scala") -- _)
-      complete("""import j<caret>""", x => Set("java", "javax", "jdk", "jline") ^ (x - "javafx"))
+      complete("""import j<caret>""", x => Set("java", "javax", "jdk") ^ (x - "javafx"))
       complete("""import ja<caret>""", x => Set("java", "javax") ^ (x - "javafx"))
       complete("""import java.<caret>""", Set("lang", "util") -- _)
       complete("""import java.u<caret>""", Set("util") ^ _)

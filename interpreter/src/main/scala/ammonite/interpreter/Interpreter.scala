@@ -26,7 +26,7 @@ object Wrap {
   }
 
   def apply(displayCode: Seq[DisplayItem] => String, classWrap: Boolean = false) = {
-    (initialDecls: Seq[Decl], previousImportBlock: String, initialWrapperName: String) =>
+    (initialDecls: Seq[Decl], previousImportBlock: String, unfilteredPreviousImportBlock: String, initialWrapperName: String) =>
       val (doClassWrap, decls, wrapperName) = {
         if (classWrap && initialDecls.exists(hasObjWrapSpecialImport))
           (false, initialDecls.filterNot(hasObjWrapSpecialImport), "specialObj" + initialWrapperName.capitalize)
@@ -37,11 +37,14 @@ object Wrap {
       val code = decls.map(_.code) mkString " ; "
       val mainCode = displayCode(decls.flatMap(_.display))
 
+      /* Using the unfiltered imports in the -$Main classes, so that types are correctly pretty-printed
+       * (imported prefixes get stripped) */
+
       wrapperName -> {
         if (doClassWrap)
           s"""
             object $wrapperName$$Main {
-              $previousImportBlock
+              $unfilteredPreviousImportBlock
 
               def $$main() = {val $$user: $wrapperName.INSTANCE.$$user.type = $wrapperName.INSTANCE.$$user; $mainCode}
             }
@@ -64,7 +67,7 @@ object Wrap {
         else
           s"""
             object $wrapperName$$Main {
-              $previousImportBlock
+              $unfilteredPreviousImportBlock
 
               def $$main() = {val $$user: $wrapperName.$$user.type = $wrapperName.$$user; $mainCode}
             }
@@ -106,7 +109,7 @@ trait InterpreterInternals {
  * to interpret Scala code.
  */
 class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
-                  val wrapper: (Seq[Decl], String, String) => (String, String) = Wrap.default,
+                  val wrapper: (Seq[Decl], String, String, String) => (String, String) = Wrap.default,
                   val imports: ammonite.api.Imports = new Imports(),
                   val classes: ammonite.api.Classes = new Classes(),
                   startingLine: Int = 0,
@@ -239,7 +242,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       for {
         wrapperName0 <- Res.Success("cmd" + getCurrentLine)
         _ <- Catching{ case e: ThreadDeath => interrupted() }
-        (wrapperName, wrappedLine) = wrapper(input, imports.previousImportBlock(input.flatMap(_.referencedNames).toSet), wrapperName0)
+        (wrapperName, wrappedLine) = wrapper(input, imports.previousImportBlock(input.flatMap(_.referencedNames).toSet), imports.previousImportBlock(), wrapperName0)
         (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")
         _ = currentLine += 1
         _ <- Catching{
