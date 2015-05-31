@@ -46,7 +46,7 @@ object JLineFrontend{
     reader.setCompletionHandler(new completer.CompletionHandler {
       def complete(reader: ConsoleReader, candidates: JList[CharSequence], position: Int): Boolean = {
         if (!signatures.isEmpty){
-          println()
+          reader.println()
           signatures.foreach(reader.println)
           reader.drawLine()
         }
@@ -67,7 +67,7 @@ object JLineFrontend{
         candidates.addAll(completions.sorted)
         signatures = sigs.sorted
       } else if (!sigs.isEmpty){
-        println()
+        reader.println()
         sigs.foreach(reader.println)
         reader.drawLine()
       }
@@ -100,7 +100,7 @@ object JLineFrontend{
         case Some(newCode) =>
           val code = buffered + "\n" + newCode
           Parsers.Splitter.parse(code) match {
-            case Result.Failure(_, index) if index == code.length => readCode(code)
+            case Result.Failure(_, index) if code.drop(index).trim() == "" => readCode(code)
             case f: Result.Failure => Res.Failure(SyntaxError.msg(f.input, f.parser, f.index))
             case Result.Success(split, idx) =>
               Res.Success(split)

@@ -2,12 +2,14 @@ package ammonite.shell
 
 import ammonite.interpreter._
 import ammonite.pprint
-import ammonite.pprint.{Config, TPrint}
+import ammonite.pprint.{PPrint, Config, TPrint}
 import ammonite.shell.util._
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
 
 import java.io.File
+
+import scala.reflect.runtime.universe.{ WeakTypeTag, weakTypeOf }
 
 import acyclic.file
 
@@ -69,15 +71,33 @@ abstract class ReplAPIImpl(intp: ammonite.api.Interpreter,
     found
   }
 
-  def shellPPrint[T: TPrint](value: => T, ident: String)(implicit cfg: Config) = {
-    colors.ident + ident + colors.reset + ": " +
-      implicitly[TPrint[T]].render(cfg)
-  }
-  def shellPrintDef(definitionLabel: String, ident: String) = {
-    s"defined ${colors.`type`}$definitionLabel ${colors.ident}$ident${colors.reset}"
-  }
-  def shellPrintImport(imported: String) = {
-    s"${colors.`type`}import ${colors.ident}$imported${colors.reset}"
+  object Internal extends Internal{
+    def combinePrints(iters: Iterator[String]*) = {
+      iters.toIterator
+        .filter(!_.isEmpty)
+        .flatMap(Iterator("\n") ++ _)
+        .drop(1)
+    }
+    def print[T: TPrint: PPrint: WeakTypeTag](value: => T, ident: String, custom: Option[String])(implicit cfg: Config) = {
+      if (weakTypeOf[T] =:= weakTypeOf[Unit]) Iterator()
+      else {
+        val pprint = implicitly[PPrint[T]]
+        val rhs = custom match {
+          case None => pprint.render(value)
+          case Some(s) => Iterator(pprint.cfg.color.literal(s))
+        }
+        Iterator(
+          colors.ident, ident, colors.reset, ": ",
+          implicitly[TPrint[T]].render(cfg), " = "
+        ) ++ rhs
+      }
+    }
+    def printDef(definitionLabel: String, ident: String) = {
+      Iterator("defined ", colors.`type`, definitionLabel, " ", colors.ident, ident, colors.reset)
+    }
+    def printImport(imported: String) = {
+      Iterator(colors.`type`, "import ", colors.ident, imported, colors.reset)
+    }
   }
 
   def show[T](a: T, lines: Int = 0) = ammonite.pprint.Show(a, lines)

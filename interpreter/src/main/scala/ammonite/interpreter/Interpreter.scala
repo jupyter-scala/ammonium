@@ -194,7 +194,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
         Res.Failure(trace + "\nSomething unexpected went wrong =(")
       }
       p <- Preprocessor(compiler.parse, stmts, getCurrentLine)
-      _ = saveHistory(history.append(_), stmts.mkString)
+      _ = saveHistory(history.append(_), stmts.mkString("; "))
       _ <- Capturing(stdout, stderr)
       out <- process(p, printer)
     } yield out

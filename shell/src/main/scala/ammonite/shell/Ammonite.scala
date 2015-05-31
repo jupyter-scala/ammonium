@@ -148,7 +148,10 @@ object Ammonite extends AppOf[Ammonite] {
     }
 
   def wrap(classWrap: Boolean) =
-    Wrap(_.map(ShellDisplay(_)).reduceOption(_ + "++ _root_.scala.collection.Iterator(\"\\n\") ++" + _).getOrElse("_root_.scala.collection.Iterator()"), classWrap)
+    Wrap(
+      decls => s"ReplBridge.shell.Internal.combinePrints(${decls.map(ShellDisplay(_)).mkString(", ")})",
+      classWrap
+    )
 
   val scalaVersion = scala.util.Properties.versionNumberString
   val startIvys = Seq(

@@ -14,6 +14,18 @@ class FailureTests(check0: => Checker, lightException: Boolean = false) extends 
 
         @ java
         error: package java is not a value
+
+        @ 1 + vale
+        error: Compilation Failed
+        Main.scala:28: not found: value vale
+        1 + vale
+            ^
+
+        @ val x = 1 + vale
+        error: Compilation Failed
+        Main.scala:28: not found: value vale
+        1 + vale
+            ^
       """)
     }
     'compilerCrash{

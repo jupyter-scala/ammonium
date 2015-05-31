@@ -149,7 +149,19 @@ object Timer{
     current = now
   }
 }
-object Parsers{
+object Parsers {
+
+  import fastparse._
+  import scalaparse.Scala._
+
+  val PatVarSplitter = P((`implicit`.? ~ `lazy`.? ~ (`var` | `val`) ~! BindPattern.rep(1, "," ~! Pass) ~ (`:` ~! Type).?).! ~ (`=` ~! WL ~ StatCtx.Expr.!))
+
+  def parVarSplit(code: String) = {
+
+    val Result.Success((lhs, rhs), _) = PatVarSplitter.parse(code)
+    (lhs, rhs)
+  }
+
   val Id2 = P( Id ~ End )
 
   // from ammonite-pprint

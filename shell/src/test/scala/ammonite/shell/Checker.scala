@@ -77,9 +77,11 @@ class AmmoniteChecker extends Checker {
       if (expected.startsWith("error: ")){
         printed match{
           case Res.Success(v) => assert({v; allOutput; false})
-          case Res.Failure(s) =>
-            val expectedStripped = expected.stripPrefix("error: ")
-            failLoudly(assert(s.contains(expectedStripped)))
+          case Res.Failure(failureMsg) =>
+            val expectedStripped =
+              expected.stripPrefix("error: ").replaceAll(" *\n", "\n")
+            val failureStripped = failureMsg.replaceAll("\u001B\\[[;\\d]*m", "").replaceAll(" *\n", "\n")
+            failLoudly(assert(failureStripped.contains(expectedStripped)))
         }
       }else{
         if (expected != "")
