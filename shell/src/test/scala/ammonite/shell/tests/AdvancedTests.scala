@@ -257,10 +257,10 @@ class AdvancedTests(check0: => Checker,
         res2: Int = 1
 
         @ ExprCtx.Parened.parse("1 + 1")
-        res3: fastparse.core.Result[Unit] = Failure(Parened:0 / "(":0 / "(":0 ..."1 + 1", false)
+        res3: core.Result[Unit] = Failure(Parened:0 / "(":0 / "(":0 ..."1 + 1", false)
 
         @ ExprCtx.Parened.parse("(1 + 1)")
-        res4: fastparse.core.Result[Unit] = Success((), 7)
+        res4: core.Result[Unit] = Success((), 7)
       """)
     }
     'predef{
