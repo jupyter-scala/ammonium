@@ -337,6 +337,28 @@ class AdvancedTests(check0: => Checker,
         res3: Int Array = Array(1)
       """)
     }
+    'unwrapping{
+      check.session("""
+        @ {
+        @   val x = 1
+        @   val y = 2
+        @   x + y
+        @ }
+        x: Int = 1
+        y: Int = 2
+        res0_2: Int = 3
+      """)
+    }
+    'forceWrapping{
+      check.session("""
+        @ {{
+        @   val x = 1
+        @   val y = 2
+        @   x + y
+        @ }}
+        res1: Int = 3 
+      """)
+    }
     'truncation{
       check.session("""
       @ Seq.fill(20)(100)
