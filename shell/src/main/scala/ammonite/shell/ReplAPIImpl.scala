@@ -2,13 +2,12 @@ package ammonite.shell
 
 import ammonite.interpreter._
 import ammonite.pprint
+import ammonite.pprint.TPrint
 import ammonite.shell.util._
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
 
 import java.io.File
-
-import scala.reflect.runtime.universe._
 
 import acyclic.file
 
@@ -70,9 +69,9 @@ abstract class ReplAPIImpl(intp: ammonite.api.Interpreter,
     found
   }
 
-  def shellPPrint[T: WeakTypeTag](value: => T, ident: String) = {
+  def shellPPrint[T: TPrint](value: => T, ident: String) = {
     colors.ident + ident + colors.reset + ": " +
-      colors.`type` + weakTypeOf[T].toString + colors.reset
+      colors.`type` + implicitly[TPrint[T]].value + colors.reset
   }
   def shellPrintDef(definitionLabel: String, ident: String) = {
     s"defined ${colors.`type`}$definitionLabel ${colors.ident}$ident${colors.reset}"

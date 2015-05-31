@@ -56,13 +56,13 @@ class AdvancedTests(check0: => Checker,
         //     @ load.ivy("com.scalatags" %% "scalatags" % "0.2.5")
         //
         //     @ scalatags.all.div("omg").toString
-        //     res2: java.lang.String = "<div>omg</div>"
+        //     res2: String = "<div>omg</div>"
         //
         //     @ load.ivy("com.lihaoyi" %% "scalatags" % "0.4.5")
         //
         //     @ import scalatags.Text.all._; scalatags.Text.all.div("omg").toString
         //     import scalatags.Text.all._
-        //     res4_1: java.lang.String = "<div>omg</div>"
+        //     res4_1: String = "<div>omg</div>"
         //
         //     @ res2 // BOOM
         //
@@ -125,7 +125,7 @@ class AdvancedTests(check0: => Checker,
     'pprint{
       check.session(s"""
         @ Seq.fill(10)(Seq.fill(3)("Foo"))
-        res0: Seq[Seq[java.lang.String]] = List(
+        res0: Seq[Seq[String]] = List(
           List("Foo", "Foo", "Foo"),
           List("Foo", "Foo", "Foo"),
           List("Foo", "Foo", "Foo"),
@@ -142,10 +142,10 @@ class AdvancedTests(check0: => Checker,
         defined class Foo
 
         @ Foo(1, "", Nil)
-        res2: ${wrapperInstance(1, 2)}.Foo = Foo(1, "", List())
+        res2: Foo = Foo(1, "", List())
 
         @ Foo(1234567, "I am a cow, hear me moo", Seq("I weigh twice as much as you", "and I look good on the barbecue"))
-        res3: ${wrapperInstance(1, 3)}.Foo = Foo(
+        res3: Foo = Foo(
           1234567,
           "I am a cow, hear me moo",
           List("I weigh twice as much as you", "and I look good on the barbecue")
@@ -177,7 +177,7 @@ class AdvancedTests(check0: => Checker,
         @ x
 
         @ history
-        res2: scala.Seq[String] = Vector("val x = 1", "x")
+        res2: Seq[String] = Vector("val x = 1", "x")
       """)
     }
     'customPPrint{
@@ -189,7 +189,7 @@ class AdvancedTests(check0: => Checker,
         defined function pprint
 
         @ new C
-        res2: ${wrapperInstance(0, 2)}.C = INSTANCE OF CLASS C
+        res2: C = INSTANCE OF CLASS C
       """)
     }
 
@@ -200,7 +200,7 @@ class AdvancedTests(check0: => Checker,
         @ import shapeless._
 
         @ (1 :: "lol" :: List(1, 2, 3) :: HNil)(1)
-        res2: java.lang.String = "lol"
+        res2: String = "lol"
 
         @ case class Foo(i: Int, blah: String, b: Boolean)
         defined class Foo
@@ -221,7 +221,7 @@ class AdvancedTests(check0: => Checker,
         import Scalaz._
 
         @ (Option(1) |@| Option(2))(_ + _)
-        res3: scala.Option[Int] = Some(3)
+        res3: Option[Int] = Some(3)
       """)
     }
     'scalazstream{
@@ -277,7 +277,7 @@ class AdvancedTests(check0: => Checker,
           res0: Int = -1
 
           @ y
-          res1: java.lang.String = "2"
+          res1: String = "2"
 
           @ x + y
           res2: String = "12"
@@ -305,7 +305,7 @@ class AdvancedTests(check0: => Checker,
           defined function m
 
           @ m
-          res4: java.lang.String = "Hello!"
+          res4: String = "Hello!"
         """)
     }
     'truncation{
@@ -329,7 +329,7 @@ class AdvancedTests(check0: => Checker,
       ...
 
       @ show(Seq.fill(20)(100))
-      res1: ammonite.pprint.Show[Seq[Int]] = List(
+      res1: pprint.Show[Seq[Int]] = List(
         100,
         100,
         100,
@@ -353,7 +353,7 @@ class AdvancedTests(check0: => Checker,
       )
 
       @ show(Seq.fill(20)(100), lines = 3)
-      res2: ammonite.pprint.Show[Seq[Int]] = List(
+      res2: pprint.Show[Seq[Int]] = List(
         100,
         100,
       ...
