@@ -162,11 +162,10 @@ class AdvancedTests(check0: => Checker,
       check.result("2", Res.Buffer("(\n1\n+\n2"))
       check(")", "res1: Int = 3")
     }
-    // This makes the test suite hang for some reason
-//    'exit{
-//      if (isAmmonite)
-//        check.result("exit", Res.Exit)
-//    }
+    'exit{
+      if (isAmmonite)
+        check.result("exit", Res.Exit)
+    }
     'skip{
       check("1", "res0: Int = 1")
       check.result("", Res.Skip)
