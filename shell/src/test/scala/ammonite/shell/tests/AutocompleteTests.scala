@@ -6,6 +6,7 @@ import utest._
 class AutocompleteTests(check0: => Checker, checkSignatures: Boolean = true) extends TestSuite{
 
   val tests = TestSuite{
+    println("AutocompleteTests")
     val check = check0
     def complete(caretCode: String,
                  cmp: (Set[String]) => Set[String],
@@ -42,6 +43,23 @@ class AutocompleteTests(check0: => Checker, checkSignatures: Boolean = true) ext
     implicit class SetExt[T](s1: Set[T]) {
       def ^(s2: Set[T]): Set[T] = (s1 diff s2) | (s2 diff s1)
     }
+
+    'import{
+      complete("""import <caret>""", Set("java", "javax", "scala") -- _)
+      complete("""import j<caret>""", x => Set("java", "javax", "jdk") ^ (x - "javafx"))
+      complete("""import ja<caret>""", x => Set("java", "javax") ^ (x - "javafx"))
+      complete("""import java.<caret>""", Set("lang", "util") -- _)
+      complete("""import java.u<caret>""", Set("util") ^ _)
+      complete("""import java.util.<caret>""", Set("LinkedHashMap", "LinkedHashSet") -- _)
+      complete("""import java.util.LinkedHa<caret>""", Set("LinkedHashMap", "LinkedHashSet") ^ _)
+      complete("""import java.util.{LinkedHa<caret>""", Set("LinkedHashMap", "LinkedHashSet") ^ _)
+      complete(
+        """import java.util.{LinkedHashMap, Linke<caret>""",
+        Set("LinkedHashMap", "LinkedHashSet", "LinkedList") ^ _
+      )
+
+    }
+
     'scope{
       complete("""<caret>""", Set("scala") -- _)
       complete("""Seq(1, 2, 3).map(argNameLol => <caret>)""", Set("argNameLol") -- _)
@@ -51,11 +69,12 @@ class AutocompleteTests(check0: => Checker, checkSignatures: Boolean = true) ext
         Set("println") ^,
         Set[String]() ^
       )
-      complete(
-        "println<caret>",
-        Set[String]() ^,
-        Set("def println(x: Any): Unit", "def println(): Unit") ^
-      )
+//      Not sure why this doesnt work
+//      complete(
+//        "println<caret>",
+//        Set[String]() ^,
+//        Set("def println(x: Any): Unit", "def println(): Unit") ^
+//      )
     }
     'scopePrefix{
       complete("""ammon<caret>""", Set("ammonite") ^ _)

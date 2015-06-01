@@ -27,7 +27,7 @@ case class Decl(code: String, display: Seq[DisplayItem], referencedNames: Seq[St
 trait Interpreter {
   /** Initialization parameters */
   def bridgeConfig: BridgeConfig
-  def wrapper: (Seq[Decl], String, String) => (String, String)
+  def wrapper: (Seq[Decl], String, String, String) => (String, String)
   def imports: Imports
   def classes: Classes
 
@@ -56,7 +56,12 @@ trait Interpreter {
 
   def wrap(code: String): Either[String, (String, String)] = {
     decls(code).right.map(decls =>
-      wrapper(decls, imports.previousImportBlock(decls.flatMap(_.referencedNames).toSet), s"cmd$getCurrentLine")
+      wrapper(
+        decls,
+        imports.previousImportBlock(decls.flatMap(_.referencedNames).toSet),
+        imports.previousImportBlock(),
+        s"cmd$getCurrentLine"
+      )
     )
   }
 

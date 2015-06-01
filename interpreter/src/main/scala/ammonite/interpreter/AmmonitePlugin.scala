@@ -65,7 +65,7 @@ object AmmonitePlugin{
             case g.This(pkg) => List(pkg)
           }
         }
-        val prefix = rec(expr).reverseMap(x => BacktickWrap(x.decoded)).mkString(".")
+        val prefix = rec(expr).reverseMap(x => Parsers.backtickWrap(x.decoded)).mkString(".")
         val renamings =
           for(t @ g.ImportSelector(name, _, rename, _) <- selectors) yield {
             Option(rename).map(name.decoded -> _.decoded)

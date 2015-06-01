@@ -7,19 +7,16 @@ import acyclic.file
 
 object ShellDisplay {
 
-  def pprintSignature(ident: String) = s"""_root_.scala.collection.Iterator(ReplBridge.shell.shellPPrint($$user.$ident, "$ident"))"""
-
   def apply(d: DisplayItem): String =
     d match {
       case Definition(label, name) =>
-        s"""_root_.scala.collection.Iterator(ReplBridge.shell.shellPrintDef("$label", "$name"))"""
+        s"""ReplBridge.shell.Internal.printDef("$label", "$name")"""
       case Identity(ident) =>
-        pprintSignature(ident) +
-          s""" ++ _root_.scala.collection.Iterator(" = ") ++ ammonite.pprint.PPrint($$user.$ident)"""
+        s"""ReplBridge.shell.Internal.print($$user.$ident, "$ident", None)"""
       case LazyIdentity(ident) =>
-        s"""${pprintSignature(ident)} ++ _root_.scala.collection.Iterator(" = <lazy>")"""
+        s"""ReplBridge.shell.Internal.print($$user.$ident, "$ident", Some("<lazy>"))"""
       case Import(imported) =>
-        s"""_root_.scala.collection.Iterator(ReplBridge.shell.shellPrintImport("$imported"))"""
+        s"""ReplBridge.shell.Internal.printImport("$imported")"""
     }
 
 }

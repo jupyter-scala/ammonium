@@ -6,7 +6,6 @@ import utest._
 class SparkTests(checker: => Checker,
                  master: String,
                  sparkVersion: (Int, Int),
-                 wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$cur.INSTANCE.$$ref$$cmd$ref",
                  loadAmmoniteSpark: Boolean = false) extends TestSuite {
 
   val atLeastSpark13 = implicitly[Ordering[(Int, Int)]].compare(sparkVersion, (1, 3)) >= 0
@@ -34,9 +33,7 @@ class SparkTests(checker: => Checker,
           @ @transient val Spark = new Spark
 
           @ Spark.withConf(_.setMaster("$master")); import Spark.sc; Spark.start()
-          res3_0: Unit = ()
           import Spark.sc
-          res3_2: Unit = ()
 
       """
 
@@ -61,7 +58,6 @@ class SparkTests(checker: => Checker,
           accum: org.apache.spark.Accumulator[Int] = 0
 
           @ sc.parallelize(1 to 10).foreach(x => accum += x)
-          res5: Unit = ()
 
           @ val v = accum.value
           v: Int = 55
@@ -78,7 +74,6 @@ class SparkTests(checker: => Checker,
           r1: Int = 70
 
           @ v = 10
-          res6: Unit = ()
 
           @ val r2 = sc.parallelize(1 to 10).map(x => v).collect().reduceLeft(_+_)
           r2: Int = 100
@@ -122,7 +117,6 @@ class SparkTests(checker: => Checker,
           res6: Int = 70
 
           @ v = 10
-          res7: Unit = ()
 
           @ sc.parallelize(1 to 10).map(x => getV()).collect().reduceLeft(_+_)
           res8: Int = 100
@@ -133,19 +127,18 @@ class SparkTests(checker: => Checker,
       check.session(preamble +
        s"""
           @ var array = new Array[Int](5)
-          array: scala.Array[Int] = Array(0, 0, 0, 0, 0)
+          array: Array[Int] = Array(0, 0, 0, 0, 0)
 
           @ val broadcastArray = sc.broadcast(array)
-          broadcastArray: org.apache.spark.broadcast.Broadcast[scala.Array[Int]] = Broadcast(0)
+          broadcastArray: org.apache.spark.broadcast.Broadcast[Array[Int]] = Broadcast(0)
 
           @ sc.parallelize(0 to 4).map(x => broadcastArray.value(x)).collect()
-          res6: scala.Array[Int] = Array(0, 0, 0, 0, 0)
+          res6: Array[Int] = Array(0, 0, 0, 0, 0)
 
           @ array(0) = 5
-          res7: Unit = ()
 
           @ sc.parallelize(0 to 4).map(x => broadcastArray.value(x)).collect()
-          res8: scala.Array[Int] = Array(${if (broadcastOk) 0 else 5 /* Values should be broadcasted only once, they should not change */}, 0, 0, 0, 0)
+          res8: Array[Int] = Array(${if (broadcastOk) 0 else 5 /* Values should be broadcasted only once, they should not change */}, 0, 0, 0, 0)
         """, postamble)
     }
 
@@ -158,7 +151,7 @@ class SparkTests(checker: => Checker,
           defined class Sum
 
           @ val a = Sum("A", "B")
-          a: ${wrapperInstance(0, 1)}.Sum = Sum("A", "B")
+          a: Sum = Sum("A", "B")
 
           @ def b(a: Sum): String = a match { case Sum(_, _) => "Found Sum" }
           defined function b
@@ -188,8 +181,9 @@ class SparkTests(checker: => Checker,
 
         check.session(preamble +
          s"""
-          @ import Spark.sqlContext
+          @ import Spark.sqlContext; import org.apache.spark.sql.Row
           import Spark.sqlContext
+          import org.apache.spark.sql.Row
 
           @ import $imp
           import $imp
@@ -198,7 +192,7 @@ class SparkTests(checker: => Checker,
           defined class TestCaseClass
 
           @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).$toFrameMethod.collect()
-          res7: scala.Array[org.apache.spark.sql.Row] = Array($repr)
+          res7: Array[Row] = Array($repr)
          """, postamble)
       }
     }
@@ -210,7 +204,7 @@ class SparkTests(checker: => Checker,
           defined class TestClass
 
           @ val t = new TestClass
-          t: ${wrapperInstance(4, 5)}.TestClass = TestClass
+          t: TestClass = TestClass
 
           @ import t.testMethod
           import t.testMethod
@@ -219,7 +213,7 @@ class SparkTests(checker: => Checker,
           defined class TestCaseClass
 
           @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
-          res8: scala.Array[${wrapperInstance(7, 8)}.TestCaseClass] = Array(${(1 to 10).map(i => s"  TestCaseClass($i)").mkString("\n" + margin, ",\n" + margin, "\n" + margin)})
+          res8: Array[TestCaseClass] = Array(${(1 to 10).map(i => s"  TestCaseClass($i)").mkString("\n" + margin, ",\n" + margin, "\n" + margin)})
         """, postamble)
     }
 
@@ -230,7 +224,7 @@ class SparkTests(checker: => Checker,
           defined class Foo
 
           @ sc.parallelize((1 to 100).map(Foo), 10).collect()
-          res5: scala.Array[${wrapperInstance(4, 5)}.Foo] = Array(${(1 to 14).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...
+          res5: Array[Foo] = Array(${(1 to 14).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...
         """, postamble)
     }
 
@@ -241,11 +235,11 @@ class SparkTests(checker: => Checker,
           defined class Foo
 
           @ val list = List((1, Foo(1)), (1, Foo(2)))
-          list: List[(Int, ${wrapperInstance(4, 5)}.Foo)] = List((1, Foo(1)), (1, Foo(2)))
+          list: List[(Int, Foo)] = List((1, Foo(1)), (1, Foo(2)))
         """ + (if (!hasSpark6299) s"""
 
           @ sc.parallelize(list).groupByKey().collect()
-          res6: scala.Array[(Int, scala.Iterable[${wrapperInstance(4, 5)}.Foo])] = Array((1, CompactBuffer(Foo(1), Foo(2))))
+          res6: Array[(Int, Iterable[Foo])] = Array((1, CompactBuffer(Foo(1), Foo(2))))
         """ else ""), postamble)
     }
   }
