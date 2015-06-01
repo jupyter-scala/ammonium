@@ -22,7 +22,7 @@ object Preprocessor{
       cond.lift(tree).map{ name =>
         Decl(
           code,
-          Seq(Definition(definitionLabel, BacktickWrap(name.decoded))),
+          Seq(Definition(definitionLabel, Parsers.backtickWrap(name.decoded))),
           refNames.map(_.toString)
         )
       }
@@ -34,14 +34,11 @@ object Preprocessor{
   val TypeDef = DefProc("type"){ case m: G#TypeDef => m.name }
 
   val PatVarDef = Processor { case (name, code, t: G#ValDef, refNames: Seq[G#Name]) =>
-    //Function to lift lhs expressions into anonymous functions so they will be JITed
-    def wrap(code: String)={
-      import fastparse._
-      import scalaparse.Scala._
-      val par = P( ( Annot.rep ~ `private`.? ~ `implicit`.? ~ `lazy`.? ~ ( `var` | `val` ) ~! BindPattern.rep(1, fastparse.wspStr(",") ~! Pass) ~ (`:` ~! Type).?).! ~ (`=` ~! StatCtx.Expr.!) )
-      val Result.Success((lhs, rhs), _) = par.parse(code)
+    //Function to RHS expressions into anonymous functions so they will be JITed
+    def wrap(code: String) = {
+      val (lhs, rhs) = Parsers.patVarSplit(code)
       //Rebuilding definition from parsed data to lift rhs to anon function
-      s"$lhs = { () =>\n $rhs \n}.apply"
+      s"$lhs = { () =>\n$rhs \n}.apply\n"
     }
 
     Decl(
@@ -56,8 +53,8 @@ object Preprocessor{
       // synthetic flags right now, because we're dumb-parsing it and not putting
       // it through a full compilation
       if (t.name.decoded.contains("$") || t.mods.hasFlag(Flags.PRIVATE)) Nil
-      else if (!t.mods.hasFlag(Flags.LAZY)) Seq(Identity(BacktickWrap.apply(t.name.decoded)))
-      else Seq(LazyIdentity(BacktickWrap.apply(t.name.decoded))),
+      else if (!t.mods.hasFlag(Flags.LAZY)) Seq(Identity(Parsers.backtickWrap(t.name.decoded)))
+      else Seq(LazyIdentity(Parsers.backtickWrap(t.name.decoded))),
       refNames.map(_.toString)
     )
   }
@@ -70,29 +67,21 @@ object Preprocessor{
 
   val Expr = Processor{ case (name, code, tree, refNames: Seq[G#Name]) =>
     //Expressions are lifted to anon function applications so they will be JITed
-    Decl(s"val $name = { () =>\n$code\n}.apply", Seq(Identity(name)), refNames.map(_.toString))
+    Decl(s"val $name = { () =>\n$code\n}.apply\n", Seq(Identity(name)), refNames.map(_.toString))
   }
 
   val decls = Seq[(String, String, G#Tree, Seq[G#Name]) => Option[Decl]](
     ObjectDef, ClassDef, TraitDef, DefDef, TypeDef, PatVarDef, Import, Expr
   )
 
-  def apply(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], code: String, wrapperId: String): Res[Seq[Decl]] = {
-    import fastparse._
-    import scalaparse.Scala._
-    val Prelude = P( Annot.rep ~ `private`.? ~ `implicit`.? ~ `lazy`.? ~ LocalMod.rep )
-    val Splitter = P( Semis.? ~ (scalaparse.Scala.Import | Prelude ~ BlockDef | StatCtx.Expr).!.rep(sep=Semis) ~ Semis.? ~ WL ~ End)
-
-
-    Splitter.parse(code) match {
-      case Result.Failure(_, index) if index == code.length => Res.Buffer(code)
-      case f: Result.Failure =>
-        Res.Failure(parse(code) match {
-          case Left(err) => err
-          case Right(_) => s"Preprocessor: '${f.input}':\n${f.trace}"
-        })
-      case Result.Success(Nil, _) => Res.Skip
-      case Result.Success(postSplit: Seq[String], _) => complete(parse, code, wrapperId, postSplit.map(_.trim))
+  def apply(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], stmts: Seq[String], wrapperId: String): Res[Seq[Decl]] = {
+    val unwrapped = stmts.flatMap{x => Parsers.unwrapBlock(x) match {
+      case Some(contents) => Parsers.split(contents)
+      case None => Seq(x)
+    }}
+    unwrapped match{
+      case Nil => Res.Skip
+      case postSplit => complete(parse, stmts.mkString, wrapperId, postSplit.map(_.trim))
     }
   }
 

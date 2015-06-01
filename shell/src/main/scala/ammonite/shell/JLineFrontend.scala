@@ -2,10 +2,12 @@ package ammonite.shell
 
 import java.io.{OutputStream, InputStream}
 
-import ammonite.interpreter.{Catching, Evaluated, Res}
+import ammonite.interpreter._
+import fastparse.core.Result
 import jline.console.{completer, ConsoleReader}
 import acyclic.file
 
+import scala.annotation.tailrec
 import scala.tools.nsc.interpreter._
 import collection.JavaConversions._
 
@@ -17,8 +19,8 @@ trait JLineFrontend{
    * The width of the terminal
    */
   def width: Int
-  def action(buffered: String): Res[String]
-  def update(buffered: String, r: Res[Evaluated[_]]): Unit
+  def action(): Res[Seq[String]]
+  def update(r: Res[Evaluated[_]]): Unit
   def reset(): Unit
 }
 object JLineFrontend{
@@ -44,7 +46,7 @@ object JLineFrontend{
     reader.setCompletionHandler(new completer.CompletionHandler {
       def complete(reader: ConsoleReader, candidates: JList[CharSequence], position: Int): Boolean = {
         if (!signatures.isEmpty){
-          println()
+          reader.println()
           signatures.foreach(reader.println)
           reader.drawLine()
         }
@@ -65,7 +67,7 @@ object JLineFrontend{
         candidates.addAll(completions.sorted)
         signatures = sigs.sorted
       } else if (!sigs.isEmpty){
-        println()
+        reader.println()
         sigs.foreach(reader.println)
         reader.drawLine()
       }
@@ -80,37 +82,33 @@ object JLineFrontend{
             .toVector
 
 
-    def action(buffered: String): Res[String] = for {
+    def action(): Res[Seq[String]] = for {
       _ <- Catching{ case e: jline.console.UserInterruptException =>
-        if (e.getPartialLine == "" && buffered == "") {
-          reader.println("Ctrl-D to exit")
-        }
+        if (e.getPartialLine == "") reader.println("Ctrl-D to exit")
         Res.Skip
       }
+      res <- readCode("")
+    } yield res
 
-      res <- Option(
-        reader.readLine(
-          if (buffered.isEmpty) shellPrompt + " "
-          // Strip ANSI color codes, as described http://stackoverflow.com/a/14652763/871202
-          else " " * (shellPrompt.replaceAll("\u001B\\[[;\\d]*m", "").length + 1)
-        )
-      ).map(Res.Success(_))
-        .getOrElse(Res.Exit)
+    @tailrec def readCode(buffered: String): Res[Seq[String]] = {
+      Option(reader.readLine(
+        if (buffered.isEmpty) shellPrompt + " "
+        // Strip ANSI color codes, as described http://stackoverflow.com/a/14652763/871202
+        else " " * (shellPrompt.replaceAll("\u001B\\[[;\\d]*m", "").length + 1)
+      )) match {
+        case None => Res.Exit
+        case Some(newCode) =>
+          val code = buffered + "\n" + newCode
+          Parsers.Splitter.parse(code) match {
+            case Result.Failure(_, index) if code.drop(index).trim() == "" => readCode(code)
+            case f: Result.Failure => Res.Failure(SyntaxError.msg(f.input, f.parser, f.index))
+            case Result.Success(split, idx) =>
+              Res.Success(split)
+          }
+      }
+    }
 
-    } yield buffered + res
-
-    def update(buffered: String, r: Res[Evaluated[_]]) = r match{
-
-      case Res.Buffer(line) =>
-        /**
-         * Hack to work around the fact that if nothing got entered into
-         * the prompt, the `ConsoleReader`'s history wouldn't increase
-         */
-        if(line != buffered + "\n") reader.getHistory.removeLast()
-
-      case Res.Success(ev) =>
-        val last = reader.getHistory.index() - 1
-        reader.getHistory.replace(buffered + reader.getHistory.get(last))
+    def update(r: Res[Evaluated[_]]) = r match{
 
       case Res.Exit =>
         // Otherwise the terminal gets left in a funny

@@ -6,10 +6,10 @@ import utest._
 
 class AdvancedTests(check0: => Checker,
                     isAmmonite: Boolean = true,
-                    hasMacros: Boolean = !scala.util.Properties.versionNumberString.startsWith("2.10."),
-                    wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref.$$user") extends TestSuite{
+                    hasMacros: Boolean = !scala.util.Properties.versionNumberString.startsWith("2.10.")) extends TestSuite{
 
   val tests = TestSuite{
+    println("AdvancedTests")
     val check = check0
     'load{
       'ivy{
@@ -56,13 +56,13 @@ class AdvancedTests(check0: => Checker,
         //     @ load.ivy("com.scalatags" %% "scalatags" % "0.2.5")
         //
         //     @ scalatags.all.div("omg").toString
-        //     res2: java.lang.String = "<div>omg</div>"
+        //     res2: String = "<div>omg</div>"
         //
         //     @ load.ivy("com.lihaoyi" %% "scalatags" % "0.4.5")
         //
         //     @ import scalatags.Text.all._; scalatags.Text.all.div("omg").toString
         //     import scalatags.Text.all._
-        //     res4_1: java.lang.String = "<div>omg</div>"
+        //     res4_1: String = "<div>omg</div>"
         //
         //     @ res2 // BOOM
         //
@@ -125,7 +125,7 @@ class AdvancedTests(check0: => Checker,
     'pprint{
       check.session(s"""
         @ Seq.fill(10)(Seq.fill(3)("Foo"))
-        res0: Seq[Seq[java.lang.String]] = List(
+        res0: Seq[Seq[String]] = List(
           List("Foo", "Foo", "Foo"),
           List("Foo", "Foo", "Foo"),
           List("Foo", "Foo", "Foo"),
@@ -142,24 +142,15 @@ class AdvancedTests(check0: => Checker,
         defined class Foo
 
         @ Foo(1, "", Nil)
-        res2: ${wrapperInstance(1, 2)}.Foo = Foo(1, "", List())
+        res2: Foo = Foo(1, "", List())
 
         @ Foo(1234567, "I am a cow, hear me moo", Seq("I weigh twice as much as you", "and I look good on the barbecue"))
-        res3: ${wrapperInstance(1, 3)}.Foo = Foo(
+        res3: Foo = Foo(
           1234567,
           "I am a cow, hear me moo",
           List("I weigh twice as much as you", "and I look good on the barbecue")
         )
       """)
-    }
-    'multiline{
-      check.result("{ 1 +", Res.Buffer("{ 1 +"))
-      check("1 }", "res0: Int = 2")
-      check.result("(", Res.Buffer("("))
-      check.result("1", Res.Buffer("(\n1"))
-      check.result("+", Res.Buffer("(\n1\n+"))
-      check.result("2", Res.Buffer("(\n1\n+\n2"))
-      check(")", "res1: Int = 3")
     }
     'exit{
       if (isAmmonite)
@@ -177,7 +168,7 @@ class AdvancedTests(check0: => Checker,
         @ x
 
         @ history
-        res2: scala.Seq[String] = Vector("val x = 1", "x")
+        res2: Seq[String] = Vector("val x = 1", "x")
       """)
     }
     'customPPrint{
@@ -189,7 +180,7 @@ class AdvancedTests(check0: => Checker,
         defined function pprint
 
         @ new C
-        res2: ${wrapperInstance(0, 2)}.C = INSTANCE OF CLASS C
+        res2: C = INSTANCE OF CLASS C
       """)
     }
 
@@ -199,14 +190,17 @@ class AdvancedTests(check0: => Checker,
 
         @ import shapeless._
 
-        @ (1 :: "lol" :: List(1, 2, 3) :: HNil)(1)
-        res2: java.lang.String = "lol"
+        @ (1 :: "lol" :: List(1, 2, 3) :: HNil)
+        res2: Int :: String :: List[Int] :: HNil = ::(1, ::("lol", ::(List(1, 2, 3), HNil)))
+
+        @ res2(1)
+        res3: String = "lol"
 
         @ case class Foo(i: Int, blah: String, b: Boolean)
         defined class Foo
 
         @ Generic[Foo].to(Foo(2, "a", true))
-        res4: shapeless.::[Int,shapeless.::[java.lang.String,shapeless.::[Boolean,shapeless.HNil]]] = ::(2, ::("a", ::(true, HNil)))
+        res5: Int :: String :: Boolean :: HNil = ::(2, ::("a", ::(true, HNil)))
       """)
     }
 
@@ -221,7 +215,7 @@ class AdvancedTests(check0: => Checker,
         import Scalaz._
 
         @ (Option(1) |@| Option(2))(_ + _)
-        res3: scala.Option[Int] = Some(3)
+        res3: Option[Int] = Some(3)
       """)
     }
     'scalazstream{
@@ -237,10 +231,10 @@ class AdvancedTests(check0: => Checker,
         import scalaz.concurrent.Task
 
         @ val p1 = Process.constant(1).toSource
-        p1: scalaz.stream.Process[scalaz.concurrent.Task,Int] = Append(Emit(Vector(1)),Vector(<function1>))
+        p1: Process[Task, Int] = Append(Emit(Vector(1)),Vector(<function1>))
 
         @ val pch = Process.constant((i:Int) => Task.now(())).take(3)
-        pch: scalaz.stream.Process[Nothing,Int => scalaz.concurrent.Task[Unit]] = Append(Halt(End),Vector(<function1>))
+        pch: Process[Nothing, Int => Task[Unit]] = Append(Halt(End),Vector(<function1>))
 
         @ p1.to(pch).runLog.run.size == 3
         res6: Boolean = true
@@ -277,7 +271,7 @@ class AdvancedTests(check0: => Checker,
           res0: Int = -1
 
           @ y
-          res1: java.lang.String = "2"
+          res1: String = "2"
 
           @ x + y
           res2: String = "12"
@@ -305,8 +299,64 @@ class AdvancedTests(check0: => Checker,
           defined function m
 
           @ m
-          res4: java.lang.String = "Hello!"
+          res4: String = "Hello!"
         """)
+    }
+    'typeScope{
+      check.session("""
+        @ collection.mutable.Buffer(1)
+        res0: collection.mutable.Buffer[Int] = ArrayBuffer(1)
+
+        @ import collection.mutable
+
+        @ collection.mutable.Buffer(1)
+        res2: mutable.Buffer[Int] = ArrayBuffer(1)
+
+        @ mutable.Buffer(1)
+        res3: mutable.Buffer[Int] = ArrayBuffer(1)
+
+        @ import collection.mutable.Buffer
+
+        @ mutable.Buffer(1)
+        res5: Buffer[Int] = ArrayBuffer(1)
+      """)
+    }
+    'customTypePrinter{
+      check.session("""
+        @ Array(1)
+        res0: Array[Int] = Array(1)
+
+        @ import ammonite.pprint.TPrint
+
+        @ implicit def ArrayTPrint[T: TPrint]: TPrint[Array[T]] = TPrint.lambda(
+        @   c => implicitly[TPrint[T]].render(c) + c.color.literal(" Array")
+        @ )
+
+        @ Array(1)
+        res3: Int Array = Array(1)
+      """)
+    }
+    'unwrapping{
+      check.session("""
+        @ {
+        @   val x = 1
+        @   val y = 2
+        @   x + y
+        @ }
+        x: Int = 1
+        y: Int = 2
+        res0_2: Int = 3
+      """)
+    }
+    'forceWrapping{
+      check.session("""
+        @ {{
+        @   val x = 1
+        @   val y = 2
+        @   x + y
+        @ }}
+        res0: Int = 3
+      """)
     }
     'truncation{
       check.session("""

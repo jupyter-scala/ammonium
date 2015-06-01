@@ -6,6 +6,7 @@ import utest._
 class FailureTests(check0: => Checker, lightException: Boolean = false) extends TestSuite{
   val tests = TestSuite{
     val check = check0
+    println("FailureTests")
     'compileFailure {
       check.session("""
         @ doesnt_exist
@@ -14,8 +15,17 @@ class FailureTests(check0: => Checker, lightException: Boolean = false) extends 
         @ java
         error: package java is not a value
 
-        @ def def
-        error: identifier expected but 'def' found
+        @ 1 + vale
+        error: Compilation Failed
+        Main.scala:28: not found: value vale
+        1 + vale
+            ^
+
+        @ val x = 1 + vale
+        error: Compilation Failed
+        Main.scala:28: not found: value vale
+        1 + vale
+            ^
       """)
     }
     'compilerCrash{
