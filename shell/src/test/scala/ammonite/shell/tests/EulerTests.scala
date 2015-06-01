@@ -6,6 +6,7 @@ import utest._
 class EulerTests(check0: => Checker) extends TestSuite{
   val tests = TestSuite{
     val check = check0
+    println("EulerTests")
 
 
     // Taken from https://pavelfatin.com/scala-for-project-euler/

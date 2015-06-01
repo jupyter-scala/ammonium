@@ -26,7 +26,7 @@ object Wrap {
   }
 
   def apply(displayCode: Seq[DisplayItem] => String, classWrap: Boolean = false) = {
-    (initialDecls: Seq[Decl], previousImportBlock: String, initialWrapperName: String) =>
+    (initialDecls: Seq[Decl], previousImportBlock: String, unfilteredPreviousImportBlock: String, initialWrapperName: String) =>
       val (doClassWrap, decls, wrapperName) = {
         if (classWrap && initialDecls.exists(hasObjWrapSpecialImport))
           (false, initialDecls.filterNot(hasObjWrapSpecialImport), "specialObj" + initialWrapperName.capitalize)
@@ -37,11 +37,14 @@ object Wrap {
       val code = decls.map(_.code) mkString " ; "
       val mainCode = displayCode(decls.flatMap(_.display))
 
+      /* Using the unfiltered imports in the -$Main classes, so that types are correctly pretty-printed
+       * (imported prefixes get stripped) */
+
       wrapperName -> {
         if (doClassWrap)
           s"""
             object $wrapperName$$Main {
-              $previousImportBlock
+              $unfilteredPreviousImportBlock
 
               def $$main() = {val $$user: $wrapperName.INSTANCE.$$user.type = $wrapperName.INSTANCE.$$user; $mainCode}
             }
@@ -64,7 +67,7 @@ object Wrap {
         else
           s"""
             object $wrapperName$$Main {
-              $previousImportBlock
+              $unfilteredPreviousImportBlock
 
               def $$main() = {val $$user: $wrapperName.$$user.type = $wrapperName.$$user; $mainCode}
             }
@@ -89,7 +92,7 @@ case object Exit extends ControlThrowable
 
 trait InterpreterInternals {
 
-  def apply[T](line: String,
+  def apply[T](stmts: Seq[String],
                saveHistory: (String => Unit, String) => Unit = _(_),
                printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T],
                stdout: Option[String => Unit] = None,
@@ -106,7 +109,7 @@ trait InterpreterInternals {
  * to interpret Scala code.
  */
 class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
-                  val wrapper: (Seq[Decl], String, String) => (String, String) = Wrap.default,
+                  val wrapper: (Seq[Decl], String, String, String) => (String, String) = Wrap.default,
                   val imports: ammonite.api.Imports = new Imports(),
                   val classes: ammonite.api.Classes = new Classes(),
                   startingLine: Int = 0,
@@ -153,11 +156,9 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   }
 
   def decls(code: String) = {
-    Preprocessor(compiler.parse, code, getCurrentLine) match {
+    Preprocessor(compiler.parse, Parsers.split(code), getCurrentLine) match {
       case Res.Success(l) =>
         Right(l)
-      case Res.Buffer(s) =>
-        throw new IllegalArgumentException(s"Incomplete statement: $s")
       case Res.Exit =>
         throw new Exception("Can't happen")
       case Res.Skip =>
@@ -172,12 +173,10 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   }
 
   def run(code: String) = {
-    apply(code, (_, _) => (), bridgeConfig.defaultPrinter) match {
+    apply(Parsers.split(code), (_, _) => (), bridgeConfig.defaultPrinter) match {
       case Res.Success(ev) =>
         updateImports(ev.imports)
         Right(())
-      case Res.Buffer(s) =>
-        throw new IllegalArgumentException(s"Incomplete statement: $s")
       case Res.Exit =>
         throw Exit
       case Res.Skip =>
@@ -187,7 +186,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     }
   }
 
-  def apply[T](line: String,
+  def apply[T](stmts: Seq[String],
                saveHistory: (String => Unit, String) => Unit = _(_),
                printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T],
                stdout: Option[String => Unit] = None,
@@ -197,8 +196,8 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
         val Res.Failure(trace) = Res.Failure(x)
         Res.Failure(trace + "\nSomething unexpected went wrong =(")
       }
-      p <- Preprocessor(compiler.parse, line, getCurrentLine)
-      _ = saveHistory(history.append(_), line)
+      p <- Preprocessor(compiler.parse, stmts, getCurrentLine)
+      _ = saveHistory(history.append(_), stmts.mkString("; "))
       _ <- Capturing(stdout, stderr)
       out <- process(p, printer)
     } yield out
@@ -243,7 +242,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       for {
         wrapperName0 <- Res.Success("cmd" + getCurrentLine)
         _ <- Catching{ case e: ThreadDeath => interrupted() }
-        (wrapperName, wrappedLine) = wrapper(input, imports.previousImportBlock(input.flatMap(_.referencedNames).toSet), wrapperName0)
+        (wrapperName, wrappedLine) = wrapper(input, imports.previousImportBlock(input.flatMap(_.referencedNames).toSet), imports.previousImportBlock(), wrapperName0)
         (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")
         _ = currentLine += 1
         _ <- Catching{
@@ -283,13 +282,6 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     res match{
       case Res.Skip =>
         buffered = ""
-        true
-      case Res.Buffer(line) =>
-        /**
-         * Hack to work around the fact that if nothing got entered into
-         * the prompt, the `ConsoleReader`'s history wouldn't increase
-         */
-        buffered = line + "\n"
         true
       case Res.Exit =>
         pressy.shutdownPressy()

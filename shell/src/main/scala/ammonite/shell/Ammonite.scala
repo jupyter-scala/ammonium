@@ -83,16 +83,16 @@ case class Ammonite(shellPrompt: String = "@",
   // line number to -1 if the predef exists so the first user-entered
   // line becomes 0
   if (predef.nonEmpty) {
-    val res1 = interp(predef, (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(print))
+    val res1 = interp(Parsers.split(predef), (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(print))
     interp.handleOutput(res1)
     print("\n")
   }
 
   def action() = for{
     // Condition to short circuit early if `interp` hasn't finished evaluating
-    line <- frontEnd.action(interp.buffered)
+    stmts <- frontEnd.action()
     _ <- Signaller("INT") { Thread.currentThread().stop() }
-    out <- interp(line, (f, x) => {saveHistory(x); f(x)}, _.asInstanceOf[Iterator[String]].foreach(print))
+    out <- interp(stmts, (f, x) => {saveHistory(x); f(x)}, _.asInstanceOf[Iterator[String]].foreach(print))
   } yield {
     println()
     out
@@ -107,7 +107,7 @@ case class Ammonite(shellPrompt: String = "@",
         case _ =>
       }
 
-      frontEnd.update(interp.buffered, res)
+      frontEnd.update(res)
       if (interp.handleOutput(res)) loop()
       else interp.stop()
     }
@@ -148,7 +148,10 @@ object Ammonite extends AppOf[Ammonite] {
     }
 
   def wrap(classWrap: Boolean) =
-    Wrap(_.map(ShellDisplay(_)).reduceOption(_ + "++ _root_.scala.collection.Iterator(\"\\n\") ++" + _).getOrElse("_root_.scala.collection.Iterator()"), classWrap)
+    Wrap(
+      decls => s"ReplBridge.shell.Internal.combinePrints(${decls.map(ShellDisplay(_)).mkString(", ")})",
+      classWrap
+    )
 
   val scalaVersion = scala.util.Properties.versionNumberString
   val startIvys = Seq(

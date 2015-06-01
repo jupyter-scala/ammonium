@@ -34,9 +34,7 @@ class SparkTests(checker: => Checker,
           @ @transient val Spark = new Spark
 
           @ Spark.withConf(_.setMaster("$master")); import Spark.sc; Spark.start()
-          res3_0: Unit = ()
           import Spark.sc
-          res3_2: Unit = ()
 
       """
 
@@ -61,7 +59,6 @@ class SparkTests(checker: => Checker,
           accum: org.apache.spark.Accumulator[Int] = 0
 
           @ sc.parallelize(1 to 10).foreach(x => accum += x)
-          res5: Unit = ()
 
           @ val v = accum.value
           v: Int = 55
@@ -78,7 +75,6 @@ class SparkTests(checker: => Checker,
           r1: Int = 70
 
           @ v = 10
-          res6: Unit = ()
 
           @ val r2 = sc.parallelize(1 to 10).map(x => v).collect().reduceLeft(_+_)
           r2: Int = 100
@@ -122,7 +118,6 @@ class SparkTests(checker: => Checker,
           res6: Int = 70
 
           @ v = 10
-          res7: Unit = ()
 
           @ sc.parallelize(1 to 10).map(x => getV()).collect().reduceLeft(_+_)
           res8: Int = 100
@@ -142,7 +137,6 @@ class SparkTests(checker: => Checker,
           res6: scala.Array[Int] = Array(0, 0, 0, 0, 0)
 
           @ array(0) = 5
-          res7: Unit = ()
 
           @ sc.parallelize(0 to 4).map(x => broadcastArray.value(x)).collect()
           res8: scala.Array[Int] = Array(${if (broadcastOk) 0 else 5 /* Values should be broadcasted only once, they should not change */}, 0, 0, 0, 0)

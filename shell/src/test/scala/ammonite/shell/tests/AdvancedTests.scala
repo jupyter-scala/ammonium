@@ -10,6 +10,7 @@ class AdvancedTests(check0: => Checker,
                     wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref.$$user") extends TestSuite{
 
   val tests = TestSuite{
+    println("AdvancedTests")
     val check = check0
     'load{
       'ivy{
@@ -151,15 +152,6 @@ class AdvancedTests(check0: => Checker,
           List("I weigh twice as much as you", "and I look good on the barbecue")
         )
       """)
-    }
-    'multiline{
-      check.result("{ 1 +", Res.Buffer("{ 1 +"))
-      check("1 }", "res0: Int = 2")
-      check.result("(", Res.Buffer("("))
-      check.result("1", Res.Buffer("(\n1"))
-      check.result("+", Res.Buffer("(\n1\n+"))
-      check.result("2", Res.Buffer("(\n1\n+\n2"))
-      check(")", "res1: Int = 3")
     }
     'exit{
       if (isAmmonite)
@@ -307,6 +299,28 @@ class AdvancedTests(check0: => Checker,
           @ m
           res4: java.lang.String = "Hello!"
         """)
+    }
+    'unwrapping{
+      check.session("""
+        @ {
+        @   val x = 1
+        @   val y = 2
+        @   x + y
+        @ }
+        x: Int = 1
+        y: Int = 2
+        res0_2: Int = 3
+      """)
+    }
+    'forceWrapping{
+      check.session("""
+        @ {{
+        @   val x = 1
+        @   val y = 2
+        @   x + y
+        @ }}
+        res0: Int = 3
+      """)
     }
     'truncation{
       check.session("""

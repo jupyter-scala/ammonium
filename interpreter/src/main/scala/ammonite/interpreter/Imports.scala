@@ -60,13 +60,13 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
       // confuse Scala into thinking it's a wildcard even when it isn't
       imports.filter(_.fromName != "_") match{
         case Seq(imp) if imp.fromName == imp.toName =>
-          s"import ${imp.prefix}.${BacktickWrap(imp.fromName)}"
+          s"import ${imp.prefix}.${Parsers.backtickWrap(imp.fromName)}"
         case imports =>
           val lines = for (x <- imports if !x.toName.endsWith("_$eq")) yield {
             if (x.fromName == x.toName)
-              "\n  " + BacktickWrap(x.fromName)
+              "\n  " + Parsers.backtickWrap(x.fromName)
             else
-              "\n  " + BacktickWrap(x.fromName) + " => " + (if (x.toName == "_") "_" else BacktickWrap(x.toName))
+              "\n  " + Parsers.backtickWrap(x.fromName) + " => " + (if (x.toName == "_") "_" else Parsers.backtickWrap(x.toName))
 
           }
           val block = lines.mkString(",")

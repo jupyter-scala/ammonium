@@ -51,7 +51,7 @@ class AmmoniteChecker extends Checker {
 
   if (predef.nonEmpty) {
     val res1 = interp(
-      predef,
+      Parsers.split(predef),
       (_, _) => (),
       _.asInstanceOf[Iterator[String]].foreach(allOutput += _),
       if (captureOut) Some(allOutput += _) else None
@@ -71,17 +71,23 @@ class AmmoniteChecker extends Checker {
       val commandText = cmdLines.map(_.stripPrefix("@ ")).toVector
 
       val expected = resultLines.mkString("\n").trim
-      for(line <- commandText.init) {
-        allOutput += "\n@ " + line
-        val (processed, _) = run(line)
-        if (!line.startsWith("//")) {
-          failLoudly(assert(processed.isInstanceOf[Res.Buffer]))
-        }
-      }
+      allOutput += commandText.map("\n@ " + _).mkString("\n")
+      val (processed, printed) = run(commandText.mkString("\n"))
+      interp.handleOutput(processed)
       if (expected.startsWith("error: ")){
-        fail(commandText.last, _.contains(expected.drop("error: ".length)))
+        printed match{
+          case Res.Success(v) => assert({v; allOutput; false})
+          case Res.Failure(failureMsg) =>
+            def filtered(err: String) =
+              err.replaceAll(" *\n", "\n").replaceAll("(?m)^Main\\Q.\\Escala:[0-9]*:", "Main.scala:*:")
+            val expectedStripped =
+              filtered(expected.stripPrefix("error: "))
+            val failureStripped = filtered(failureMsg.replaceAll("\u001B\\[[;\\d]*m", ""))
+            failLoudly(assert(failureStripped.contains(expectedStripped)))
+        }
       }else{
-        apply(commandText.last, if (expected == "") null else expected)
+        if (expected != "")
+          failLoudly(assert(printed == Res.Success(expected)))
       }
     }
   }
@@ -93,16 +99,12 @@ class AmmoniteChecker extends Checker {
     val msg = collection.mutable.Buffer.empty[String]
     val msgOut = collection.mutable.Buffer.empty[String]
     val processed = interp(
-      interp.buffered + input,
+      Parsers.split(input),
       _(_),
       _.asInstanceOf[Iterator[String]].foreach(msg.append(_)),
       if (captureOut) Some(msgOut.append(_)) else None
     )
     val printed = processed.map(_ => msgOut.mkString + msg.mkString)
-    printed match {
-      case _: Res.Buffer =>
-      case _ => allOutput += "\n" + printed
-    }
     interp.handleOutput(processed)
     (processed, printed)
   }

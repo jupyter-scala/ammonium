@@ -110,7 +110,7 @@ object AmmoniteShellBuild extends Build {
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-compiler" % scalaVersion.value,
         "org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full,
-        "com.github.alexarchambault.tmp" %% "scalaparse" % "0.1.6-SNAPSHOT"
+        "com.lihaoyi" %% "scalaparse" % "0.1.6"
       )
     )
 
@@ -157,8 +157,7 @@ object AmmoniteShellBuild extends Build {
   lazy val spark13 = sparkProject("1.3.1")
   lazy val spark12 = sparkProject("1.2.2")
 
-  // only built on a specific scala 2.10 only branch
-  /*
+  // only built on this specific scala 2.10 only branch
   lazy val spark11 =
     Project(id = s"spark-11", base = file("spark"))
       .dependsOn(shellApi, shell % "test->test")
@@ -174,7 +173,6 @@ object AmmoniteShellBuild extends Build {
         ),
         unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / "extra-1.1"
       )
-  */
 
   lazy val shell = Project(id = "shell", base = file("shell"))
     .dependsOn(shellApi, interpreter)
@@ -204,8 +202,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(api, ivyLight, interpreter, shellApi, spark13, spark12, shell)
-    .dependsOn(api, ivyLight, interpreter, shellApi, spark13, spark12, shell)
+    .aggregate(api, ivyLight, interpreter, shellApi, spark13, spark12, spark11, shell)
+    .dependsOn(api, ivyLight, interpreter, shellApi, spark13, spark12, spark11, shell)
     .settings(
       publish := {},
       publishLocal := {},

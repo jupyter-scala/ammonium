@@ -51,7 +51,6 @@ class SerializationTests(check0: => Checker,
         @ $longSingleLine
         *** decl ***
         *** field ***
-        res1_0: Unit = ()
         a: scala.Option[Int] = Some(2)
         defined function f
         defined class C

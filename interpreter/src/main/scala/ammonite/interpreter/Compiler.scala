@@ -32,7 +32,6 @@ import ammonite.api.ImportData
  */
 trait Compiler{
   def compile(src: Array[Byte], runLogger: String => Unit): Compiler.Output
-
   /**
    * Either the statements that were parsed or the error message
    */
