@@ -15,7 +15,11 @@ object Capture {
           if (n > 0) fn(new String(buffer take n))
           if (n < size) Thread.sleep(50) // a little delay to accumulate output
         }
-      } catch { case e: IOException => }
+      } catch {
+        case _: IOException =>
+        case e: Exception =>
+          Console.err.println(s"Unexpected exception in $name thread: $e")
+      }
     }
   }
 
@@ -86,7 +90,7 @@ object Capture {
 
       val result = withOutAndErr(stdoutInOpt.map(_._2), stderrInOpt.map(_._2))(block)
 
-      while (stdoutInOpt.exists(_._1.available() > 0) || stderrInOpt.exists(_._1.available() > 0))
+      while (stdoutInOpt.exists(t => t._1.available() > 0 && t._3.isAlive) || stderrInOpt.exists(t => t._1.available() > 0 && t._3.isAlive))
         Thread.sleep(10)
 
       result
