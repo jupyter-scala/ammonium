@@ -2,7 +2,7 @@ package ammonite.shell
 
 import ammonite.interpreter._
 import ammonite.pprint
-import ammonite.pprint.{PPrint, Config, TPrint}
+import ammonite.pprint.{PPrint, Config}
 import ammonite.shell.util._
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
@@ -78,7 +78,7 @@ abstract class ReplAPIImpl(intp: ammonite.api.Interpreter,
         .flatMap(Iterator("\n") ++ _)
         .drop(1)
     }
-    def print[T: TPrint: PPrint: WeakTypeTag](value: => T, ident: String, custom: Option[String])(implicit cfg: Config) = {
+    def print[T: PPrint: WeakTypeTag](value: => T, ident: String, custom: Option[String])(implicit cfg: Config) = {
       if (weakTypeOf[T] =:= weakTypeOf[Unit]) Iterator()
       else {
         val pprint = implicitly[PPrint[T]]
@@ -88,7 +88,7 @@ abstract class ReplAPIImpl(intp: ammonite.api.Interpreter,
         }
         Iterator(
           colors.ident, ident, colors.reset, ": ",
-          implicitly[TPrint[T]].render(cfg), " = "
+          weakTypeOf[T].toString, " = "
         ) ++ rhs
       }
     }

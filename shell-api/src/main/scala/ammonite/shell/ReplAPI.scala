@@ -1,6 +1,6 @@
 package ammonite.shell
 
-import ammonite.pprint.{Config, TPrint, PPrint}
+import ammonite.pprint.{Config, PPrint}
 import scala.reflect.runtime.universe.WeakTypeTag
 
 trait ReplAPI {
@@ -51,7 +51,7 @@ trait ReplAPI {
 
 trait Internal{
   def combinePrints(iters: Iterator[String]*): Iterator[String]
-  def print[T: TPrint: PPrint: WeakTypeTag](value: => T, ident: String, custom: Option[String])(implicit cfg: Config): Iterator[String]
+  def print[T: PPrint: WeakTypeTag](value: => T, ident: String, custom: Option[String])(implicit cfg: Config): Iterator[String]
   def printDef(definitionLabel: String, ident: String): Iterator[String]
   def printImport(imported: String): Iterator[String]
 }

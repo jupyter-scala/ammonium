@@ -4,6 +4,7 @@ package tests
 import utest._
 
 class SerializationTests(check0: => Checker,
+                         wrapperInstance: (Int, Int) => String = (ref, cur) => s"cmd$ref.$$user",
                          expectReinitializing: Boolean = true) extends TestSuite {
 
   val tests = TestSuite{
@@ -50,12 +51,12 @@ class SerializationTests(check0: => Checker,
         @ $longSingleLine
         *** decl ***
         *** field ***
-        a: Option[Int] = Some(2)
+        a: scala.Option[Int] = Some(2)
         defined function f
         defined class C
 
         @ val c = new C
-        c: C = C
+        c: ${wrapperInstance(1, 2)}.C = C
 
         @ val b = ammonite.spark.util.Serialize.to(c)
 
@@ -66,10 +67,10 @@ class SerializationTests(check0: => Checker,
 
         @ c2.getClass.getMethod("get").invoke(c2)
         ${lastOutput mkString "\n        "}
-        res6: Object = Some(2)
+        res6: java.lang.Object = Some(2)
 
         @ c2.getClass.getMethod("getField").invoke(c2) // either `a` is just initialized, or was serialized already calculated - nothing should be printed here
-        res7: Object = Some(2)
+        res7: java.lang.Object = Some(2)
       """)
     }
   }
