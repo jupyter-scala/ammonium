@@ -205,7 +205,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   def evalClass(code: String, wrapperName: String) = for {
     (output, compiled) <- Res.Success {
       val output = mutable.Buffer.empty[String]
-      val c = compiler.compile(code.getBytes, output.append(_))
+      val c = compiler.compile(code.getBytes("UTF-8"), output.append(_))
       (output, c)
     }
 
@@ -318,7 +318,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     )
 
     // initializing the compiler so that it does not complain having no phase
-    compiler.compile("object $dummy".getBytes, _ => ())
+    compiler.compile("object $dummy".getBytes("UTF-8"), _ => ())
   }
   def initBridge(): Unit = {
     bridgeConfig.initClass(this,
