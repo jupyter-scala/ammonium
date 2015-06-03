@@ -1,98 +1,154 @@
 package com.github.alexarchambault.ivylight
 
-import java.io.File
+import java.io.{IOException, File}
 
 import scala.io.Source
 
-/** Parses the output of some SBT commands like
-  *   sbt "show someCommand"
-  */
+/** Parses the output of the SBT commands of the sbt-detailed-settings plugin */
 object Sbt {
-  import CaseClassParser.{Value, Container}
+  import CaseClassParser.{Item, Value, Container}
 
-  def defaultProject(lines: Seq[String]): Option[String] =
-    lines
-      .filter(_ startsWith "[info]")
-      .map(_ stripPrefix "[info]")
-      .filterNot(l => l.contains('/') || l.contains('\\'))
-      .find(_.trim startsWith "*")
-      .map(_.replace('*', ' ').trim)
+  case class Module(organization: String,
+                    name: String,
+                    version: String,
+                    classifiers: String)
 
-  def parseProjects(lines: Seq[String]): Seq[String] =
-    lines
-      .filter(_ startsWith "[info]")
-      .map(_ stripPrefix "[info]")
-      .filterNot(l => l.contains('/') || l.contains('\\'))
-      .map(_.replace('*', ' ').trim)
+  case class Projects(ids: List[String],
+                      default: String)
 
-  private val moduleSettingsRoot = "InlineConfigurationWithExcludes"
+  case class ProjectModule(projectId: String,
+                           projectDependencies: List[String],
+                           module: Module)
 
-  def dependenciesWorkaround(deps: Seq[String]): List[String] = {
-    def helper(l: List[String], acc: List[String]): List[String] =
-      l match {
-        case noCol :: n :: t if !noCol.contains(":") =>
-          helper(s"$n,$noCol" :: t, acc)
-        case h :: t =>
-          helper(t, h :: acc)
-        case Nil =>
-          acc
+  case class ProjectModuleSettings(projectId: String,
+                                   module: Module,
+                                   dependencies: List[Module],
+                                   exportedProducts: List[String],
+                                   unmanagedClasspath: List[String])
+
+  object Module {
+    def unapply(it: Item): Option[Module] =
+      it match {
+        case Container.Values("Module", items) if items.lengthCompare(3) >= 0 =>
+          Some(Module(items(0), items(1), items(2), items.drop(3).mkString(",")))
+        case _ => None
       }
 
-    helper(deps.toList.reverse, Nil)
-  }
-
-  def parseModuleSettings(lines: Seq[String]): Option[(Module, Seq[Module])] =
-    for {
-      line <- lines.find(_ startsWith s"[info] $moduleSettingsRoot")
-      item <- CaseClassParser.parse(line.stripPrefix("[info]").trim)
-      rawModule <- item.valueAt(Some(moduleSettingsRoot) -> 0)
-      module <- parseModule(rawModule)
-      ("List", rawDependencies) <- item.valuesAt(Some(moduleSettingsRoot) -> 2)
-    } yield (module, dependenciesWorkaround(rawDependencies).map(parseModule).collect{case Some(v) => v})
-
-  // exportedProducts, unmanagedClasspath
-  def parsePaths(lines: Seq[String]): Option[Seq[String]] =
-    for {
-      line <- lines.find(_ startsWith "[info] List")
-      item <- CaseClassParser.parse(line.stripPrefix("[info]").trim)
-      Container("List", attrPaths) <- item.at()
-      paths = attrPaths.collect { case Container("Attributed", Seq(Value(path))) => path }
-    } yield paths
-
-  case class Module(organization: String, name: String, version: String, classifiers: Seq[String])
-
-  def parseModule(s: String): Option[Module] =
-    s.split(":", 4) match {
-      case Array(org, name, version) => Some(Module(org, name, version, Seq()))
-      case Array(org, name, version, clf) => Some(Module(org, name, version, clf.split(",")))
-      case _ => None
+    object List {
+      def unapply(it: Item): Option[scala.List[Module]] =
+        it match {
+          case Container("List", items) =>
+            items.foldLeft(Option(scala.List.empty[Module])) { (accOpt, item) =>
+              for {
+                acc <- accOpt
+                m <- Module.unapply(item)
+              } yield m :: acc
+            } .map(_.reverse)
+          case _ => None
+        }
     }
-
-  private val projectsBuilder = new ProcessBuilder("sbt", "-Dsbt.log.noformat=true", "projects")
-
-  def projects(dir: File): (Option[String], Seq[String]) = {
-    val proc = projectsBuilder.directory(dir).start()
-    val lines = Source.fromInputStream(proc.getInputStream).getLines().map{ line => println(line); line }.toList
-
-    (defaultProject(lines), parseProjects(lines))
   }
 
-  case class ProjectInfo(module: Module, dependencies: Seq[Module], exportedProducts: Seq[String], unmanagedClasspath: Seq[String])
+  def fromLinesHelper[T](prefix: String,
+                         parse: String => Option[T]): Seq[String] => Seq[T] = {
 
-  /** Requires the sbt-detailed-settings SBT plugin, and the sbt-extra launcher */
-  def projectInfo(dir: File, project: String): Option[ProjectInfo] = {
-    val pb = new ProcessBuilder("sbt", "-sbt-version", "0.13.8", "-Dsbt.log.noformat=true", s"show $project/detailedModuleSettings", s"show $project/exportedProducts", s"show $project/unmanagedClasspath")
+    val start = """^\Q[info]\E\s*\Q""" + prefix + """(\E"""
+    val startRegex = start.r
+    val extract = (start + """(.*)\Q)\E$""").r
 
-    val proc = pb.directory(dir).start()
-    val lines = Source.fromInputStream(proc.getInputStream).getLines().map{ line => println(line); line }.toList
-
-    val lines0 = lines.dropWhile(!_.startsWith("[info] List")).drop(1)
-
-    for {
-      (module, dependencies) <- parseModuleSettings(lines)
-      exportedProducts <- parsePaths(lines)
-      unmanagedClasspath <- parsePaths(lines0)
-    } yield ProjectInfo(module, dependencies, exportedProducts, unmanagedClasspath)
+    lines =>
+      lines
+        .filter(startRegex.findFirstIn(_).nonEmpty)
+        .map(line => parse(prefix + "(" + extract.replaceFirstIn(line, "$1") + ")"))
+        .collect{case Some(t) => t}
   }
 
+  object Projects {
+    def unapply(it: Item): Option[Projects] =
+      it match {
+        case Container("Projects", Seq(Container.Values("List", allProjects), Value(default))) =>
+          Some(Projects(allProjects.toList, default))
+        case _ => None
+      }
+
+    val fromLines = fromLinesHelper("Projects", CaseClassParser.parse(_).flatMap(Projects.unapply))
+  }
+
+  object ProjectModule {
+    def unapply(it: Item): Option[ProjectModule] =
+      it match {
+        case Container("ProjectModule", Seq(Value(id), Container.Values("List", dependencies), Module(mod))) =>
+          Some(ProjectModule(id, dependencies.toList, mod))
+        case _ => None
+      }
+
+    val fromLines = fromLinesHelper("ProjectModule", CaseClassParser.parse(_).flatMap(ProjectModule.unapply))
+  }
+
+  object ProjectModuleSettings {
+    def unapply(it: Item): Option[ProjectModuleSettings] =
+      it match {
+        case Container("ProjectModuleSettings", Seq(Value(id), Module(mod), Module.List(deps), Container.Values("List", exportedProducts), Container.Values("List", unmanagedClasspath))) =>
+          Some(ProjectModuleSettings(id, mod, deps, exportedProducts.toList, unmanagedClasspath.toList))
+        case _ => None
+      }
+
+    val fromLines = fromLinesHelper("ProjectModuleSettings", CaseClassParser.parse(_).flatMap(ProjectModuleSettings.unapply))
+  }
+
+
+  private val sbtCmd = Seq(sbtPath, "-Dsbt.version=0.13.8", "-Dsbt.log.noformat=true")
+  private val projectsCmd = sbtCmd ++ Seq("show detailedProjects")
+  private val projectsBuilder = new ProcessBuilder(projectsCmd: _*)
+
+  def sbtProjects(root: File, verbose: Boolean = false): Option[Projects] = {
+    if (verbose)
+      println(s"Running ${projectsCmd.map("'"+ _ +"'").mkString("[", ", ", "]")}")
+    val proc = projectsBuilder.directory(root).start()
+    val lines = Source.fromInputStream(proc.getInputStream).getLines().map{ line => if (verbose) println(line); line }.toList
+    proc.exitValue()
+    Projects.fromLines(lines).headOption
+  }
+
+  def sbtProjectModules(root: File, projects: Seq[String], verbose: Boolean = false): Seq[ProjectModule] = {
+    val cmd = sbtCmd ++ projects.map(p => s"show $p/detailedProjectModule")
+    if (verbose)
+      println(s"Running ${cmd.map("'"+ _ +"'").mkString("[", ", ", "]")}")
+    val pb = new ProcessBuilder(cmd: _*)
+    val proc = pb.directory(root).start()
+    val lines = Source.fromInputStream(proc.getInputStream).getLines().map{ line => if (verbose) println(line); line }.toList
+    proc.exitValue()
+    ProjectModule.fromLines(lines)
+  }
+  def sbtProjectModulesSettings(root: File, projects: Seq[String], verbose: Boolean = false): Seq[ProjectModuleSettings] = {
+    val cmd = sbtCmd ++ projects.map(p => s"show $p/detailedProjectModuleSettings")
+    if (verbose)
+      println(s"Running ${cmd.map("'"+ _ +"'").mkString("[", ", ", "]")}")
+    val pb = new ProcessBuilder(cmd: _*)
+    val proc = pb.directory(root).start()
+    val lines = Source.fromInputStream(proc.getInputStream).getLines().map{ line => if (verbose) println(line); line }.toList
+    proc.exitValue()
+    ProjectModuleSettings.fromLines(lines)
+  }
+
+  lazy val isWindows: Boolean =
+    Option(System.getProperty("os.name")).exists(_ startsWith "Windows")
+
+  lazy val sbtPath =
+    if (isWindows) {
+      try {
+        try { new ProcessBuilder("sbt", "-version").start().exitValue(); "sbt" }
+        catch { case _: IOException =>
+          val proc = new ProcessBuilder("where", "sbt.bat").start()
+          val lines = Source.fromInputStream(proc.getInputStream).getLines().toList
+          proc.exitValue()
+
+          lines.find(_.endsWith(".bat"))
+            .getOrElse("sbt")
+        }
+      }
+      catch { case _: Exception => "sbt" }
+    } else
+      // Assuming sbt can be found as is
+      "sbt"
 }

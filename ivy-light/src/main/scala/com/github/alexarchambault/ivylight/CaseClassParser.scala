@@ -42,6 +42,17 @@ object CaseClassParser {
       }
   }
 
+  object Container {
+    object Values {
+      def unapply(it: Item): Option[(String, Seq[String])] =
+        it match {
+          case Container(name, items) if items.forall{case _: Value => true; case _ => false} =>
+            Some((name, items.collect{case Value(v) => v}))
+          case _ => None
+        }
+    }
+  }
+
   /** A "value" from a case class representation, like "a" or "b" in "CC(a, b)" */
   case class Value(repr: String) extends Item {
     def at(path: Path*): Option[Item] =

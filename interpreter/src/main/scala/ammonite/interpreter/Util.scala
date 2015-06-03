@@ -224,10 +224,13 @@ object Parsers {
 object NamesFor {
   import scala.reflect.runtime.universe._
 
+  val default = typeOf[Object].members
+    .flatMap(m => List(m.name.decodedName.toString, m.name.encodedName.toString))
+    .toSet
+
   def apply(t: scala.reflect.runtime.universe.Type): Map[String, Boolean] = {
     val yours = t.members.map(s => s.name.toString -> s.isImplicit).toMap
       .filterKeys(!_.endsWith(nme.LOCAL_SUFFIX_STRING)) // See http://stackoverflow.com/a/17248174/3714539
-    val default = typeOf[Object].members.map(_.name.toString)
     yours -- default
   }
 

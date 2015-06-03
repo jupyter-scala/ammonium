@@ -10,6 +10,7 @@ import java.net.URL
 import java.nio.file.Files
 import java.io.{FileNotFoundException, File}
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 
@@ -58,6 +59,7 @@ class Load(intp: ammonite.api.Interpreter,
   private var userJars = startJars
   private var userIvys = startIvys
   private var sbtIvys = Seq.empty[(String, String, String)]
+  /** FIXME Exclude these during Ivy resolution */
   private var internalSbtIvys = Set.empty[(String, String, String)]
   private var warnedJars = Set.empty[File]
   private var userResolvers = startResolvers
@@ -134,33 +136,71 @@ class Load(intp: ammonite.api.Interpreter,
   def resolve(coordinates: (String, String, String)*): Seq[File] = {
     Ivy.resolve(coordinates, userResolvers).map(jarMap)
   }
+  var verbose = false
   def sbt(path: java.io.File, projects: String*): Unit = {
-    var anyProj = false
-    var dirs = Seq.empty[File]
+    println(s"Getting sub-projects of $path")
+    Sbt.sbtProjects(path, verbose) match {
+      case None =>
+        println(s"Can't get sub-project list from $path" + (if (verbose) "" else " (set verbose to true for more details)"))
 
-    def defaultProjects = Sbt.projects(path)._1.toSeq
+      case Some(Sbt.Projects(allProjects, defaultProject)) =>
+        println(s"Getting sub-project module infos")
+        val modules = Sbt.sbtProjectModules(path, allProjects, verbose).map(m => m.projectId -> m).toMap
 
-    val projects0 = Some(projects).filter(_.nonEmpty).getOrElse(defaultProjects)
+        @tailrec def dependencies(projects: Set[String], ignored: Set[String]): (Set[String], Set[String]) = {
+          val (projectsWithModule, projectsWithoutModule) = projects.partition(modules.contains)
+          val extra = projectsWithModule.map(modules).flatMap(_.projectDependencies)
+            .diff(projects).diff(ignored).diff(projectsWithoutModule)
 
-    if (projects0.isEmpty)
-      Console.err.println(s"No default project found in $path")
+          if (extra.isEmpty) (projectsWithModule, ignored ++ projectsWithoutModule)
+          else dependencies(projectsWithModule ++ extra, ignored ++ projectsWithoutModule)
+        }
 
-    for (proj <- projects0) {
-      Sbt.projectInfo(path, proj) match {
-        case None => Console.err.println(s"Can't get project $proj settings in $path, ignoring it")
+        val (foundProjects, notFoundProjects) = projects.partition(allProjects.contains)
+        if (notFoundProjects.nonEmpty)
+          println(s"Can't find sub-projects ${notFoundProjects mkString ", "}, ignoring them.")
 
-        case Some(info) =>
-          anyProj = true
-          sbtIvys = sbtIvys ++ info.dependencies.collect {
-            case Module(org, name, version, Seq()) => (org, name, version)
+        val projects0 = if (projects.nonEmpty) foundProjects.toSet else Set(defaultProject)
+        val (toAddProjects, ignoredProjects) = dependencies(projects0, Set.empty)
+        if (ignoredProjects.nonEmpty)
+          println(s"Can't get module details of sub-projects ${ignoredProjects.toList.sorted mkString ", "}, ignoring them.")
+
+        val toAdd0 = toAddProjects.toList.sorted
+        println(s"Getting dependencies of and compiling sub-projects ${toAdd0.mkString(",")}")
+        val settings = Sbt.sbtProjectModulesSettings(path, toAdd0, verbose).map(s => s.projectId -> s).toMap
+        var extra = Set.empty[File]
+        var extraIvys = Set.empty[(String, String, String)]
+        var extraInternalIvys = Set.empty[(String, String, String)]
+        for (projectId <- toAddProjects.toList.sorted) {
+          settings.get(projectId) match {
+            case Some(setting) =>
+              val module = setting.module
+              extraIvys = extraIvys ++ setting.dependencies.map(m => (m.organization, m.name, m.version))
+              extraInternalIvys = extraInternalIvys + ((module.organization, module.name, module.version))
+              extra = extra ++ setting.exportedProducts.map(new File(_)) ++ setting.unmanagedClasspath.map(new File(_))
+
+            case None =>
+              println(s"Warning: can't get module settings of sub-project $projectId, ignoring it")
           }
-          internalSbtIvys = internalSbtIvys + ((info.module.organization, info.module.name, info.module.version))
-          dirs = dirs ++ info.exportedProducts.map(new File(_)) ++ info.unmanagedClasspath.map(new File(_))
-      }
-    }
+        }
+        extraIvys = extraIvys.--(sbtIvys).diff(extraInternalIvys).diff(internalSbtIvys)
+        extraInternalIvys = extraInternalIvys.diff(internalSbtIvys)
+        extra = extra.--(userJars)
 
-    if (anyProj)
-      updateIvy(dirs)
+        if (extraIvys.nonEmpty) {
+          val extraIvys0 = extraIvys.toList.sorted
+          println(s"Adding the following dependencies:\n${extraIvys0.map{case (org, name, rev) => s"  $org:$name:$rev"}.mkString("\n")}")
+          sbtIvys = sbtIvys ++ extraIvys0
+        }
+        if (extraInternalIvys.nonEmpty) {
+          val extraInternalIvys0 = extraInternalIvys.toList.sorted
+          println(s"The following dependencies are now handled directly:\n${extraInternalIvys0.map{case (org, name, rev) => s"  $org:$name:$rev"}.mkString("\n")}")
+          internalSbtIvys = internalSbtIvys ++ extraInternalIvys0
+        }
+
+        if (extraIvys.nonEmpty || extraInternalIvys.nonEmpty || extra.nonEmpty)
+          updateIvy(extra.toList.sorted)
+    }
   }
   def resolver(resolver: ApiResolver*): Unit = {
     userResolvers = userResolvers ++ resolver.map {
