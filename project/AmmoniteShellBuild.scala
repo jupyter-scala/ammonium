@@ -134,7 +134,7 @@ object AmmoniteShellBuild extends Build {
     )
 
 
-  def sparkProject(sparkVersion: String) = {
+  def sparkProject(sparkVersion: String, hadoopVersion: String, extraDirSuffix: String = "") = {
     val binaryVersion = sparkVersion.split('.').take(2).mkString(".")
     val shortBinaryVersion = binaryVersion.filter('.'.!=)
 
@@ -146,33 +146,22 @@ object AmmoniteShellBuild extends Build {
         moduleName := s"ammonite-spark_$binaryVersion",
         target := target.value / s"spark-$binaryVersion",
         libraryDependencies ++= Seq(
-          "org.apache.spark" %% "spark-core" % sparkVersion,
-          "org.apache.spark" %% "spark-sql" % sparkVersion,
+          "org.apache.spark" %% "spark-core" % sparkVersion excludeAll(ExclusionRule("org.apache.hadoop")),
+          "org.apache.spark" %% "spark-sql" % sparkVersion excludeAll(ExclusionRule("org.apache.hadoop")),
+          "org.apache.hadoop" % "hadoop-client" % hadoopVersion,
           "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
         ),
-        unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / "extra"
+        unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"extra$extraDirSuffix"
       )
   }
 
-  lazy val spark13 = sparkProject("1.3.1")
-  lazy val spark12 = sparkProject("1.2.2")
+  /* Forcing the hadoop version, so that it does not default to a value
+   * that lacks some artifacts. (e.g. 1.0.4 and hadoop-yarn-client). */
+  lazy val spark13 = sparkProject("1.3.1", "2.4.0")
+  lazy val spark12 = sparkProject("1.2.2", "2.4.0")
 
-  // only built on this specific scala 2.10 only branch
-  lazy val spark11 =
-    Project(id = s"spark-11", base = file("spark"))
-      .dependsOn(shellApi, shell % "test->test")
-      .settings(sharedSettings ++ testSettings ++ xerial.sbt.Pack.packAutoSettings: _*)
-      .settings(
-        name := s"ammonite-spark-11",
-        moduleName := s"ammonite-spark_1.1",
-        target := target.value / s"spark-1.1",
-        libraryDependencies ++= Seq(
-          "org.apache.spark" %% "spark-core" % "1.1.1",
-          "org.apache.spark" %% "spark-sql" % "1.1.1",
-          "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
-        ),
-        unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / "extra-1.1"
-      )
+  // only built on this specific scala 2.10 branch
+  lazy val spark11 = sparkProject("1.1.1", "2.4.0", "-1.1")
 
   lazy val shell = Project(id = "shell", base = file("shell"))
     .dependsOn(shellApi, interpreter)

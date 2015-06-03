@@ -24,6 +24,8 @@ trait AddDependency {
 }
 
 trait Load extends AddDependency {
+  def verbose: Boolean
+  def verbose_=(v: Boolean): Unit
   /**
    * Load one or several sbt project(s). Requires the sbt-detailed-settings
    * SBT plugin, and the sbt-extra launcher.
