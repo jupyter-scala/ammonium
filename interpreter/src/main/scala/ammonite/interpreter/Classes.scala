@@ -229,9 +229,11 @@ class Classes(
       classLoader addDir dir
       newDirs = newDirs :+ dir
     }
-    extraJars = extraJars ++ newJars
-    extraDirs = extraDirs ++ newDirs
-    onJarsAddedHooks.foreach(_(newJars ++ extraDirs))
+    newJars = newJars.distinct
+    newDirs = newDirs.distinct
+    extraJars = extraJars ++ newJars.distinct
+    extraDirs = extraDirs ++ newDirs.distinct
+    onJarsAddedHooks.foreach(_(newJars ++ newDirs))
     compilerClassLoader = null
   }
 

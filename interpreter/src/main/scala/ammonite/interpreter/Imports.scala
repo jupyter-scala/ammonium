@@ -7,6 +7,13 @@ import ammonite.api.ImportData
 class Imports(initialImports: Seq[(String, ImportData)] = Nil,
               useClassWrapper: Boolean = false) extends ammonite.api.Imports {
 
+  val hidden = NamesFor.default
+
+  def ensureHidden(): Unit = {
+    for (imp <- hidden if previousImports.contains(imp))
+      previousImports -= imp
+  }
+
   /**
    * Imports which are required by earlier commands to the REPL. Imports
    * have a specified key, so that later imports of the same name (e.g.
@@ -38,6 +45,8 @@ class Imports(initialImports: Seq[(String, ImportData)] = Nil,
         d.copy(prefix = d.wrapperName + ".$user" + d.prefix.stripPrefix(d.wrapperName))
       else
         d
+
+    ensureHidden()
 
     val previousImports0 =
       Option(wanted) match {

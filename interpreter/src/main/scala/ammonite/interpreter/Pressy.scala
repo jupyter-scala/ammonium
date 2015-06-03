@@ -162,7 +162,7 @@ object Pressy {
 
       val pressy = cachedPressy
       val currentFile = new BatchSourceFile(
-        Compiler.makeFile(allCode.getBytes, name = "Current.scala"),
+        Compiler.makeFile(allCode.getBytes("UTF-8"), name = "Current.scala"),
         allCode
       )
 
