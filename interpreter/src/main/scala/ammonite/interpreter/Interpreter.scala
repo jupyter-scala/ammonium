@@ -26,12 +26,12 @@ object Wrap {
   }
 
   def apply(displayCode: Seq[DisplayItem] => String, classWrap: Boolean = false) = {
-    (initialDecls: Seq[Decl], previousImportBlock: String, unfilteredPreviousImportBlock: String, initialWrapperName: String) =>
-      val (doClassWrap, decls, wrapperName) = {
+    (initialDecls: Seq[Decl], previousImportBlock: String, unfilteredPreviousImportBlock: String, wrapperName: String) =>
+      val (doClassWrap, decls) = {
         if (classWrap && initialDecls.exists(hasObjWrapSpecialImport))
-          (false, initialDecls.filterNot(hasObjWrapSpecialImport), "specialObj" + initialWrapperName.capitalize)
+          (false, initialDecls.filterNot(hasObjWrapSpecialImport))
         else
-          (classWrap, initialDecls, initialWrapperName)
+          (classWrap, initialDecls)
       }
 
       val code = decls.map(_.code) mkString " ; "
@@ -113,8 +113,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
                   val imports: ammonite.api.Imports = new Imports(),
                   val classes: ammonite.api.Classes = new Classes(),
                   startingLine: Int = 0,
-                  initialHistory: Seq[String] = Nil,
-                  enableCompilerPlugins: Boolean = true) extends ammonite.api.Interpreter with InterpreterInternals {
+                  initialHistory: Seq[String] = Nil) extends ammonite.api.Interpreter with InterpreterInternals {
 
   var currentCompilerOptions = List.empty[String]
 
@@ -202,7 +201,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       out <- process(p, printer)
     } yield out
 
-  def evalClass(code: String, wrapperName: String) = for {
+  def compile(code: String) = for {
     (output, compiled) <- Res.Success {
       val output = mutable.Buffer.empty[String]
       val c = compiler.compile(code.getBytes("UTF-8"), output.append(_))
@@ -213,10 +212,18 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       compiled, "Compilation Failed\n" + output.mkString("\n")
     )
 
+  } yield (classFiles, importData)
+
+  def loadClass(wrapperName: String, classFiles: Traversable[(String, Array[Byte])]) = for {
     cls <- Res[Class[_]](Try {
       for ((name, bytes) <- classFiles) classes.addClass(name, bytes)
       Class.forName(wrapperName, true, classes.currentClassLoader)
     }, e => "Failed to load compiled class " + e)
+  } yield cls
+
+  def evalClass(code: String, wrapperName: String) = for {
+    (classFiles, importData) <- compile(code)
+    cls <- loadClass(wrapperName, classFiles)
   } yield (cls, importData)
 
   def interrupted() = {
@@ -226,6 +233,19 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
 
   type InvEx = InvocationTargetException
   type InitEx = ExceptionInInitializerError
+
+  def evalMain(cls: Class[_]) =
+    cls.getDeclaredMethod("$main").invoke(null)
+
+  def evaluationResult[T](wrapperName: String, newImports: Seq[ImportData], value: T) =
+    Evaluated(
+      wrapperName,
+      newImports.map(id => id.copy(
+        wrapperName = wrapperName,
+        prefix = if (id.prefix == "") wrapperName else id.prefix
+      )),
+      value
+    )
 
   /**
    * Takes the preprocessed `code` and `printCode` and compiles/evals/runs/etc.
@@ -256,16 +276,9 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       } yield {
         // Exhaust the printer iterator now, before exiting the `Catching`
         // block, so any exceptions thrown get properly caught and handled
-        val value = evaluatorRunPrinter(process(cls.getDeclaredMethod("$main").invoke(null)))
+        val value = evaluatorRunPrinter(process(evalMain(cls)))
         sourcesMap(wrapperName) = wrappedLine
-        Evaluated(
-          wrapperName,
-          newImports.map(id => id.copy(
-            wrapperName = wrapperName,
-            prefix = if (id.prefix == "") wrapperName else id.prefix
-          )),
-          value
-        )
+        evaluationResult(wrapperName, newImports, value)
       }
 
     } finally Thread.currentThread().setContextClassLoader(oldClassloader)
@@ -307,8 +320,8 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       dynamicClasspath,
       currentCompilerOptions,
       classes.currentCompilerClassLoader,
-      () => pressy.shutdownPressy(),
-      enableCompilerPlugins = enableCompilerPlugins
+      classes.currentCompilerClassLoader,
+      () => pressy.shutdownPressy()
     )
     pressy = Pressy(
       Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),

@@ -14,6 +14,10 @@ object Res{
     case Some(s) => Success(s)
     case None => Failure(errMsg)
   }
+  def apply[T](o: Either[String, T]) = o match{
+    case Right(s) => Success(s)
+    case Left(t) => Failure(t)
+  }
   def apply[T](o: Try[T], errMsg: Throwable => String) = o match{
     case util.Success(s) => Success(s)
     case util.Failure(t) => Failure(errMsg(t))

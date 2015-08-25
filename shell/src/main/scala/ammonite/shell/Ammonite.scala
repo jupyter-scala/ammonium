@@ -216,9 +216,7 @@ object Ammonite extends AppOf[Ammonite] {
         else
           new Classes(startClassLoader, (startJars, startDirs), startCompilerClassLoader = startCompilerClassLoader, startCompilerDeps = (startCompilerJars, startCompilerDirs)),
       startingLine = if (predef.nonEmpty) -1 else 0,
-      initialHistory = initialHistory,
-      enableCompilerPlugins = !sharedLoader // acyclic can typically by found if sharing class loader with the host,
-                                            // and it conflicts with the mandatory Ammonite compiler plugin
+      initialHistory = initialHistory
     )
   }
 

@@ -54,13 +54,13 @@ trait Interpreter {
   def compile(src: Array[Byte], runLogger: String => Unit = print): Option[(Traversable[(String, Array[Byte])], Seq[ImportData])]
   def run(code: String): Either[String, Unit]
 
-  def wrap(code: String): Either[String, (String, String)] = {
+  def wrap(code: String, imports: Imports = imports, wrapperName: String = s"cmd$getCurrentLine"): Either[String, (String, String)] = {
     decls(code).right.map(decls =>
       wrapper(
         decls,
         imports.previousImportBlock(decls.flatMap(_.referencedNames).toSet),
         imports.previousImportBlock(),
-        s"cmd$getCurrentLine"
+        wrapperName
       )
     )
   }

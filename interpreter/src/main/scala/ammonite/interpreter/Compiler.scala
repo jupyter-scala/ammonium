@@ -37,9 +37,13 @@ trait Compiler{
    */
   def parse(line: String): Either[String, Seq[(Global#Tree, Seq[Global#Name])]]
 
-  def plugins: Seq[(String, Class[_])]
+  /**
+   * Writes files to dynamicClasspath. Needed for loading cached classes.
+   */
+  def addToClasspath(classFiles: Compiler.ClassFiles): Unit
 }
 object Compiler{
+  type ClassFiles = Traversable[(String, Array[Byte])]
   /**
    * If the Option is None, it means compilation failed
    * Otherwise it's a Traversable of (filename, bytes) tuples
@@ -117,39 +121,44 @@ object Compiler{
             dynamicClasspath: VirtualDirectory,
             options: List[String],
             evalClassloader: => ClassLoader,
-            shutdownPressy: () => Unit,
-            enableCompilerPlugins: Boolean = true): Compiler = new Compiler { self =>
+            pluginClassloader: => ClassLoader,
+            shutdownPressy: () => Unit): Compiler = new Compiler{
 
     val PluginXML = "scalac-plugin.xml"
 
-    lazy val plugins = if (enableCompilerPlugins) {
+    lazy val plugins0 = {
       import scala.collection.JavaConverters._
-      val loader = evalClassloader
+      val loader = pluginClassloader
 
-      val plugins =
-        loader.getResources(PluginXML).asScala
-          .toList
-          .map(url => scala.xml.XML.load(url.openStream()))
-          .map { el =>
-            val name = (el \\ "plugin" \ "name").text
-            val className = (el \\ "plugin" \ "classname").text
-            name -> className
-          }
-          .filter{ case (n, cn) => n.nonEmpty && cn.nonEmpty && n != "acyclic" }
-          .map { case (name, className) =>
-            name -> (className,
-                try Some(loader.loadClass(className))
-                catch { case _: ClassNotFoundException => None })
-          }
+      val urls = loader
+        .getResources(PluginXML)
+        .asScala
+        .toVector
 
-      val (found, notFound) = plugins.partition(_._2._2.nonEmpty)
+      val plugins = for {
+        url <- urls
+        elem = scala.xml.XML.load(url.openStream())
+        name = (elem \\ "plugin" \ "name").text
+        className = (elem \\ "plugin" \ "classname").text
+        // acyclic seems to conflict with AmmonitePlugin (happens during the tests in particular), so it's
+        // filtered out here. Else it raises:
+        //   scala.reflect.internal.FatalError: Multiple phases want to run right after typer; followers:
+        //   AmmonitePhase,acyclic; created phase-order.dot
+        if name != "acyclic"
+        if name.nonEmpty && className.nonEmpty
+        classOpt =
+        try Some(loader.loadClass(className))
+        catch { case _: ClassNotFoundException => None }
+      } yield (name, className, classOpt)
+
+      val notFound = plugins.collect{case (name, className, None) => (name, className) }
       if (notFound.nonEmpty) {
-        for ((name, (className, _)) <- notFound.sortBy(_._1))
+        for ((name, className) <- notFound.sortBy(_._1))
           Console.err.println(s"Implementation $className of plugin $name not found.")
       }
 
-      found.map{ case (name, (_, Some(cls))) => name -> cls }
-    } else Nil
+      plugins.collect{case (name, _, Some(cls)) => name -> cls }
+    }
 
     var logger: String => Unit = s => ()
 
@@ -160,18 +169,20 @@ object Compiler{
         jarDeps, dirDeps, dynamicClasspath, options, logger, scala.Console.RED
       )
       val scalac = new nsc.Global(settings, reporter) { g =>
-        override lazy val plugins =
-          new AmmonitePlugin(g, lastImports = _) ::
-            self.plugins
-              .map{case (name, cls) => name -> Plugin.instantiate(cls, g) }
-              .filter{case (name, plg) =>
-                try CompilerCompatibility.pluginInit(plg, Nil, g.globalError)
-                catch { case ex: Exception =>
-                  Console.err.println(s"Warning: disabling plugin $name, initialization failed: $ex")
-                  false
-                }
-              }
-              .map(_._2)
+        override lazy val plugins = List(new AmmonitePlugin(g, lastImports = _)) ++ {
+          for {
+            (name, cls) <- plugins0
+            plugin = Plugin.instantiate(cls, g)
+            initOk =
+            try CompilerCompatibility.pluginInit(plugin, Nil, g.globalError)
+            catch { case ex: Exception =>
+              Console.err.println(s"Warning: disabling plugin $name, initialization failed: $ex")
+              false
+            }
+            if initOk
+          } yield plugin
+        }
+
         override def classPath = platform.classPath // Actually jcp, avoiding a path-dependent type issue in 2.10 here
         override lazy val platform: ThisPlatform = new JavaPlatform{
           val global: g.type = g
@@ -179,6 +190,12 @@ object Compiler{
         }
         override lazy val analyzer = CompilerCompatibility.analyzer(g, evalClassloader)
       }
+      // Initialize scalac to the parser phase immediately, so we can start
+      // using Compiler#parse even if we haven't compiled any compilation
+      // units yet due to caching
+      val run = new scalac.Run()
+      scalac.phase = run.parserPhase
+      run.cancel()
       (vd, reporter, scalac)
     }
 
@@ -208,6 +225,14 @@ object Compiler{
         }
         val imports = lastImports.toList
         (files, imports)
+      }
+    }
+
+    def addToClasspath(classFiles: Traversable[(String, Array[Byte])]): Unit = {
+      for((name, bytes) <- classFiles){
+        val output = dynamicClasspath.fileNamed(s"$name.class").output
+        output.write(bytes)
+        output.close()
       }
     }
 
