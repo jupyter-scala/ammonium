@@ -59,7 +59,7 @@ trait ReplAPI {
 
 trait Internal{
   def combinePrints(iters: Iterator[String]*): Iterator[String]
-  def print[T: TPrint: PPrint: WeakTypeTag](value: => T, ident: String, custom: Option[String])(implicit cfg: Config): Iterator[String]
+  def print[T: TPrint: WeakTypeTag, V: PPrint](value: => T, value2: => V, ident: String, custom: Option[String])(implicit cfg: Config): Iterator[String]
   def printDef(definitionLabel: String, ident: String): Iterator[String]
   def printImport(imported: String): Iterator[String]
 }

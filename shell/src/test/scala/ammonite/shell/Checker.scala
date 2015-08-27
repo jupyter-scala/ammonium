@@ -6,10 +6,10 @@ import fastparse.core.Result.Success
 import utest._
 
 trait Checker {
-  def session(sess: String): Unit
+  def session(sess: String, captureOut: Boolean = captureOut): Unit
   def fail(input: String, failureCheck: String => Boolean = _ => true): Unit
   def complete(cursor: Int, buf: String): (Int, Seq[String], Seq[String])
-  def run(input: String): (Res[Evaluated[Unit]], Res[String])
+  def run(input: String, captureOut: Boolean = captureOut): (Res[Evaluated[Unit]], Res[String])
 
   def captureOut: Boolean
   def captureOut_=(v: Boolean): Unit
@@ -66,7 +66,7 @@ class AmmoniteChecker extends Checker {
     }
   }
 
-  def session(sess: String): Unit = {
+  def session(sess: String, captureOut: Boolean): Unit = {
 //    println("SESSION")
 //    println(sess)
     val margin = sess.lines.filter(_.trim != "").map(_.takeWhile(_ == ' ').length).min
@@ -78,7 +78,8 @@ class AmmoniteChecker extends Checker {
 
       val expected = resultLines.mkString("\n").trim
       allOutput += commandText.map("\n@ " + _).mkString("\n")
-      val (processed, printed) = run(commandText.mkString("\n"))
+      val (processed, printed0) = run(commandText.mkString("\n"), captureOut)
+      val printed = printed0.map(_.trim)
       interp.handleOutput(processed)
       if (expected.startsWith("error: ")){
         printed match{
@@ -98,7 +99,7 @@ class AmmoniteChecker extends Checker {
     }
   }
 
-  def run(input: String): (Res[Evaluated[Unit]], Res[String]) = {
+  def run(input: String, captureOut: Boolean): (Res[Evaluated[Unit]], Res[String]) = {
 //    println("RUNNING")
 //    println(input)
 //    print(".")

@@ -78,12 +78,12 @@ abstract class ReplAPIImpl(intp: ammonite.api.Interpreter,
         .flatMap(Iterator("\n") ++ _)
         .drop(1)
     }
-    def print[T: TPrint: PPrint: WeakTypeTag](value: => T, ident: String, custom: Option[String])(implicit cfg: Config) = {
+    def print[T: TPrint: WeakTypeTag, V: PPrint](value: => T, value2: => V, ident: String, custom: Option[String])(implicit cfg: Config) = {
       if (weakTypeOf[T] =:= weakTypeOf[Unit]) Iterator()
       else {
-        val pprint = implicitly[PPrint[T]]
+        val pprint = implicitly[PPrint[V]]
         val rhs = custom match {
-          case None => pprint.render(value, cfg)
+          case None => pprint.render(value2, cfg)
           case Some(s) => Iterator(cfg.colors.literalColor + s + cfg.colors.endColor)
         }
         Iterator(

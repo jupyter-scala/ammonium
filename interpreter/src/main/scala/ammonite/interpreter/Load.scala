@@ -56,6 +56,33 @@ class Load(intp: ammonite.api.Interpreter,
     }
   }
 
+  lazy val plugin: AddDependency = new AddDependency {
+    def jar(jar: File, jars: File*) = {
+      intp.classes.addPluginJars(jar +: jars: _*)
+      intp.init(intp.currentCompilerOptions: _*)
+    }
+    def jar(url: URL, urls: URL*) =
+      (url +: urls).map(fromCache).toList match {
+        case h :: t => jar(h, t: _*)
+        case Nil =>
+      }
+    def jar(path: String, paths: String*) =
+      (path +: paths).map(fileFor).toList match {
+        case h :: t => jar(h, t: _*)
+        case Nil =>
+      }
+    var pluginIvys = Seq.empty[(String, String, String)]
+    def ivy(coordinates: (String, String, String)*) = {
+      pluginIvys = pluginIvys ++ coordinates
+      val ivyJars = Ivy.resolve((pluginIvys ++ userIvys ++ sbtIvys).filterNot(internalSbtIvys), userResolvers)
+        .map(jarMap)
+        .filterNot(intp.classes.pluginJars.toSet)
+      if (ivyJars.nonEmpty) {
+        jar(ivyJars(0), ivyJars.drop(1):_ *)
+      }
+    }
+  }
+
   private var userJars = startJars
   private var userIvys = startIvys
   private var sbtIvys = Seq.empty[(String, String, String)]

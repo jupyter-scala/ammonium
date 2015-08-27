@@ -230,6 +230,9 @@ class Classes(
 
   var extraCompilerJars = Seq.empty[File]
 
+  var pluginClassLoader: AddURLClassLoader = classLoaderClone(Option(actualStartCompilerClassLoader) getOrElse actualStartClassLoader)
+  var extraPluginJars = Seq.empty[File]
+
   def addCompilerJars(jars: File*): Unit = {
     val newJars = jars.filter(jar =>
       !extraCompilerJars.contains(jar) &&
@@ -262,6 +265,15 @@ class Classes(
     compilerClassLoader = null
   }
 
+  def addPluginJars(jars: File*) = {
+    for (jar <- jars if jar.isFile && !startDeps._1.contains(jar) && jar.getName.endsWith(".jar")) {
+      pluginClassLoader addURL jar.toURI.toURL
+    }
+    for (dir <- jars if dir.isDirectory && !startDeps._2.contains(dir)) {
+      pluginClassLoader addDir dir
+    }
+  }
+
   def addClass(name: String, b: Array[Byte]): Unit = {
     classLoader.map += name -> b
     compilerClassLoader = null
@@ -281,6 +293,7 @@ class Classes(
     classLoaders.collectFirst{ case c if c.map contains name => c.map(name) }
 
   def currentClassLoader: ClassLoader = classLoader
+  def currentPluginClassLoader: ClassLoader = pluginClassLoader
 
   var compilerClassLoader: AddURLClassLoader = null
   def currentCompilerClassLoader: ClassLoader =
@@ -296,6 +309,7 @@ class Classes(
     }
   def jars = startDeps._1 ++ extraJars
   def compilerJars = jars ++ effectiveStartCompilerDeps._1 ++ extraCompilerJars
+  def pluginJars = startDeps._1 ++ effectiveStartCompilerDeps._1 ++ extraPluginJars
   def dirs = startDeps._2 ++ extraDirs
   // FIXME Add compilerDirs
 

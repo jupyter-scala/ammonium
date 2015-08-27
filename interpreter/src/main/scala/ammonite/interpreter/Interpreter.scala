@@ -332,7 +332,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       dynamicClasspath,
       currentCompilerOptions,
       classes.currentCompilerClassLoader,
-      classes.currentCompilerClassLoader,
+      classes.currentPluginClassLoader,
       () => pressy.shutdownPressy()
     )
     pressy = Pressy(

@@ -44,9 +44,14 @@ trait Load extends AddDependency {
   def resolver(resolver: Resolver*): Unit
 
   /**
-   * Compiler dependencies can be added through this (e.g. compiler plugins)
+   * Compiler dependencies (accessible through macros) can be added through this
    */
   def compiler: AddDependency
+
+  /**
+   * Compiler plugin dependencies can be added through this
+   */
+  def plugin: AddDependency
 
   /**
    * Loads a command into the REPL and

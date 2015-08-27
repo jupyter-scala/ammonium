@@ -57,7 +57,10 @@ case class Ammonite(shellPrompt: String = "@",
 
   val shellPromptRef = Ref(shellPrompt)
 
+  val colors = Ref[Colors](Colors.Default)
   val frontEnd = Ref[FrontEnd](FrontEnd.Ammonite)
+
+  var history = new History(Vector())
 
   val interp: ammonite.api.Interpreter with InterpreterInternals =
     newInterpreter(
@@ -88,15 +91,19 @@ case class Ammonite(shellPrompt: String = "@",
     }
   }
 
+  val reader = new InputStreamReader(System.in)
   def action() = for{
     // Condition to short circuit early if `interp` hasn't finished evaluating
     (_, stmts) <- frontEnd().action(
-      System.in, ???, System.out,
-      colorSet.prompt + shellPromptRef() + scala.Console.RESET,
-      ???,
+      System.in, reader, System.out,
+      colorSet.prompt + shellPromptRef() + scala.Console.RESET + " ",
+      colors(),
       interp.complete(_, _),
       initialHistory,
-      ???
+      addHistory = (code) => if (code != "") {
+        // storage().fullHistory() = storage().fullHistory() :+ code
+        history = history :+ code
+      }
     )
     _ <- Signaller("INT") { Thread.currentThread().stop() }
     out <- interp(stmts, (f, x) => {saveHistory(x); f(x)}, _.asInstanceOf[Iterator[String]].foreach(print))

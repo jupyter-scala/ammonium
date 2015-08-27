@@ -11,17 +11,22 @@ trait Classes {
    * whenever a `ClassLoader` is needed.
    */
   def currentClassLoader: ClassLoader
+  def currentPluginClassLoader: ClassLoader
   def currentCompilerClassLoader: ClassLoader
 
   def jars: Seq[File]
   def dirs: Seq[File]
   def compilerJars: Seq[File]
+  def pluginJars: Seq[File]
 
   /** Add JARs (can actually be JARs, directories, or a mix of both) */
   def addJars(jars: File*): Unit
 
-  /** Add compiler JARs, compiler plugins typically (can only be JARs) */
+  /** Add compiler JARs */
   def addCompilerJars(jars: File*): Unit
+
+  /** Add compiler plugin JARs */
+  def addPluginJars(jars: File*): Unit
 
   /** Add the class described by the bytecode `b` */
   def addClass(name: String, b: Array[Byte]): Unit
