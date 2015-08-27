@@ -3,6 +3,7 @@ package ammonite.interpreter
 import java.lang.reflect.InvocationTargetException
 
 import acyclic.file
+import fastparse.core.Result.Success
 
 import scala.collection.mutable
 import scala.reflect.io.VirtualDirectory
@@ -154,36 +155,47 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     pressy.complete(snippetIndex, Option(previousImports) getOrElse imports.previousImportBlock(), snippet)
   }
 
-  def decls(code: String) = {
-    Preprocessor(compiler.parse, Parsers.split(code), getCurrentLine) match {
-      case Res.Success(l) =>
-        Right(l)
-      case Res.Exit =>
-        throw new Exception("Can't happen")
-      case Res.Skip =>
-        Right(Nil)
-      case Res.Failure(err) =>
-        Left(err)
+  def decls(code: String) =
+    Parsers.split(code) match {
+      case Some(Success(stmts, _)) =>
+        Preprocessor(compiler.parse, stmts, getCurrentLine) match {
+          case Res.Success(l) =>
+            Right(l)
+          case Res.Exit =>
+            throw new Exception("Can't happen")
+          case Res.Skip =>
+            Right(Nil)
+          case Res.Failure(err) =>
+            Left(err)
+        }
+      case Some(res) =>
+        Left(s"Error: $res")
+      case None =>
+        Left("parse error")
     }
-  }
 
-  def compile(src: Array[Byte], runLogger: String => Unit) = {
+  def compile(src: Array[Byte], runLogger: String => Unit) =
     compiler.compile(src, runLogger)
-  }
 
-  def run(code: String) = {
-    apply(Parsers.split(code), (_, _) => (), bridgeConfig.defaultPrinter) match {
-      case Res.Success(ev) =>
-        updateImports(ev.imports)
-        Right(())
-      case Res.Exit =>
-        throw Exit
-      case Res.Skip =>
-        Right(())
-      case Res.Failure(err) =>
-        Left(err)
+  def run(code: String) =
+    Parsers.split(code) match {
+      case Some(Success(stmts, _)) =>
+        apply(stmts, (_, _) => (), bridgeConfig.defaultPrinter) match {
+          case Res.Success(ev) =>
+            updateImports(ev.imports)
+            Right(())
+          case Res.Exit =>
+            throw Exit
+          case Res.Skip =>
+            Right(())
+          case Res.Failure(err) =>
+            Left(err)
+        }
+      case Some(res) =>
+        Left(s"Error: $res")
+      case None =>
+        Left("parse error")
     }
-  }
 
   def apply[T](stmts: Seq[String],
                saveHistory: (String => Unit, String) => Unit = _(_),

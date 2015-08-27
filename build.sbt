@@ -102,18 +102,18 @@ lazy val interpreter = project.in(file("interpreter"))
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full,
-      "com.lihaoyi" %% "scalaparse" % "0.1.6"
+      "com.lihaoyi" %% "scalaparse" % "0.2.1"
     )
   )
 
 lazy val shellApi = project.in(file("shell-api"))
-  .dependsOn(api)
+  .dependsOn(api, tprint)
   .settings(sharedSettings: _*)
   .settings(
     name := "ammonite-shell-api",
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "com.lihaoyi" %% "ammonite-pprint" % "0.3.2"
+      "com.lihaoyi" %% "pprint" % "0.3.4"
     )
   )
   .settings(buildInfoSettings: _*)
@@ -123,6 +123,56 @@ lazy val shellApi = project.in(file("shell-api"))
       version
     ),
     buildInfoPackage := "ammonite.shell"
+  )
+
+lazy val tprint = project
+  .settings(sharedSettings: _*)
+
+  .settings(
+    name := "ammonite-tprint",
+    libraryDependencies ++= {
+      Seq(
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+        "com.lihaoyi" %% "pprint" % "0.3.4"
+      ) ++ {
+        if (scalaVersion.value.startsWith("2.11"))
+          Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value
+          )
+        else
+          Nil
+      }
+    },
+    sourceGenerators in Compile <+= Def.task {
+      val file = (sourceManaged in Compile).value/"ammonite"/"tprint"/"TPrintGen.scala"
+
+      val typeGen = for(i <- 2 to 22) yield {
+        val ts = (1 to i).map("T" + _).mkString(", ")
+        val tsBounded = (1 to i).map("T" + _ + ": Type").mkString(", ")
+        val tsGet = (1 to i).map("get[T" + _ + "](cfg)").mkString(" + \", \" + ")
+        s"""
+          implicit def F${i}TPrint[$tsBounded, R: Type] = make[($ts) => R](cfg =>
+            "(" + $tsGet + ") => " + get[R](cfg)
+          )
+          implicit def T${i}TPrint[$tsBounded] = make[($ts)](cfg =>
+            "(" + $tsGet + ")"
+          )
+
+        """
+      }
+      val output = s"""
+        package ammonite.tprint
+
+        trait TPrintGen[Type[_], Cfg]{
+          def make[T](f: Cfg => String): Type[T]
+          def get[T: Type](cfg: Cfg): String
+          implicit def F0TPrint[R: Type] = make[() => R](cfg => "() => " + get[R](cfg))
+          implicit def F1TPrint[T1: Type, R: Type] = make[T1 => R](cfg => get[T1](cfg) + " => " + get[R](cfg))
+          ${typeGen.mkString("\n")}
+        }
+      """.stripMargin
+      IO.write(file, output)
+      Seq(file)
+    }
   )
 
 
@@ -174,7 +224,8 @@ lazy val shell = Project(id = "shell", base = file("shell"))
     name := "ammonite-shell",
     libraryDependencies ++= Seq(
       "jline" % "jline" % "2.12",
-      "com.github.alexarchambault" %% "case-app" % "0.2.2"
+      "com.github.alexarchambault" %% "case-app" % "0.2.2",
+      "com.lihaoyi" %% "ammonite-terminal" % "0.4.5"
     ),
     libraryDependencies ++= {
       if (scalaVersion.value startsWith "2.10.")
@@ -187,8 +238,8 @@ lazy val shell = Project(id = "shell", base = file("shell"))
 
 lazy val root = project.in(file("."))
   .settings(sharedSettings: _*)
-  .aggregate(api, ivyLight, interpreter, shellApi, spark15, spark14, spark13, spark12, shell)
-  .dependsOn(api, ivyLight, interpreter, shellApi, spark15, spark14, spark13, spark12, shell)
+  .aggregate(api, ivyLight, interpreter, shellApi, spark15, spark14, spark13, spark12, shell, tprint)
+  .dependsOn(api, ivyLight, interpreter, shellApi, spark15, spark14, spark13, spark12, shell, tprint)
   .settings(
     publish := {},
     publishLocal := {},

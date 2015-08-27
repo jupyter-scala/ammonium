@@ -1,8 +1,8 @@
 package ammonite.shell
 
 import ammonite.interpreter._
-import ammonite.pprint
-import ammonite.pprint.{PPrint, Config, TPrint}
+import pprint.{PPrint, Config}
+import ammonite.tprint.TPrint
 import ammonite.shell.util._
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
@@ -83,8 +83,8 @@ abstract class ReplAPIImpl(intp: ammonite.api.Interpreter,
       else {
         val pprint = implicitly[PPrint[T]]
         val rhs = custom match {
-          case None => pprint.render(value)
-          case Some(s) => Iterator(pprint.cfg.color.literal(s))
+          case None => pprint.render(value, cfg)
+          case Some(s) => Iterator(cfg.colors.literalColor + s + cfg.colors.endColor)
         }
         Iterator(
           colors.ident, ident, colors.reset, ": ",
@@ -100,5 +100,19 @@ abstract class ReplAPIImpl(intp: ammonite.api.Interpreter,
     }
   }
 
-  def show[T](a: T, lines: Int = 0) = ammonite.pprint.Show(a, lines)
+  def show[T: PPrint](implicit cfg: Config) = (t: T) => {
+    pprint.tokenize(t, height = 0)(implicitly[PPrint[T]], cfg).foreach(print)
+    println()
+  }
+  def show[T: PPrint](t: T,
+                      width: Integer = null,
+                      height: Integer = 0,
+                      indent: Integer = null,
+                      colors: pprint.Colors = null)
+                     (implicit cfg: Config = Config.Defaults.PPrintConfig) = {
+
+
+    pprint.tokenize(t, width, height, indent, colors)(implicitly[PPrint[T]], cfg).foreach(print)
+    println()
+  }
 }

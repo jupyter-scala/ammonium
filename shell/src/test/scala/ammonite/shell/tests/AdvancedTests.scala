@@ -176,7 +176,7 @@ class AdvancedTests(check0: => Checker,
         @ class C
         defined class C
 
-        @ implicit def pprint = ammonite.pprint.PPrinter[C]((t, c) => Iterator("INSTANCE OF CLASS C"))
+        @ implicit def pprint = pprint.PPrinter[C]((t, c) => Iterator("INSTANCE OF CLASS C"))
         defined function pprint
 
         @ new C
@@ -326,7 +326,7 @@ class AdvancedTests(check0: => Checker,
         @ Array(1)
         res0: Array[Int] = Array(1)
 
-        @ import ammonite.pprint.TPrint
+        @ import ammonite.tprint.TPrint
 
         @ implicit def ArrayTPrint[T: TPrint]: TPrint[Array[T]] = TPrint.lambda(
         @   c => implicitly[TPrint[T]].render(c) + c.color.literal(" Array")
@@ -379,7 +379,7 @@ class AdvancedTests(check0: => Checker,
       ...
 
       @ show(Seq.fill(20)(100))
-      res1: ammonite.pprint.Show[Seq[Int]] = List(
+      res1: pprint.Show[Seq[Int]] = List(
         100,
         100,
         100,
@@ -403,7 +403,7 @@ class AdvancedTests(check0: => Checker,
       )
 
       @ show(Seq.fill(20)(100), lines = 3)
-      res2: ammonite.pprint.Show[Seq[Int]] = List(
+      res2: pprint.Show[Seq[Int]] = List(
         100,
         100,
       ...

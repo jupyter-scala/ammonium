@@ -2,7 +2,6 @@ package ammonite.shell
 
 import ammonite.interpreter._
 import ammonite.api.{IvyConstructor, ImportData, BridgeConfig}
-import ammonite.pprint
 import ammonite.shell.util._
 
 import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
@@ -10,6 +9,7 @@ import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
 import caseapp._
 
 import java.io.{ Console => _, _ }
+import fastparse.core.Result.Success
 import org.apache.ivy.plugins.resolver.DependencyResolver
 
 import scala.annotation.tailrec
@@ -57,22 +57,17 @@ case class Ammonite(shellPrompt: String = "@",
 
   val shellPromptRef = Ref(shellPrompt)
 
-  val frontEnd = JLineFrontend(
-    System.in, System.out,
-    colorSet.prompt + shellPromptRef() + scala.Console.RESET,
-    interp.complete(_, _),
-    initialHistory
-  )
+  val frontEnd = Ref[FrontEnd](FrontEnd.Ammonite)
 
   val interp: ammonite.api.Interpreter with InterpreterInternals =
     newInterpreter(
       predef,
       classWrap,
-      pprintConfig.copy(maxWidth = frontEnd.width, lines = 15),
+      pprintConfig.copy(width = frontEnd().width, height = 15),
       colorSet,
       sharedLoader,
       shellPromptRef,
-      frontEnd.reset(),
+      () => ???,
       initialHistory
     )
 
@@ -83,14 +78,26 @@ case class Ammonite(shellPrompt: String = "@",
   // line number to -1 if the predef exists so the first user-entered
   // line becomes 0
   if (predef.nonEmpty) {
-    val res1 = interp(Parsers.split(predef), (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(print))
-    interp.handleOutput(res1)
-    print("\n")
+    Parsers.split(predef) match {
+      case Some(Success(stmts, _)) =>
+        val res1 = interp(stmts, (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(print))
+        interp.handleOutput(res1)
+        print("\n")
+      case other =>
+        println(s"Error while running predef: $other")
+    }
   }
 
   def action() = for{
     // Condition to short circuit early if `interp` hasn't finished evaluating
-    stmts <- frontEnd.action()
+    (_, stmts) <- frontEnd().action(
+      System.in, ???, System.out,
+      colorSet.prompt + shellPromptRef() + scala.Console.RESET,
+      ???,
+      interp.complete(_, _),
+      initialHistory,
+      ???
+    )
     _ <- Signaller("INT") { Thread.currentThread().stop() }
     out <- interp(stmts, (f, x) => {saveHistory(x); f(x)}, _.asInstanceOf[Iterator[String]].foreach(print))
   } yield {
@@ -107,7 +114,6 @@ case class Ammonite(shellPrompt: String = "@",
         case _ =>
       }
 
-      frontEnd.update(res)
       if (interp.handleOutput(res)) loop()
       else interp.stop()
     }

@@ -42,7 +42,7 @@ class AmmoniteChecker extends Checker {
     Ammonite.newInterpreter(
       predef,
       classWrap = false,
-      pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15),
+      pprintConfig = pprint.Config.Defaults.PPrintConfig.copy(lines = 15),
       colors = ColorSet.BlackWhite,
       sharedLoader = false
     )

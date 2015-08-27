@@ -1,6 +1,7 @@
 package ammonite.shell
 
-import ammonite.pprint.{Config, TPrint, PPrint}
+import pprint.{Config, PPrint}
+import ammonite.tprint.TPrint
 import scala.reflect.runtime.universe.WeakTypeTag
 
 trait ReplAPI {
@@ -40,13 +41,20 @@ trait ReplAPI {
    * Controls how things are pretty-printed in the REPL. Feel free
    * to shadow this with your own definition to change how things look
    */
-  implicit var pprintConfig: ammonite.pprint.Config
+  implicit var pprintConfig: pprint.Config
 
   /**
-   * Prettyprint the given `value` with no truncation. Optionally takes
-   * a number of lines to print.
+   * Lets you configure the pretty-printing of a value. By default, it simply
+   * disables truncation and prints the entire thing, but you can set other
+   * parameters as well if you want.
    */
-  def show[T](value: T, lines: Int = 0): ammonite.pprint.Show[T]
+  def show[T: PPrint](implicit cfg: Config): T => Unit
+  def show[T: PPrint](t: T,
+                      width: Integer = 0,
+                      height: Integer = null,
+                      indent: Integer = null,
+                      colors: pprint.Colors = null)
+                     (implicit cfg: Config = Config.Defaults.PPrintConfig): Unit
 }
 
 trait Internal{
