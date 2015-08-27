@@ -17,13 +17,13 @@ class FailureTests(check0: => Checker, lightException: Boolean = false) extends 
 
         @ 1 + vale
         error: Compilation Failed
-        Main.scala:28: not found: value vale
+        Main.scala:\d\+: not found: value vale
         1 + vale
             ^
 
         @ val x = 1 + vale
         error: Compilation Failed
-        Main.scala:28: not found: value vale
+        Main.scala:\d\+: not found: value vale
         1 + vale
             ^
       """)

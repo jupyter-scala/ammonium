@@ -2,6 +2,7 @@ package ammonite.shell
 
 import ammonite.interpreter._
 import ammonite.shell.util.ColorSet
+import fastparse.core.Result.Success
 import utest._
 
 trait Checker {
@@ -42,7 +43,7 @@ class AmmoniteChecker extends Checker {
     Ammonite.newInterpreter(
       predef,
       classWrap = false,
-      pprintConfig = pprint.Config.Defaults.PPrintConfig.copy(lines = 15),
+      pprintConfig = pprint.Config.Defaults.PPrintConfig.copy(height = 15),
       colors = ColorSet.BlackWhite,
       sharedLoader = false
     )
@@ -50,14 +51,19 @@ class AmmoniteChecker extends Checker {
   val interp = newInterpreter()
 
   if (predef.nonEmpty) {
-    val res1 = interp(
-      Parsers.split(predef),
-      (_, _) => (),
-      _.asInstanceOf[Iterator[String]].foreach(allOutput += _),
-      if (captureOut) Some(allOutput += _) else None
-    )
-    interp.handleOutput(res1)
-    allOutput += "\n"
+    Parsers.split(predef) match {
+      case Some(Success(stmts, _)) =>
+        val res1 = interp(
+          stmts,
+          (_, _) => (),
+          _.asInstanceOf[Iterator[String]].foreach(allOutput += _),
+          if (captureOut) Some(allOutput += _) else None
+        )
+        interp.handleOutput(res1)
+        allOutput += "\n"
+      case other =>
+        allOutput += s"Error (predef): $other"
+    }
   }
 
   def session(sess: String): Unit = {
@@ -98,12 +104,17 @@ class AmmoniteChecker extends Checker {
 //    print(".")
     val msg = collection.mutable.Buffer.empty[String]
     val msgOut = collection.mutable.Buffer.empty[String]
-    val processed = interp(
-      Parsers.split(input),
-      _(_),
-      _.asInstanceOf[Iterator[String]].foreach(msg.append(_)),
-      if (captureOut) Some(msgOut.append(_)) else None
-    )
+    val processed = Parsers.split(input) match {
+      case Some(Success(stmts, _)) =>
+        interp(
+          stmts,
+          _(_),
+          _.asInstanceOf[Iterator[String]].foreach(msg.append(_)),
+          if (captureOut) Some(msgOut.append(_)) else None
+        )
+      case _ =>
+        ???
+    }
     val printed = processed.map(_ => msgOut.mkString + msg.mkString)
     interp.handleOutput(processed)
     (processed, printed)
