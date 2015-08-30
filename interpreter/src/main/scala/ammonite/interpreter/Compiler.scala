@@ -30,7 +30,10 @@ import ammonite.api.ImportData
  * classfile per source-string (e.g. inner classes, or lambdas). Also lets
  * you query source strings using an in-built presentation compiler
  */
-trait Compiler{
+trait Compiler {
+  /**
+   * Compiles a blob of bytes and spits of a list of classfiles
+   */
   def compile(src: Array[Byte], runLogger: String => Unit): Compiler.Output
   /**
    * Either the statements that were parsed or the error message
@@ -42,8 +45,11 @@ trait Compiler{
    */
   def addToClasspath(classFiles: Compiler.ClassFiles): Unit
 }
-object Compiler{
+
+object Compiler {
+
   type ClassFiles = Traversable[(String, Array[Byte])]
+
   /**
    * If the Option is None, it means compilation failed
    * Otherwise it's a Traversable of (filename, bytes) tuples
@@ -79,50 +85,61 @@ object Compiler{
    * for the Scala compiler to function, common between the
    * normal and presentation compiler
    */
-  def initGlobalBits(jarDeps: Seq[java.io.File],
-                     dirDeps: Seq[java.io.File],
-                     dynamicClasspath: VirtualDirectory,
-                     options: List[String],
-                     logger: => String => Unit,
-                     errorColor: String)= {
+  def initGlobalBits(
+    jarDeps: Seq[java.io.File],
+    dirDeps: Seq[java.io.File],
+    dynamicClasspath: VirtualDirectory,
+    options: List[String],
+    logger: => String => Unit,
+    errorColor: String
+  ) = {
     val vd = new io.VirtualDirectory("(memory)", None)
-    lazy val settings = new Settings
+
+    val settings = new Settings
     settings.processArguments(options, true)
-    val settingsX = settings
-    settingsX.Yrangepos.value = true
+    settings.Yrangepos.value = true
+
     val jCtx = new JavaContext()
-    val jDirs = jarDeps.map(x =>
-      new DirectoryClassPath(new FileZipArchive(x), jCtx)
-    ).toVector ++ dirDeps.map(x =>
-      new DirectoryClassPath(new PlainDirectory(new Directory(x)), jCtx)
-    ) ++ Seq(new DirectoryClassPath(dynamicClasspath, jCtx))
+    val jDirs =
+      jarDeps
+        .map(jar => new DirectoryClassPath(new FileZipArchive(jar), jCtx))
+        .toVector ++
+      dirDeps
+        .map(dir => new DirectoryClassPath(new PlainDirectory(new Directory(dir)), jCtx)) ++
+      Seq(new DirectoryClassPath(dynamicClasspath, jCtx))
+
     val jcp = new JavaClassPath(jDirs, jCtx)
+
     settings.outputDirs.setSingleOutput(vd)
 
-    val reporter = new AbstractReporter {
-      def displayPrompt(): Unit = ???
+    val settings0 = settings
 
-      def display(pos: Position, msg: String, severity: Severity) = {
-        severity match{
-          case ERROR => logger(
-            errorColor + Position.formatMessage(pos, msg, false) + scala.Console.RESET
+    val reporter =
+      new AbstractReporter {
+        val settings = settings0
+        def displayPrompt(): Unit = ???
+
+        def display(pos: Position, msg: String, severity: Severity) =
+          logger(
+            severity match {
+              case ERROR => errorColor + Position.formatMessage(pos, msg, false) + scala.Console.RESET
+              case _     => msg
+            }
           )
-          case _ => logger(msg)
-        }
       }
 
-      val settings = settingsX
-    }
     (settings, reporter, vd, jcp)
   }
 
-  def apply(jarDeps: Seq[java.io.File],
-            dirDeps: Seq[java.io.File],
-            dynamicClasspath: VirtualDirectory,
-            options: List[String],
-            evalClassloader: => ClassLoader,
-            pluginClassloader: => ClassLoader,
-            shutdownPressy: () => Unit): Compiler = new Compiler{
+  def apply(
+    jarDeps: Seq[java.io.File],
+    dirDeps: Seq[java.io.File],
+    dynamicClasspath: VirtualDirectory,
+    options: List[String],
+    evalClassloader: => ClassLoader,
+    pluginClassloader: => ClassLoader,
+    shutdownPressy: () => Unit
+  ): Compiler = {
 
     val PluginXML = "scalac-plugin.xml"
 
@@ -164,11 +181,12 @@ object Compiler{
 
     var lastImports = Seq.empty[ImportData]
 
-    val (vd, reporter, compiler) = {
-      val (settings, reporter, vd, jcp) = initGlobalBits(
-        jarDeps, dirDeps, dynamicClasspath, options, logger, scala.Console.RED
-      )
-      val scalac = new nsc.Global(settings, reporter) { g =>
+    val (settings, reporter, vd, jcp) = initGlobalBits(
+      jarDeps, dirDeps, dynamicClasspath, options, logger, scala.Console.RED
+    )
+
+    val compiler =
+      new nsc.Global(settings, reporter) { g =>
         override lazy val plugins = List(new AmmonitePlugin(g, lastImports = _)) ++ {
           for {
             (name, cls) <- plugins0
@@ -183,88 +201,104 @@ object Compiler{
           } yield plugin
         }
 
-        override def classPath = platform.classPath // Actually jcp, avoiding a path-dependent type issue in 2.10 here
-        override lazy val platform: ThisPlatform = new JavaPlatform{
-          val global: g.type = g
-          override def classPath = jcp
-        }
-        override lazy val analyzer = CompilerCompatibility.analyzer(g, evalClassloader)
-      }
-      // Initialize scalac to the parser phase immediately, so we can start
-      // using Compiler#parse even if we haven't compiled any compilation
-      // units yet due to caching
-      val run = new scalac.Run()
-      scalac.phase = run.parserPhase
-      run.cancel()
-      (vd, reporter, scalac)
-    }
-
-    /**
-     * Compiles a blob of bytes and spits of a list of classfiles
-     */
-    def compile(src: Array[Byte], runLogger: String => Unit): Output = {
-      compiler.reporter.reset()
-      this.logger = runLogger
-      val singleFile = makeFile( src)
-
-      val run = new compiler.Run()
-      vd.clear()
-      run.compileFiles(List(singleFile))
-      if (reporter.hasErrors) None
-      else Some{
-        shutdownPressy()
-
-        val files = for{
-          x <- vd.iterator.to[collection.immutable.Traversable]
-          if x.name.endsWith(".class")
-        } yield {
-          val output = dynamicClasspath.fileNamed(x.name).output
-          output.write(x.toByteArray)
-          output.close()
-          (x.name.stripSuffix(".class"), x.toByteArray)
-        }
-        val imports = lastImports.toList
-        (files, imports)
-      }
-    }
-
-    def addToClasspath(classFiles: Traversable[(String, Array[Byte])]): Unit = {
-      for((name, bytes) <- classFiles){
-        val output = dynamicClasspath.fileNamed(s"$name.class").output
-        output.write(bytes)
-        output.close()
-      }
-    }
-
-    def referencedNames(member: compiler.Tree): List[compiler.Name] = {
-      val importVars = new scala.collection.mutable.HashSet[compiler.Name]()
-
-      val tvs =
-        new compiler.Traverser {
-          override def traverse(ast: compiler.Tree) = ast match {
-            case compiler.Ident(name) =>
-              // Comments from scalac (or Spark?) say:
-              //   XXX this is obviously inadequate but it's going to require some effort to get right.
-              if (!name.toString.startsWith("x$"))
-                importVars += name
-            case _ =>
-              super.traverse(ast)
+        override def classPath =
+          platform.classPath // Actually jcp, avoiding a path-dependent type issue in 2.10 here
+        override lazy val platform: ThisPlatform =
+          new JavaPlatform {
+            val global: g.type = g
+            override def classPath = jcp
           }
+        override lazy val analyzer =
+          CompilerCompatibility.analyzer(g, evalClassloader)
+      }
+
+    // Initialize scalac to the parser phase immediately, so we can start
+    // using Compiler#parse even if we haven't compiled any compilation
+    // units yet due to caching
+    val run = new compiler.Run()
+    compiler.phase = run.parserPhase
+    run.cancel()
+
+
+    new Compiler {
+      def compile(src: Array[Byte], runLogger: String => Unit) = {
+        compiler.reporter.reset()
+        logger = runLogger
+
+        val singleFile = makeFile( src)
+
+        val run = new compiler.Run()
+        vd.clear()
+        run.compileFiles(List(singleFile))
+
+        if (reporter.hasErrors)
+          None
+        else {
+          shutdownPressy()
+
+          val files =
+            for {
+              f <- vd.iterator.to[collection.immutable.Traversable]
+              if f.name.endsWith(".class")
+            } yield {
+              val output = dynamicClasspath.fileNamed(f.name).output
+              output.write(f.toByteArray)
+              output.close()
+              (f.name.stripSuffix(".class"), f.toByteArray)
+            }
+
+          val imports = lastImports.toList
+
+          Some((files, imports))
         }
-      tvs traverse member
+      }
 
-      importVars.toList
-    }
+      def addToClasspath(classFiles: Traversable[(String, Array[Byte])]) =
+        for ((name, bytes) <- classFiles){
+          val output = dynamicClasspath.fileNamed(s"$name.class").output
+          output.write(bytes)
+          output.close()
+        }
 
+      def referencedNames(member: compiler.Tree): List[compiler.Name] = {
+        val importVars = new mutable.HashSet[compiler.Name]()
 
-    def parse(line: String): Either[String, Seq[(Global#Tree, Seq[Global#Name])]] = {
-      val out = mutable.Buffer.empty[String]
-      logger = out.append(_)
-      reporter.reset()
-      val parser = compiler.newUnitParser(line)
-      val trees = CompilerCompatibility.trees(compiler)(parser)
-      if (reporter.hasErrors) Left(out.mkString("\n"))
-      else Right(trees.map(tree => tree -> referencedNames(tree).map(_.decodedName)))
+        val tvs =
+          new compiler.Traverser {
+            override def traverse(ast: compiler.Tree) =
+              ast match {
+                case compiler.Ident(name) =>
+                  // Comments from scalac (or Spark?) say:
+                  //   XXX this is obviously inadequate but it's going to require some effort to get right.
+                  if (!name.toString.startsWith("x$"))
+                    importVars += name
+                case _ =>
+                  super.traverse(ast)
+              }
+          }
+
+        tvs.traverse(member)
+
+        importVars.toList
+      }
+
+      def parse(line: String) = {
+        val out = mutable.Buffer.empty[String]
+        logger = out.append(_)
+        reporter.reset()
+
+        val parser = compiler.newUnitParser(line)
+        val trees = CompilerCompatibility.trees(compiler)(parser)
+
+        if (reporter.hasErrors)
+          Left(out.mkString("\n"))
+        else
+          Right(
+            trees.map(tree =>
+              tree -> referencedNames(tree).map(_.decodedName)
+            )
+          )
+      }
     }
   }
 }

@@ -3,14 +3,13 @@ package ammonite.interpreter
 import java.io.{FileOutputStream, File}
 import java.net.{URLClassLoader, URL}
 import java.nio.file.Files
-import java.util.UUID
 
-class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLClassLoader(Array(), parent) {
-  override def addURL(url: URL) = super.addURL(url)
+class AddURLClassLoader(
+  parent: ClassLoader,
+  tmpClassDir: => File
+) extends URLClassLoader(Array(), parent) {
+
   var dirs = Seq.empty[File]
-  def addDir(dir: File) = {
-    dirs = dirs :+ dir
-  }
   var map = Map.empty[String, Array[Byte]]
 
   def resourceFromDir(name: String, dir: File): Option[URL] =
@@ -27,29 +26,33 @@ class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLCl
       None
   }
 
-  def fromDirs(name: String): Option[Class[_]] = {
-    val parts = name split '.'
-    val init = parts.init
-    val last = parts.last + ".class"
-    val it = dirs.iterator.map(fromDir(name, init, last, _)).collect{case Some(c) => c}
-    if (it.hasNext)
-      Some(it.next())
-    else
-      None
+  override def addURL(url: URL): Unit = super.addURL(url)
+  def addDir(dir: File): Unit = dirs = dirs :+ dir
+
+
+  def fromDirs(name: String): Option[Array[Byte]] = {
+    val parts = name.split('.')
+    val relPath = (parts.init :+ (parts.last + ".class")).mkString("/")
+
+    dirs
+      .iterator
+      .map(new File(_, relPath))
+      .collectFirst{case f if f.exists() => f.toPath}
+      .map(Files.readAllBytes)
   }
 
-  override def findClass(name: String): Class[_] = {
+
+  override def findClass(name: String): Class[_] =
     try super.findClass(name)
-    catch{ case e: ClassNotFoundException =>
-      fromDirs(name) .getOrElse {
-        map.get(name) match {
-          case Some(bytes) => defineClass(name, bytes, 0, bytes.length)
-          case None =>
-            throw e
-        }
-      }
+    catch {
+      case e: ClassNotFoundException =>
+        fromDirs(name)
+          .orElse(map.get(name))
+          .fold(throw e) {
+            bytes =>
+              defineClass(name, bytes, 0, bytes.length) // FIXME Add ProtectionDomain param
+          }
     }
-  }
 
   def resourceFromMap(name: String): Option[URL] =
     Some(name)
@@ -98,28 +101,36 @@ object Classes {
 
 
   def defaultClassPath(classLoader: ClassLoader = Thread.currentThread().getContextClassLoader): (Seq[File], Seq[File]) = {
-    var current = classLoader
     val files = collection.mutable.Buffer.empty[java.io.File]
+
     files.appendAll(
       System.getProperty("sun.boot.class.path")
         .split(":")
-        .map(new java.io.File(_))
+        .map(new File(_))
     )
-    while (current != null) {
-      current match {
-        case t: java.net.URLClassLoader =>
-          files.appendAll(t.getURLs.map(u => new java.io.File(u.toURI)))
-        case _ =>
+
+    def helper(classLoader: ClassLoader): Unit =
+      if (classLoader != null) {
+        classLoader match {
+          case t: URLClassLoader =>
+            files.appendAll(t.getURLs.map(u => new File(u.toURI)))
+          case _ =>
+        }
+
+        helper(classLoader.getParent)
       }
-      current = current.getParent
-    }
 
-    files.toVector.filter(_.exists).partition(_.toString.endsWith(".jar"))
+    helper(classLoader)
+
+    files
+      .toVector
+      .filter(_.exists)
+      .partition(_.getName.endsWith(".jar"))
   }
 
-  val ivyLocalPathOpt = sys.props.get("user.home").map { path =>
-    new File(new File(new File(path), ".ivy2"), "local") .toPath .toAbsolutePath
-  }
+  val ivyLocalPathOpt =
+    sys.props.get("user.home")
+      .map(new File(_, ".ivy2/local") .toPath.toAbsolutePath)
 
   /**
    * Maps JARs found by Ivy resolution to JARs in the classpath of @classLoader, if
