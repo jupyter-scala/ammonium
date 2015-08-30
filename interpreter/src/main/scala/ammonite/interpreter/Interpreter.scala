@@ -14,43 +14,52 @@ import ammonite.api.{ DisplayItem, Decl, BridgeConfig, ImportData }
 
 
 object Wrap {
-  val default = apply(_.map {
-    case DisplayItem.Definition(label, name) => s"""println("defined $label $name")"""
-    case DisplayItem.Import(imported) => s"""println("import $imported")"""
-    case DisplayItem.Identity(ident) => s"""println("$ident = " + $$user.$ident)"""
-    case DisplayItem.LazyIdentity(ident) => s"""println("$ident = <lazy>")"""
-  } .mkString(" ; "))
+  val default =
+    apply(_.map {
+      case DisplayItem.Definition(label, name) => s"""println("defined $label $name")"""
+      case DisplayItem.Import(imported)        => s"""println("import $imported")"""
+      case DisplayItem.Identity(ident)         => s"""println("$ident = " + $$user.$ident)"""
+      case DisplayItem.LazyIdentity(ident)     => s"""println("$ident = <lazy>")"""
+    } .mkString(" ; "))
 
-  def hasObjWrapSpecialImport(d: Decl): Boolean = d.display.exists {
-    case DisplayItem.Import("special.wrap.obj") => true
-    case _ => false
-  }
+  def hasObjWrapSpecialImport(d: Decl): Boolean =
+    d.display.exists {
+      case DisplayItem.Import("special.wrap.obj") => true
+      case _                                      => false
+    }
 
-  def apply(displayCode: Seq[DisplayItem] => String, classWrap: Boolean = false) = {
+  def apply(
+    displayCode: Seq[DisplayItem] => String,
+    classWrap: Boolean = false
+  ) = {
     (initialDecls: Seq[Decl], previousImportBlock: String, unfilteredPreviousImportBlock: String, wrapperName: String) =>
-      val (doClassWrap, decls) = {
+      val (doClassWrap, decls) =
         if (classWrap && initialDecls.exists(hasObjWrapSpecialImport))
           (false, initialDecls.filterNot(hasObjWrapSpecialImport))
         else
           (classWrap, initialDecls)
-      }
 
-      val code = decls.map(_.code) mkString " ; "
-      val mainCode = displayCode(decls.flatMap(_.display))
+      val userCode = decls.map(_.code).mkString(" ; ")
+      val mainCore = displayCode(decls.flatMap(_.display))
 
-      /* Using the unfiltered imports in the -$Main classes, so that types are correctly pretty-printed
-       * (imported prefixes get stripped) */
+      def mainCode(userRef: String) =
+        // Using the unfiltered imports in the -$Main class, so that types are correctly pretty-printed
+        // (imported prefixes get stripped by the type pretty-printer)
+        s"""
+          object $wrapperName$$Main {
+            $unfilteredPreviousImportBlock
 
-      wrapperName -> {
-        if (doClassWrap)
-          s"""
-            object $wrapperName$$Main {
-              $unfilteredPreviousImportBlock
+            def $$main() = {
+              val $$user: $userRef.type = $userRef
 
-              def $$main() = {val $$user: $wrapperName.INSTANCE.$$user.type = $wrapperName.INSTANCE.$$user; $mainCode}
+              $mainCore
             }
+          }
+         """
 
-
+      val (userRef, wrappedUserCode) =
+        if (doClassWrap)
+          s"$wrapperName.INSTANCE.$$user" -> s"""
             object $wrapperName {
               val INSTANCE = new $wrapperName
             }
@@ -59,29 +68,24 @@ object Wrap {
               $previousImportBlock
 
               class $$user extends _root_.java.io.Serializable {
-                $code
+                $userCode
               }
 
               val $$user = new $$user
             }
-         """
+          """
         else
-          s"""
-            object $wrapperName$$Main {
-              $unfilteredPreviousImportBlock
-
-              def $$main() = {val $$user: $wrapperName.$$user.type = $wrapperName.$$user; $mainCode}
-            }
-
+          s"$wrapperName.$$user" -> s"""
             object $wrapperName {
               $previousImportBlock
 
               object $$user {
-                $code
+                $userCode
               }
             }
-           """
-      }
+          """
+
+      wrapperName -> (wrappedUserCode + "\n\n" + mainCode(userRef))
   }
 }
 
@@ -93,14 +97,21 @@ case object Exit extends ControlThrowable
 
 trait InterpreterInternals {
 
-  def apply[T](stmts: Seq[String],
-               saveHistory: (String => Unit, String) => Unit = _(_),
-               printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T],
-               stdout: Option[String => Unit] = None,
-               stderr: Option[String => Unit] = None): Res[Evaluated[T]]
+  def apply[T](
+    stmts: Seq[String],
+    saveHistory: (String => Unit, String) => Unit = _(_),
+    printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T],
+    stdout: Option[String => Unit] = None,
+    stderr: Option[String => Unit] = None
+  ): Res[Evaluated[T]]
 
   // def evalClass(code: String, wrapperName: String) // return type???
-  def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]]
+
+  def process[T](
+    input: Seq[Decl],
+    process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]
+  ): Res[Evaluated[T]]
+
   def handleOutput(res: Res[Evaluated[_]]): Boolean
 
 }
@@ -109,27 +120,34 @@ trait InterpreterInternals {
  * A convenient bundle of all the functionality necessary
  * to interpret Scala code.
  */
-class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
-                  val wrapper: (Seq[Decl], String, String, String) => (String, String) = Wrap.default,
-                  val imports: ammonite.api.Imports = new Imports(),
-                  val classes: ammonite.api.Classes = new Classes(),
-                  startingLine: Int = 0,
-                  initialHistory: Seq[String] = Nil) extends ammonite.api.Interpreter with InterpreterInternals {
+class Interpreter(
+  val bridgeConfig: BridgeConfig = BridgeConfig.empty,
+  val wrapper: (Seq[Decl], String, String, String) => (String, String) = Wrap.default,
+  val imports: ammonite.api.Imports = new Imports(),
+  val classes: ammonite.api.Classes = new Classes(),
+  startingLine: Int = 0,
+  initialHistory: Seq[String] = Nil
+) extends ammonite.api.Interpreter with InterpreterInternals {
 
   var currentCompilerOptions = List.empty[String]
 
   def updateImports(newImports: Seq[ImportData]): Unit = {
     imports.update(newImports)
 
-    /* This is required by the use of WeakTypeTag in the printers,
-       whose implicits get replaced by calls to implicitly */
-    if (currentCompilerOptions.contains("-Yno-imports")) {
+    // This is required by the use of WeakTypeTag in the printers,
+    // whose implicits get replaced by calls to implicitly
+    if (currentCompilerOptions.contains("-Yno-imports"))
       // FIXME And -Yno-predef too?
       // FIXME Remove the import when the option is dropped
       imports.update(Seq(
-        ImportData("implicitly", "implicitly", "", "scala.Predef", isImplicit = true /* Forces the import even if there's no explicit reference to it */)
+        ImportData(
+          "implicitly",
+          "implicitly",
+          "",
+          "scala.Predef",
+          isImplicit = true /* Forces the import even if there's no explicit reference to it */
+        )
       ))
-    }
   }
 
   updateImports(bridgeConfig.imports)
@@ -140,7 +158,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   var buffered = ""
 
   var sourcesMap = new mutable.HashMap[String, String]
-  def sources = sourcesMap.toMap
+  def sources: Map[String, String] = sourcesMap.toMap
 
   /**
    * The current line number of the REPL, used to make sure every snippet
@@ -148,14 +166,13 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
    */
   var currentLine = startingLine
 
-  def getCurrentLine = currentLine.toString.replace("-", "_")
+  def getCurrentLine: String = currentLine.toString.replace("-", "_")
 
 
-  def complete(snippetIndex: Int, snippet: String, previousImports: String = null) = {
+  def complete(snippetIndex: Int, snippet: String, previousImports: String = null): (Int, Seq[String], Seq[String]) =
     pressy.complete(snippetIndex, Option(previousImports) getOrElse imports.previousImportBlock(), snippet)
-  }
 
-  def decls(code: String) =
+  def decls(code: String): Either[String, Seq[Decl]] =
     Parsers.split(code) match {
       case Some(Success(stmts, _)) =>
         Preprocessor(compiler.parse, stmts, getCurrentLine) match {
@@ -174,10 +191,10 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
         Left("parse error")
     }
 
-  def compile(src: Array[Byte], runLogger: String => Unit) =
+  def compile(src: Array[Byte], runLogger: String => Unit): Compiler.Output =
     compiler.compile(src, runLogger)
 
-  def run(code: String) =
+  def run(code: String): Either[String, Unit] =
     Parsers.split(code) match {
       case Some(Success(stmts, _)) =>
         apply(stmts, (_, _) => (), bridgeConfig.defaultPrinter) match {
@@ -197,13 +214,15 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
         Left("parse error")
     }
 
-  def apply[T](stmts: Seq[String],
-               saveHistory: (String => Unit, String) => Unit = _(_),
-               printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T],
-               stdout: Option[String => Unit] = None,
-               stderr: Option[String => Unit] = None) =
-    for{
-      _ <- Catching { case Ex(x@_*) =>
+  def apply[T](
+    stmts: Seq[String],
+    saveHistory: (String => Unit, String) => Unit = _(_),
+    printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T],
+    stdout: Option[String => Unit] = None,
+    stderr: Option[String => Unit] = None
+  ): Res[Evaluated[T]] =
+    for {
+      _ <- Catching { case Ex(x @ _*) =>
         val Res.Failure(trace) = Res.Failure(x)
         Res.Failure(trace + "\nSomething unexpected went wrong =(")
       }
@@ -213,32 +232,35 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       out <- process(p, printer)
     } yield out
 
-  def compile(code: String) = for {
-    (output, compiled) <- Res.Success {
-      val output = mutable.Buffer.empty[String]
-      val c = compiler.compile(code.getBytes("UTF-8"), output.append(_))
-      (output, c)
-    }
+  def compile(code: String): Res[(Traversable[(String, Array[Byte])], Seq[ImportData])] =
+    for {
+      (output, compiled) <- Res.Success {
+        val output = mutable.Buffer.empty[String]
+        val c = compiler.compile(code.getBytes("UTF-8"), output.append(_))
+        (output, c)
+      }
 
-    (classFiles, importData) <- Res[(Traversable[(String, Array[Byte])], Seq[ImportData])](
-      compiled, "Compilation Failed\n" + output.mkString("\n")
-    )
+      (classFiles, importData) <- Res[(Traversable[(String, Array[Byte])], Seq[ImportData])](
+        compiled, "Compilation Failed\n" + output.mkString("\n")
+      )
 
-  } yield (classFiles, importData)
+    } yield (classFiles, importData)
 
-  def loadClass(wrapperName: String, classFiles: Traversable[(String, Array[Byte])]) = for {
-    cls <- Res[Class[_]](Try {
-      for ((name, bytes) <- classFiles) classes.addClass(name, bytes)
-      Class.forName(wrapperName, true, classes.currentClassLoader)
-    }, e => "Failed to load compiled class " + e)
-  } yield cls
+  def loadClass(wrapperName: String, classFiles: Traversable[(String, Array[Byte])]): Res[Class[_]] =
+    for {
+      cls <- Res[Class[_]](Try {
+        for ((name, bytes) <- classFiles) classes.addClass(name, bytes)
+        Class.forName(wrapperName, true, classes.currentClassLoader)
+      }, e => "Failed to load compiled class " + e)
+    } yield cls
 
-  def evalClass(code: String, wrapperName: String) = for {
-    (classFiles, importData) <- compile(code)
-    cls <- loadClass(wrapperName, classFiles)
-  } yield (cls, importData)
+  def evalClass(code: String, wrapperName: String): Res[(Class[_], Seq[ImportData])] =
+    for {
+      (classFiles, importData) <- compile(code)
+      cls <- loadClass(wrapperName, classFiles)
+    } yield (cls, importData)
 
-  def interrupted() = {
+  def interrupted(): Res.Failure = {
     Thread.interrupted()
     Res.Failure("\nInterrupted!")
   }
@@ -246,10 +268,10 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
   type InvEx = InvocationTargetException
   type InitEx = ExceptionInInitializerError
 
-  def evalMain(cls: Class[_]) =
+  def evalMain(cls: Class[_]): AnyRef =
     cls.getDeclaredMethod("$main").invoke(null)
 
-  def evaluationResult[T](wrapperName: String, newImports: Seq[ImportData], value: T) =
+  def evaluationResult[T](wrapperName: String, newImports: Seq[ImportData], value: T): Evaluated[T] =
     Evaluated(
       wrapperName,
       newImports.map(id => id.copy(
@@ -259,6 +281,18 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       value
     )
 
+  private def withClassLoader[T](classLoader: ClassLoader)(block: => T): T = {
+    val thread = Thread.currentThread()
+    val oldClassLoader = thread.getContextClassLoader
+
+    try {
+      thread.setContextClassLoader(classes.currentClassLoader)
+      block
+    } finally {
+      thread.setContextClassLoader(oldClassLoader)
+    }
+  }
+
   /**
    * Takes the preprocessed `code` and `printCode` and compiles/evals/runs/etc.
    * it to provide a result. Takes `printer` as a callback, instead of returning
@@ -267,17 +301,20 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
    * passing in the callback ensures the printing is still done lazily, but within
    * the exception-handling block of the `Evaluator`
    */
-  def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]] = {
-    val oldClassloader = Thread.currentThread().getContextClassLoader
-    try { Thread.currentThread().setContextClassLoader(classes.currentClassLoader)
-
+  def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]] =
+    withClassLoader(classes.currentClassLoader) {
       for {
         wrapperName0 <- Res.Success("cmd" + getCurrentLine)
-        _ <- Catching{ case e: ThreadDeath => interrupted() }
-        (wrapperName, wrappedLine) = wrapper(input, imports.previousImportBlock(input.flatMap(_.referencedNames).toSet), imports.previousImportBlock(), wrapperName0)
+        _ <- Catching { case e: ThreadDeath => interrupted() }
+        (wrapperName, wrappedLine) = wrapper(
+          input,
+          imports.previousImportBlock(input.flatMap(_.referencedNames).toSet),
+          imports.previousImportBlock(),
+          wrapperName0
+        )
         (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")
         _ = currentLine += 1
-        _ <- Catching{
+        _ <- Catching {
           case Ex(_: InitEx, Exit)                => Res.Exit
           case Ex(_: InvEx, _: InitEx, Exit)      => Res.Exit
           case Ex(_: ThreadDeath)                 => interrupted()
@@ -292,9 +329,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
         sourcesMap(wrapperName) = wrappedLine
         evaluationResult(wrapperName, newImports, value)
       }
-
-    } finally Thread.currentThread().setContextClassLoader(oldClassloader)
-  }
+    }
 
   /**
    * Dummy function used to mark this method call in the stack trace,
@@ -303,8 +338,8 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
    */
   def evaluatorRunPrinter[T](f: => T): T = f
 
-  def handleOutput(res: Res[Evaluated[_]]) = {
-    res match{
+  def handleOutput(res: Res[Evaluated[_]]) =
+    res match {
       case Res.Skip =>
         buffered = ""
         true
@@ -319,11 +354,10 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
         buffered = ""
         true
     }
-  }
 
   var compiler: Compiler = _
   var pressy: Pressy = _
-  def init(options: String*) = {
+  def init(options: String*): Unit = {
     currentCompilerOptions = options.toList
 
     compiler = Compiler(
@@ -335,6 +369,7 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
       classes.currentPluginClassLoader,
       () => pressy.shutdownPressy()
     )
+
     pressy = Pressy(
       Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),
       Classes.bootStartDirs ++ classes.dirs, // FIXME Add Classes.compilerDirs, use it here too
@@ -345,33 +380,33 @@ class Interpreter(val bridgeConfig: BridgeConfig = BridgeConfig.empty,
     // initializing the compiler so that it does not complain having no phase
     compiler.compile("object $dummy".getBytes("UTF-8"), _ => ())
   }
-  def initBridge(): Unit = {
-    bridgeConfig.initClass(this,
-      evalClass(bridgeConfig.init, bridgeConfig.name).map(_._1) match {
-        case Res.Success(s) => s
+
+  def initBridge(): Unit =
+    bridgeConfig.initClass(
+      this,
+      evalClass(bridgeConfig.init, bridgeConfig.name) match {
+        case Res.Success((s, _)) => s
         case other => throw new Exception(s"Error while initializing REPL API: $other")
       }
     )
-  }
 
-  def stop() = {
+  def stop(): Unit =
     onStopHooks.foreach(_())
-  }
 
   var onStopHooks = Seq.empty[() => Unit]
-  def onStop(action: => Unit) = onStopHooks = onStopHooks :+ { () => action }
+  def onStop(action: => Unit): Unit =
+    onStopHooks = onStopHooks :+ { () => action }
 
   init(currentCompilerOptions: _*)
   initBridge()
 
   private var _macroMode = false
-  def macroMode(): Unit = {
+  def macroMode(): Unit =
     if (!_macroMode) {
       _macroMode = true
       classes.useMacroClassLoader(true)
       init(currentCompilerOptions: _*)
       initBridge()
     }
-  }
 }
 

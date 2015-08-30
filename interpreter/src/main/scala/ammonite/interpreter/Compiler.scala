@@ -3,6 +3,7 @@ package ammonite.interpreter
 
 import acyclic.file
 import scala.collection.mutable
+import scala.collection.JavaConverters._
 import scala.reflect.internal.util.Position
 import scala.reflect.io
 import scala.reflect.io._
@@ -131,28 +132,16 @@ object Compiler {
     (settings, reporter, vd, jcp)
   }
 
-  def apply(
-    jarDeps: Seq[java.io.File],
-    dirDeps: Seq[java.io.File],
-    dynamicClasspath: VirtualDirectory,
-    options: List[String],
-    evalClassloader: => ClassLoader,
-    pluginClassloader: => ClassLoader,
-    shutdownPressy: () => Unit
-  ): Compiler = {
+  val PluginXML = "scalac-plugin.xml"
 
-    val PluginXML = "scalac-plugin.xml"
+  def pluginClasses(classLoader: ClassLoader) = {
+    val urls = classLoader
+      .getResources(PluginXML)
+      .asScala
+      .toVector
 
-    lazy val plugins0 = {
-      import scala.collection.JavaConverters._
-      val loader = pluginClassloader
-
-      val urls = loader
-        .getResources(PluginXML)
-        .asScala
-        .toVector
-
-      val plugins = for {
+    val plugins =
+      for {
         url <- urls
         elem = scala.xml.XML.load(url.openStream())
         name = (elem \\ "plugin" \ "name").text
@@ -164,20 +153,31 @@ object Compiler {
         if name != "acyclic"
         if name.nonEmpty && className.nonEmpty
         classOpt =
-        try Some(loader.loadClass(className))
-        catch { case _: ClassNotFoundException => None }
+          try Some(classLoader.loadClass(className))
+          catch { case _: ClassNotFoundException => None }
       } yield (name, className, classOpt)
 
-      val notFound = plugins.collect{case (name, className, None) => (name, className) }
-      if (notFound.nonEmpty) {
-        for ((name, className) <- notFound.sortBy(_._1))
-          Console.err.println(s"Implementation $className of plugin $name not found.")
-      }
-
-      plugins.collect{case (name, _, Some(cls)) => name -> cls }
+    val notFound = plugins.collect{case (name, className, None) => (name, className) }
+    if (notFound.nonEmpty) {
+      for ((name, className) <- notFound.sortBy(_._1))
+        Console.err.println(s"Implementation $className of plugin $name not found.")
     }
 
-    var logger: String => Unit = s => ()
+    plugins.collect{case (name, _, Some(cls)) => name -> cls }
+  }
+
+  def apply(
+    jarDeps: Seq[java.io.File],
+    dirDeps: Seq[java.io.File],
+    dynamicClasspath: VirtualDirectory,
+    options: List[String],
+    evalClassloader: => ClassLoader,
+    pluginClassloader: => ClassLoader,
+    shutdownPressy: () => Unit
+  ): Compiler = {
+
+    var logger: String => Unit =
+      s => ()
 
     var lastImports = Seq.empty[ImportData]
 
@@ -185,22 +185,22 @@ object Compiler {
       jarDeps, dirDeps, dynamicClasspath, options, logger, scala.Console.RED
     )
 
-    val compiler =
-      new nsc.Global(settings, reporter) { g =>
-        override lazy val plugins = List(new AmmonitePlugin(g, lastImports = _)) ++ {
-          for {
-            (name, cls) <- plugins0
-            plugin = Plugin.instantiate(cls, g)
-            initOk =
-            try CompilerCompatibility.pluginInit(plugin, Nil, g.globalError)
-            catch { case ex: Exception =>
-              Console.err.println(s"Warning: disabling plugin $name, initialization failed: $ex")
-              false
-            }
-            if initOk
-          } yield plugin
-        }
+    def plugins0(g: nsc.Global) = List(new AmmonitePlugin(g, lastImports = _)) ++ {
+      for {
+        (name, cls) <- pluginClasses(pluginClassloader)
+        plugin = Plugin.instantiate(cls, g)
+        initOk =
+          try CompilerCompatibility.pluginInit(plugin, Nil, g.globalError)
+          catch { case ex: Exception =>
+            Console.err.println(s"Warning: disabling plugin $name, initialization failed: $ex")
+            false
+          }
+        if initOk
+      } yield plugin
+    }
 
+    val scalac: nsc.Global =
+      new nsc.Global(settings, reporter) { g =>
         override def classPath =
           platform.classPath // Actually jcp, avoiding a path-dependent type issue in 2.10 here
         override lazy val platform: ThisPlatform =
@@ -208,26 +208,51 @@ object Compiler {
             val global: g.type = g
             override def classPath = jcp
           }
+
         override lazy val analyzer =
           CompilerCompatibility.analyzer(g, evalClassloader)
+        override lazy val plugins =
+          plugins0(g)
       }
 
     // Initialize scalac to the parser phase immediately, so we can start
     // using Compiler#parse even if we haven't compiled any compilation
     // units yet due to caching
-    val run = new compiler.Run()
-    compiler.phase = run.parserPhase
+    val run = new scalac.Run()
+    scalac.phase = run.parserPhase
     run.cancel()
+
+    def referencedNames(member: scalac.Tree): List[scalac.Name] = {
+      val importVars = new mutable.HashSet[scalac.Name]()
+
+      val tvs =
+        new scalac.Traverser {
+          override def traverse(ast: scalac.Tree) =
+            ast match {
+              case scalac.Ident(name) =>
+                // Comments from scalac (or Spark?) say:
+                //   XXX this is obviously inadequate but it's going to require some effort to get right.
+                if (!name.toString.startsWith("x$"))
+                  importVars += name
+              case _ =>
+                super.traverse(ast)
+            }
+        }
+
+      tvs.traverse(member)
+
+      importVars.toList
+    }
 
 
     new Compiler {
       def compile(src: Array[Byte], runLogger: String => Unit) = {
-        compiler.reporter.reset()
+        scalac.reporter.reset()
         logger = runLogger
 
         val singleFile = makeFile( src)
 
-        val run = new compiler.Run()
+        val run = new scalac.Run()
         vd.clear()
         run.compileFiles(List(singleFile))
 
@@ -260,35 +285,13 @@ object Compiler {
           output.close()
         }
 
-      def referencedNames(member: compiler.Tree): List[compiler.Name] = {
-        val importVars = new mutable.HashSet[compiler.Name]()
-
-        val tvs =
-          new compiler.Traverser {
-            override def traverse(ast: compiler.Tree) =
-              ast match {
-                case compiler.Ident(name) =>
-                  // Comments from scalac (or Spark?) say:
-                  //   XXX this is obviously inadequate but it's going to require some effort to get right.
-                  if (!name.toString.startsWith("x$"))
-                    importVars += name
-                case _ =>
-                  super.traverse(ast)
-              }
-          }
-
-        tvs.traverse(member)
-
-        importVars.toList
-      }
-
       def parse(line: String) = {
         val out = mutable.Buffer.empty[String]
         logger = out.append(_)
         reporter.reset()
 
-        val parser = compiler.newUnitParser(line)
-        val trees = CompilerCompatibility.trees(compiler)(parser)
+        val parser = scalac.newUnitParser(line)
+        val trees = CompilerCompatibility.trees(scalac)(parser)
 
         if (reporter.hasErrors)
           Left(out.mkString("\n"))
