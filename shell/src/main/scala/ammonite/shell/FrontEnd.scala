@@ -8,7 +8,6 @@ import fastparse.core.Result
 import jline.console.{completer, ConsoleReader}
 
 import scala.annotation.tailrec
-import scala.tools.nsc.interpreter._
 import collection.JavaConversions._
 import ammonite.terminal._
 import ammonite.terminal.LazyList._
