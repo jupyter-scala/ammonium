@@ -8,8 +8,6 @@ lazy val sharedSettings = Seq[Setting[_]](
     Resolver.sonatypeRepo("snapshots")
   ),
   autoCompilerPlugins := true,
-  addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.2"),
-  libraryDependencies += "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided",
   scalaVersion := "2.11.6",
   crossScalaVersions := Seq(
     "2.11.6", "2.11.5", "2.11.4", "2.11.3", "2.11.2", "2.11.1", "2.11.0"

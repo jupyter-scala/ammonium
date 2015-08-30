@@ -11,8 +11,6 @@ import java.io.File
 
 import scala.reflect.runtime.universe.{ Name, newTermName, runtimeMirror, Symbol, Type, WeakTypeTag, weakTypeOf }
 
-import acyclic.file
-
 import scala.util.Try
 
 

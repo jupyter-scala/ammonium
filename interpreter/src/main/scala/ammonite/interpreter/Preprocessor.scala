@@ -1,6 +1,5 @@
 package ammonite.interpreter
 
-import acyclic.file
 import fastparse.core.Result.Success
 
 import scala.reflect.internal.Flags

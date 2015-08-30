@@ -14,8 +14,6 @@ import org.apache.ivy.plugins.resolver.DependencyResolver
 
 import scala.annotation.tailrec
 
-import acyclic.file
-
 
 // TODO Add options --predef-file, --no-scala-predef, --no-preimports, --hist-file
 

@@ -1,6 +1,5 @@
 package ammonite.interpreter
 
-import acyclic.file
 import scala.tools.nsc._
 import scala.tools.nsc.plugins.{PluginComponent, Plugin}
 import ammonite.api.ImportData

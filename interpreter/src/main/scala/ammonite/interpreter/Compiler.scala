@@ -1,7 +1,5 @@
 package ammonite.interpreter
 
-
-import acyclic.file
 import scala.collection.mutable
 import scala.collection.JavaConverters._
 import scala.reflect.internal.util.Position
@@ -146,11 +144,6 @@ object Compiler {
         elem = scala.xml.XML.load(url.openStream())
         name = (elem \\ "plugin" \ "name").text
         className = (elem \\ "plugin" \ "classname").text
-        // acyclic seems to conflict with AmmonitePlugin (happens during the tests in particular), so it's
-        // filtered out here. Else it raises:
-        //   scala.reflect.internal.FatalError: Multiple phases want to run right after typer; followers:
-        //   AmmonitePhase,acyclic; created phase-order.dot
-        if name != "acyclic"
         if name.nonEmpty && className.nonEmpty
         classOpt =
           try Some(classLoader.loadClass(className))

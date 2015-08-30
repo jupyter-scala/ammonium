@@ -2,8 +2,6 @@ package ammonite.shell.util
 
 import ammonite.api.DisplayItem, DisplayItem._
 
-import acyclic.file
-
 
 object ShellDisplay {
 

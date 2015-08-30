@@ -1,5 +1,4 @@
 package ammonite.shell.util
-import acyclic.file
 import ammonite.interpreter.Parsers
 import fastparse.all._
 import fastparse.parsers.Combinators.Rule

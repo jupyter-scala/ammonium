@@ -1,6 +1,5 @@
 package ammonite.shell
 
-import acyclic.file
 // import ammonite.ops._
 // import ammonite.shell.util.{IvyMap, CompileCache, ClassFiles}
 

@@ -13,8 +13,6 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 
-import acyclic.file
-
 class Load(
   intp: ammonite.api.Interpreter,
   startJars: Seq[File],

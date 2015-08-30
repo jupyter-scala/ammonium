@@ -6,7 +6,6 @@ import ammonite.interpreter._
 import ammonite.shell.util.{Highlighter, Colors}
 import fastparse.core.Result
 import jline.console.{completer, ConsoleReader}
-import acyclic.file
 
 import scala.annotation.tailrec
 import scala.tools.nsc.interpreter._

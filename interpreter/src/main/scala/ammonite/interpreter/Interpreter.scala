@@ -2,7 +2,6 @@ package ammonite.interpreter
 
 import java.lang.reflect.InvocationTargetException
 
-import acyclic.file
 import fastparse.core.Result.Success
 
 import scala.collection.mutable

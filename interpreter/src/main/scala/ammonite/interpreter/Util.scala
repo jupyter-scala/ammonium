@@ -2,7 +2,6 @@ package ammonite.interpreter
 
 import java.io.{ ByteArrayOutputStream, InputStream }
 
-import acyclic.file
 import fastparse._
 
 import scala.util.Try
