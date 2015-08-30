@@ -19,11 +19,13 @@ import acyclic.file
 
 // TODO Add options --predef-file, --no-scala-predef, --no-preimports, --hist-file
 
-case class Ammonite(shellPrompt: String = "@",
-                    predef: String,
-                    wrap: String,
-                    histFile: String = new File(new File(System.getProperty("user.home")), ".amm") .toString,
-                    sharedLoader: Boolean = false) extends App {
+case class Ammonite(
+  shellPrompt: String = "@",
+  predef: String,
+  wrap: String,
+  histFile: String = new File(System.getProperty("user.home"), ".amm") .toString,
+  sharedLoader: Boolean = false
+) extends App {
 
   import Ammonite._
 
@@ -133,14 +135,16 @@ case class Ammonite(shellPrompt: String = "@",
 object Ammonite extends AppOf[Ammonite] {
   val parser = default
 
-  def bridgeConfig(startJars: Seq[File] = Nil,
-                   startIvys: Seq[(String, String, String)] = Nil,
-                   jarMap: File => File = identity,
-                   startResolvers: Seq[DependencyResolver] = Seq(Resolver.localRepo, Resolver.defaultMaven),
-                   shellPrompt: => Ref[String] = Ref("@"),
-                   reset: => Unit = (),
-                   pprintConfig: pprint.Config = pprint.Config.Defaults.PPrintConfig,
-                   colors: ColorSet = ColorSet.BlackWhite): BridgeConfig =
+  def bridgeConfig(
+    startJars: Seq[File] = Nil,
+    startIvys: Seq[(String, String, String)] = Nil,
+    jarMap: File => File = identity,
+    startResolvers: Seq[DependencyResolver] = Seq(Resolver.localRepo, Resolver.defaultMaven),
+    shellPrompt: => Ref[String] = Ref("@"),
+    reset: => Unit = (),
+    pprintConfig: pprint.Config = pprint.Config.Defaults.PPrintConfig,
+    colors: ColorSet = ColorSet.BlackWhite
+  ): BridgeConfig =
     BridgeConfig(
       "object ReplBridge extends ammonite.shell.ReplAPIHolder",
       "ReplBridge",
@@ -200,15 +204,17 @@ object Ammonite extends AppOf[Ammonite] {
     new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startCompilerJars ++ startCompilerDirs).toSet)
 
 
-  def newInterpreter(predef: String,
-                     classWrap: Boolean,
-                     pprintConfig: pprint.Config,
-                     colors: ColorSet,
-                     sharedLoader: Boolean,
-                     shellPromptRef: => Ref[String] = Ref("@"),
-                     reset: => Unit = (),
-                     initialHistory: Seq[String] = Nil): ammonite.api.Interpreter with InterpreterInternals = {
-    lazy val (startJars0, startDirs0) = Classes.defaultClassPath()
+  def newInterpreter(
+    predef: String,
+    classWrap: Boolean,
+    pprintConfig: pprint.Config,
+    colors: ColorSet,
+    sharedLoader: Boolean,
+    shellPromptRef: => Ref[String] = Ref("@"),
+    reset: => Unit = (),
+    initialHistory: Seq[String] = Nil
+  ): ammonite.api.Interpreter with InterpreterInternals = {
+    val (startJars0, startDirs0) = Classes.defaultClassPath()
 
     new Interpreter(
       bridgeConfig(
@@ -225,9 +231,17 @@ object Ammonite extends AppOf[Ammonite] {
       imports = new Imports(useClassWrapper = classWrap),
       classes =
         if (sharedLoader)
-          new Classes(Thread.currentThread().getContextClassLoader, (startJars0, startDirs0))
+          new Classes(
+            Thread.currentThread().getContextClassLoader,
+            (startJars0, startDirs0)
+          )
         else
-          new Classes(startClassLoader, (startJars, startDirs), startCompilerClassLoader = startCompilerClassLoader, startCompilerDeps = (startCompilerJars, startCompilerDirs)),
+          new Classes(
+            startClassLoader,
+            (startJars, startDirs),
+            startCompilerClassLoader = startCompilerClassLoader,
+            startCompilerDeps = (startCompilerJars, startCompilerDirs)
+          ),
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory
     )
