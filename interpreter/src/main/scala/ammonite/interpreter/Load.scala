@@ -4,7 +4,6 @@ import ammonite.api.{ Resolver => ApiResolver, AddDependency }
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
 import com.github.alexarchambault.ivylight.{ Resolver, Sbt, Ivy }
-import com.github.alexarchambault.ivylight.Sbt.Module
 
 import java.net.URL
 import java.nio.file.Files
@@ -16,18 +15,19 @@ import scala.collection.mutable
 
 import acyclic.file
 
-class Load(intp: ammonite.api.Interpreter,
-           startJars: Seq[File],
-           startIvys: Seq[(String, String, String)],
-           jarMap: File => File,
-           startResolvers: Seq[DependencyResolver]) extends ammonite.api.Load {
+class Load(
+  intp: ammonite.api.Interpreter,
+  startJars: Seq[File],
+  startIvys: Seq[(String, String, String)],
+  jarMap: File => File,
+  startResolvers: Seq[DependencyResolver]
+) extends ammonite.api.Load {
 
-  def apply(line: String) = {
+  def apply(line: String) =
     intp.run(line) match {
       case Left(msg) => println(Console.RED + msg + Console.RESET)
       case _ =>
     }
-  }
 
   lazy val compiler: AddDependency = new AddDependency {
     def jar(jar: File, jars: File*) = {
@@ -44,15 +44,15 @@ class Load(intp: ammonite.api.Interpreter,
         case h :: t => jar(h, t: _*)
         case Nil =>
       }
+
     var compilerIvys = Seq.empty[(String, String, String)]
     def ivy(coordinates: (String, String, String)*) = {
       compilerIvys = compilerIvys ++ coordinates
       val ivyJars = Ivy.resolve((compilerIvys ++ userIvys ++ sbtIvys).filterNot(internalSbtIvys), userResolvers)
         .map(jarMap)
         .filterNot(intp.classes.compilerJars.toSet)
-      if (ivyJars.nonEmpty) {
-        jar(ivyJars(0), ivyJars.drop(1):_ *)
-      }
+      if (ivyJars.nonEmpty)
+        jar(ivyJars(0), ivyJars.drop(1): _*)
     }
   }
 
@@ -71,15 +71,15 @@ class Load(intp: ammonite.api.Interpreter,
         case h :: t => jar(h, t: _*)
         case Nil =>
       }
+
     var pluginIvys = Seq.empty[(String, String, String)]
     def ivy(coordinates: (String, String, String)*) = {
       pluginIvys = pluginIvys ++ coordinates
       val ivyJars = Ivy.resolve((pluginIvys ++ userIvys ++ sbtIvys).filterNot(internalSbtIvys), userResolvers)
         .map(jarMap)
         .filterNot(intp.classes.pluginJars.toSet)
-      if (ivyJars.nonEmpty) {
+      if (ivyJars.nonEmpty)
         jar(ivyJars(0), ivyJars.drop(1):_ *)
-      }
     }
   }
 
@@ -104,7 +104,7 @@ class Load(intp: ammonite.api.Interpreter,
     d
   }
   val urlCache = new mutable.HashMap[URL, File]
-  def fromCache(url: URL): File = {
+  def fromCache(url: URL): File =
     urlCache.getOrElseUpdate(url, {
       val bytes = Util.readFully(url.openStream())
       val f = Files.createTempFile(urlCacheDir, url.getPath.split('/').last.stripSuffix(".jar"), ".jar")
@@ -112,15 +112,14 @@ class Load(intp: ammonite.api.Interpreter,
       urlCache += url -> f.toFile
       f.toFile
     })
-  }
-  def jar(url: URL, urls: URL*): Unit = {
+
+  def jar(url: URL, urls: URL*): Unit =
     (url +: urls).map(fromCache).toList match {
       case h :: t => jar(h, t: _*)
       case Nil =>
     }
-  }
 
-  def fileFor(path: String): File = {
+  def fileFor(path: String): File =
     if (path.contains(":/"))
       fromCache(new java.net.URL(path))
     else {
@@ -128,19 +127,18 @@ class Load(intp: ammonite.api.Interpreter,
       if (!f.exists()) throw new FileNotFoundException(path)
       f
     }
-  }
 
-  def jar(path: String, paths: String*): Unit = {
+  def jar(path: String, paths: String*): Unit =
     (path +: paths).map(fileFor).toList match {
       case h :: t => jar(h, t: _*)
       case Nil =>
     }
-  }
 
   def ivy(coordinates: (String, String, String)*): Unit = {
     userIvys = userIvys ++ coordinates
     updateIvy()
   }
+
   def updateIvy(extra: Seq[File] = Nil): Unit = {
     val ivyJars = Ivy.resolve((userIvys ++ sbtIvys) filterNot internalSbtIvys, userResolvers).map(jarMap)
     val newJars = ivyJars ++ userJars
@@ -160,10 +158,12 @@ class Load(intp: ammonite.api.Interpreter,
     intp.classes.addJars(newJars ++ extra: _*)
     intp.init(intp.currentCompilerOptions: _*)
   }
-  def resolve(coordinates: (String, String, String)*): Seq[File] = {
+
+  def resolve(coordinates: (String, String, String)*): Seq[File] =
     Ivy.resolve(coordinates, userResolvers).map(jarMap)
-  }
+
   var verbose = false
+
   def sbt(path: java.io.File, projects: String*): Unit = {
     println(s"Getting sub-projects of $path")
     Sbt.sbtProjects(path, verbose) match {
@@ -229,6 +229,7 @@ class Load(intp: ammonite.api.Interpreter,
           updateIvy(extra.toList.sorted)
     }
   }
+
   def resolver(resolver: ApiResolver*): Unit = {
     userResolvers = userResolvers ++ resolver.map {
       case ApiResolver.Local => Resolver.localRepo
