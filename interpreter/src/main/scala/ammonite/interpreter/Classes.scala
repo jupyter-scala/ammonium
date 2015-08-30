@@ -31,7 +31,7 @@ class AddURLClassLoader(
 
 
   def fromDirs(name: String): Option[Array[Byte]] = {
-    val parts = name.split('.')
+    val parts = name.split('.').toSeq
     val relPath = (parts.init :+ (parts.last + ".class")).mkString("/")
 
     dirs
@@ -56,8 +56,8 @@ class AddURLClassLoader(
 
   def resourceFromMap(name: String): Option[URL] =
     Some(name)
-      .filter(_ endsWith ".class")
-      .map(_ stripSuffix ".class")
+      .filter(_.endsWith(".class"))
+      .map(_.stripSuffix(".class"))
       .flatMap(map.get)
       .map { bytes =>
         val f = new File(tmpClassDir, name)
