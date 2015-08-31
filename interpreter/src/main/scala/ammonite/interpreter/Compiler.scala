@@ -164,8 +164,8 @@ object Compiler {
     dirDeps: Seq[java.io.File],
     dynamicClasspath: VirtualDirectory,
     options: List[String],
-    evalClassloader: => ClassLoader,
-    pluginClassloader: => ClassLoader,
+    evalClassLoader: => ClassLoader,
+    pluginClassLoader: => ClassLoader,
     shutdownPressy: () => Unit
   ): Compiler = {
 
@@ -180,7 +180,7 @@ object Compiler {
 
     def plugins0(g: nsc.Global) = List(new AmmonitePlugin(g, lastImports = _)) ++ {
       for {
-        (name, cls) <- pluginClasses(pluginClassloader)
+        (name, cls) <- pluginClasses(pluginClassLoader)
         plugin = Plugin.instantiate(cls, g)
         initOk =
           try CompilerCompatibility.pluginInit(plugin, Nil, g.globalError)
@@ -203,7 +203,7 @@ object Compiler {
           }
 
         override lazy val analyzer =
-          CompilerCompatibility.analyzer(g, evalClassloader)
+          CompilerCompatibility.analyzer(g, evalClassLoader)
         override lazy val plugins =
           plugins0(g)
       }
