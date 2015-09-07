@@ -13,3 +13,4 @@ object LocalSpark11Tests extends LocalSparkTests(new AmmoniteClassWrapperChecker
 
 object LocalSpark12Tests extends LocalSparkTests(new AmmoniteClassWrapperChecker(), (1, 2))
 object LocalSpark13Tests extends LocalSparkTests(new AmmoniteClassWrapperChecker(), (1, 3))
+object LocalSpark14Tests extends LocalSparkTests(new AmmoniteClassWrapperChecker(), (1, 4))
