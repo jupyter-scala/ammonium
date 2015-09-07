@@ -13,6 +13,11 @@ class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLCl
   }
   var map = Map.empty[String, Array[Byte]]
 
+  def resourceFromDir(name: String, dir: File): Option[URL] =
+    Some(new File(dir, name.dropWhile(_ == '/')))
+      .filter(_.exists())
+      .map(_.toURI.toURL)
+
   def fromDir(name: String, nameInit: Seq[String], nameLastClass: String, dir: File): Option[Class[_]] = {
     val f = new File((dir /: nameInit)(new File(_, _)), nameLastClass)
     if (f.exists()) {
@@ -46,9 +51,12 @@ class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLCl
     }
   }
 
-  override def getResource(name: String) =
-    Some(name).filter(_ endsWith ".class").map(_ stripSuffix ".class").flatMap(map.get) match {
-      case Some(bytes) =>
+  def resourceFromMap(name: String): Option[URL] =
+    Some(name)
+      .filter(_ endsWith ".class")
+      .map(_ stripSuffix ".class")
+      .flatMap(map.get)
+      .map { bytes =>
         val f = new File(tmpClassDir, name)
         if (!f.exists()) {
           val w = new FileOutputStream(f)
@@ -56,9 +64,26 @@ class AddURLClassLoader(parent: ClassLoader, tmpClassDir: => File) extends URLCl
           w.close()
         }
         f.toURI.toURL
-      case None =>
-        super.getResource(name)
-    }
+      }
+
+  def resourceFromDirs(name: String): Option[URL] = {
+    val it = dirs
+      .iterator
+      .map(resourceFromDir(name, _))
+      .collect { case Some(c) => c }
+
+    if (it.hasNext)
+      Some(it.next())
+    else
+      None
+  }
+
+
+  override def findResource(name: String) =
+    Option(super.findResource(name))
+      .orElse(resourceFromMap(name))
+      .orElse(resourceFromDirs(name))
+      .orNull
 
 }
 

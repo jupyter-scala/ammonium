@@ -135,7 +135,7 @@ object Compiler{
             val className = (el \\ "plugin" \ "classname").text
             name -> className
           }
-          .filter{ case (n, cn) => n.nonEmpty && cn.nonEmpty }
+          .filter{ case (n, cn) => n.nonEmpty && cn.nonEmpty && n != "acyclic" }
           .map { case (name, className) =>
             name -> (className,
                 try Some(loader.loadClass(className))
