@@ -192,8 +192,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(api, ivyLight, interpreter, shellApi, spark13, spark12, spark11, shell)
-    .dependsOn(api, ivyLight, interpreter, shellApi, spark13, spark12, spark11, shell)
+    .aggregate(api, ivyLight, interpreter, shellApi, spark14, spark13, spark12, spark11, shell)
+    .dependsOn(api, ivyLight, interpreter, shellApi, spark14, spark13, spark12, spark11, shell)
     .settings(
       publish := {},
       publishLocal := {},
