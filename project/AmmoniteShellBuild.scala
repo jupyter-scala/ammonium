@@ -157,6 +157,7 @@ object AmmoniteShellBuild extends Build {
 
   /* Forcing the hadoop version, so that it does not default to a value
    * that lacks some artifacts. (e.g. 1.0.4 and hadoop-yarn-client). */
+  lazy val spark15 = sparkProject("1.5.0", "2.4.0")
   lazy val spark14 = sparkProject("1.4.1", "2.4.0")
   lazy val spark13 = sparkProject("1.3.1", "2.4.0")
   lazy val spark12 = sparkProject("1.2.2", "2.4.0")
@@ -192,8 +193,8 @@ object AmmoniteShellBuild extends Build {
 
   lazy val root = Project(id = "ammonite-shell", base = file("."))
     .settings(sharedSettings: _*)
-    .aggregate(api, ivyLight, interpreter, shellApi, spark14, spark13, spark12, spark11, shell)
-    .dependsOn(api, ivyLight, interpreter, shellApi, spark14, spark13, spark12, spark11, shell)
+    .aggregate(api, ivyLight, interpreter, shellApi, spark15, spark14, spark13, spark12, spark11, shell)
+    .dependsOn(api, ivyLight, interpreter, shellApi, spark15, spark14, spark13, spark12, spark11, shell)
     .settings(
       publish := {},
       publishLocal := {},
