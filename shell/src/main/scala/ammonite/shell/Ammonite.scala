@@ -1,7 +1,7 @@
 package ammonite.shell
 
 import ammonite.interpreter._
-import ammonite.api.{IvyConstructor, ImportData, BridgeConfig}
+import ammonite.api.{ ClassLoaderType, IvyConstructor, ImportData, BridgeConfig }
 import ammonite.shell.util._
 
 import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
@@ -182,24 +182,22 @@ object Ammonite extends AppOf[Ammonite] {
 
   lazy val packJarMap = Classes.jarMap(getClass.getClassLoader)
 
-  lazy val (startJars, startDirs) =
+  lazy val mainStartPaths =
     Ivy.resolve(startIvys, resolvers).toSeq
       .map(packJarMap)
       .filter(_.exists())
-      .partition(_.getName.endsWith(".jar"))
 
-  lazy val (startCompilerJars, startCompilerDirs) =
+  lazy val macroStartPaths =
     Ivy.resolve(startCompilerIvys, resolvers).toSeq
       .map(packJarMap)
       .filter(_.exists())
-      .partition(_.getName.endsWith(".jar"))
 
 
   lazy val startClassLoader =
-    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startJars ++ startDirs).toSet)
+    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ mainStartPaths).toSet)
 
   lazy val startCompilerClassLoader =
-    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ startCompilerJars ++ startCompilerDirs).toSet)
+    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ macroStartPaths).toSet)
 
 
   def newInterpreter(
@@ -212,11 +210,11 @@ object Ammonite extends AppOf[Ammonite] {
     reset: => Unit = (),
     initialHistory: Seq[String] = Nil
   ): ammonite.api.Interpreter with InterpreterInternals = {
-    val (startJars0, startDirs0) = Classes.defaultClassPath()
+    val startPaths = Classes.defaultPaths()
 
     new Interpreter(
       bridgeConfig(
-        startJars = if (sharedLoader) startJars0 else startJars,
+        startJars = if (sharedLoader) startPaths(ClassLoaderType.Main) else mainStartPaths,
         startIvys = startIvys,
         startResolvers = resolvers,
         jarMap = packJarMap,
@@ -231,14 +229,17 @@ object Ammonite extends AppOf[Ammonite] {
         if (sharedLoader)
           new Classes(
             Thread.currentThread().getContextClassLoader,
-            (startJars0, startDirs0)
+            startPaths
           )
         else
           new Classes(
             startClassLoader,
-            (startJars, startDirs),
-            startCompilerClassLoader = startCompilerClassLoader,
-            startCompilerDeps = (startCompilerJars, startCompilerDirs)
+            Map(
+              ClassLoaderType.Main -> mainStartPaths,
+              ClassLoaderType.Macro -> macroStartPaths,
+              ClassLoaderType.Plugin -> mainStartPaths
+            ),
+            startCompilerClassLoader = startCompilerClassLoader
           ),
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory

@@ -102,7 +102,7 @@ object Classes {
   lazy val (bootStartJars, bootStartDirs) = bootClasspath.partition(_.getName.endsWith(".jar"))
 
 
-  def defaultClassPath(classLoader: ClassLoader = Thread.currentThread().getContextClassLoader): (Seq[File], Seq[File]) = {
+  def defaultPaths(classLoader: ClassLoader = Thread.currentThread().getContextClassLoader): Map[ClassLoaderType, Seq[File]] = {
     val files = collection.mutable.Buffer.empty[java.io.File]
 
     files.appendAll(
@@ -124,10 +124,13 @@ object Classes {
 
     helper(classLoader)
 
-    files
-      .toVector
-      .filter(_.exists)
-      .partition(_.getName.endsWith(".jar"))
+    val files0 = files.toVector.filter(_.exists)
+
+    Map(
+      ClassLoaderType.Main -> files0,
+      ClassLoaderType.Macro -> files0,
+      ClassLoaderType.Plugin -> files0
+    )
   }
 
   val ivyLocalPathOpt =
@@ -141,7 +144,10 @@ object Classes {
    * The resulting files can then be handed to ClassLoaderFilter and allow for a proper filtering.
    */
   def jarMap(classLoader: ClassLoader = Thread.currentThread().getContextClassLoader): File => File = {
-    val map = defaultClassPath(classLoader)._1.map(f => f.getName -> f).toMap
+    val map = defaultPaths(classLoader)(ClassLoaderType.Main)
+      .filter(f => f.isFile && f.getName.endsWith(".jar"))
+      .map(f => f.getName -> f)
+      .toMap
 
     f =>
       val name =
@@ -155,7 +161,8 @@ object Classes {
   }
 
   def fromClasspath(deps: String, loader: ClassLoader): Either[Seq[(String, String, String)], Seq[File]] = {
-    val classpathJars = Classes.defaultClassPath(loader)._1
+    val classpathJars = defaultPaths(loader)(ClassLoaderType.Main)
+      .filter(f => f.isFile && f.getName.endsWith(".jar"))
 
     val deps0 = deps.split(',').map(_.split(':')).map {
       case Array(org, name, rev) => (org, name, rev)
@@ -179,12 +186,9 @@ object Classes {
 
 class Classes(
   startClassLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
-  startDeps: (Seq[File], Seq[File]) = Classes.defaultClassPath(),
-  startCompilerClassLoader: ClassLoader = null,
-  startCompilerDeps: (Seq[File], Seq[File]) = null
+  startPaths: Map[ClassLoaderType, Seq[File]] = Classes.defaultPaths(),
+  startCompilerClassLoader: ClassLoader = null
 ) extends ammonite.api.Classes {
-
-  val effectiveStartCompilerDeps = Option(startCompilerDeps) getOrElse startDeps
 
   var actualStartClassLoader = startClassLoader
   var actualStartCompilerClassLoader = startCompilerClassLoader
@@ -253,27 +257,28 @@ class Classes(
     tpe match {
       case ClassLoaderType.Main =>
         newClassLoader()
-        var newJars = Seq.empty[File]
-        var newDirs = Seq.empty[File]
-        for (jar <- paths if jar.isFile && !startDeps._1.contains(jar) && !extraPaths(ClassLoaderType.Main).contains(jar) && jar.getName.endsWith(".jar")) {
-          classLoader0 addURL jar.toURI.toURL
-          newJars = newJars :+ jar
+        var newPaths = Seq.empty[File]
+
+        for (path <- paths if !startPaths(ClassLoaderType.Main).contains(path) && !extraPaths(ClassLoaderType.Main).contains(path)) {
+          if (path.isFile && path.getName.endsWith(".jar"))
+            classLoader0.addURL(path.toURI.toURL)
+          else
+            classLoader0.addDir(path)
+
+          newPaths = newPaths :+ path
         }
-        for (dir <- paths if dir.isDirectory && !startDeps._2.contains(dir) && !extraPaths(ClassLoaderType.Main).contains(dir)) {
-          classLoader0 addDir dir
-          newDirs = newDirs :+ dir
-        }
-        newJars = newJars.distinct
-        newDirs = newDirs.distinct
-        extraPaths += ClassLoaderType.Main -> (extraPaths(ClassLoaderType.Main) ++ newJars.distinct ++ newDirs.distinct)
-        onPathsAddedHooks.foreach(_(newJars ++ newDirs))
+
+        newPaths = newPaths.distinct
+
+        extraPaths += ClassLoaderType.Main -> (extraPaths(ClassLoaderType.Main) ++ newPaths)
+        onPathsAddedHooks.foreach(_(newPaths))
         compilerClassLoader = null
 
       case ClassLoaderType.Macro =>
         val newJars = paths.filter(jar =>
           !extraPaths(ClassLoaderType.Macro).contains(jar) &&
-            !effectiveStartCompilerDeps._1.contains(jar) &&
-            !startDeps._1.contains(jar) &&
+            !startPaths(ClassLoaderType.Macro).contains(jar) &&
+            !startPaths(ClassLoaderType.Main).contains(jar) &&
             !extraPaths(ClassLoaderType.Main).contains(jar)
         )
         if (newJars.nonEmpty) {
@@ -282,9 +287,9 @@ class Classes(
         }
 
       case ClassLoaderType.Plugin =>
-        for (jar <- paths if jar.isFile && !startDeps._1.contains(jar) && jar.getName.endsWith(".jar"))
+        for (jar <- paths if jar.isFile && !startPaths(ClassLoaderType.Main).contains(jar) && jar.getName.endsWith(".jar"))
           pluginClassLoader.addURL(jar.toURI.toURL)
-        for (dir <- paths if dir.isDirectory && !startDeps._2.contains(dir))
+        for (dir <- paths if dir.isDirectory && !startPaths(ClassLoaderType.Main).contains(dir))
           pluginClassLoader.addDir(dir)
     }
 
@@ -330,16 +335,14 @@ class Classes(
   def path(tpe: ClassLoaderType = ClassLoaderType.Main): Seq[File] =
     tpe match {
       case ClassLoaderType.Main =>
-        startDeps._1 ++
-          startDeps._2 ++
+        startPaths(ClassLoaderType.Main) ++
           extraPaths(ClassLoaderType.Main)
       case ClassLoaderType.Plugin =>
         path(ClassLoaderType.Macro) ++
           path(ClassLoaderType.Plugin)
       case ClassLoaderType.Macro =>
         path(ClassLoaderType.Main) ++
-          effectiveStartCompilerDeps._1 ++
-          effectiveStartCompilerDeps._2 ++
+          startPaths(ClassLoaderType.Macro) ++
           extraPaths(ClassLoaderType.Macro)
     }
 
