@@ -35,7 +35,7 @@ abstract class ReplAPIImpl(
   def shellPrompt_=(s: String): Unit = shellPromptRef() = s
 
   def search(target: Type): Option[String] = {
-    val mirror = runtimeMirror(intp.classes.currentClassLoader)
+    val mirror = runtimeMirror(intp.classes.classLoader())
 
     def resolve(path: String*): Symbol = {
       var curr = path.toList

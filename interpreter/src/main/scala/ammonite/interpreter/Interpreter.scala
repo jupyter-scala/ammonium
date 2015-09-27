@@ -9,7 +9,7 @@ import scala.reflect.io.VirtualDirectory
 import scala.util.Try
 import scala.util.control.ControlThrowable
 
-import ammonite.api.{ DisplayItem, Decl, BridgeConfig, ImportData }
+import ammonite.api._
 
 
 object Wrap {
@@ -249,7 +249,7 @@ class Interpreter(
     for {
       cls <- Res[Class[_]](Try {
         for ((name, bytes) <- classFiles) classes.addClass(name, bytes)
-        Class.forName(wrapperName, true, classes.currentClassLoader)
+        Class.forName(wrapperName, true, classes.classLoader())
       }, e => "Failed to load compiled class " + e)
     } yield cls
 
@@ -285,7 +285,7 @@ class Interpreter(
     val oldClassLoader = thread.getContextClassLoader
 
     try {
-      thread.setContextClassLoader(classes.currentClassLoader)
+      thread.setContextClassLoader(classes.classLoader())
       block
     } finally {
       thread.setContextClassLoader(oldClassLoader)
@@ -301,7 +301,7 @@ class Interpreter(
    * the exception-handling block of the `Evaluator`
    */
   def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]] =
-    withClassLoader(classes.currentClassLoader) {
+    withClassLoader(classes.classLoader()) {
       for {
         wrapperName0 <- Res.Success("cmd" + getCurrentLine)
         _ <- Catching { case e: ThreadDeath => interrupted() }
@@ -364,8 +364,8 @@ class Interpreter(
       Classes.bootStartDirs ++ classes.dirs, // FIXME Add Classes.compilerDirs, use it here
       dynamicClasspath,
       currentCompilerOptions,
-      classes.currentCompilerClassLoader,
-      classes.currentPluginClassLoader,
+      classes.classLoader(ClassLoaderType.Macro),
+      classes.classLoader(ClassLoaderType.Plugin),
       () => pressy.shutdownPressy()
     )
 
@@ -373,7 +373,7 @@ class Interpreter(
       Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),
       Classes.bootStartDirs ++ classes.dirs, // FIXME Add Classes.compilerDirs, use it here too
       dynamicClasspath,
-      classes.currentCompilerClassLoader
+      classes.classLoader(ClassLoaderType.Macro)
     )
 
     // initializing the compiler so that it does not complain having no phase

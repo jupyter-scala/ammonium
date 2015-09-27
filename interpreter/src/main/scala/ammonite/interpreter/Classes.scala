@@ -4,6 +4,8 @@ import java.io.{FileOutputStream, File}
 import java.net.{URLClassLoader, URL}
 import java.nio.file.Files
 
+import ammonite.api.ClassLoaderType
+
 class AddURLClassLoader(
   parent: ClassLoader,
   tmpClassDir: => File
@@ -200,7 +202,7 @@ class Classes(
     }
 
     if (actualStartClassLoader != currentStartClassLoader) {
-      classLoader = classLoaderClone()
+      classLoader0 = classLoaderClone()
       compilerClassLoader = null
     }
 
@@ -214,10 +216,10 @@ class Classes(
     d
   }
 
-  var classLoader: AddURLClassLoader = new AddURLClassLoader(actualStartClassLoader, tmpClassDir)
+  var classLoader0: AddURLClassLoader = new AddURLClassLoader(actualStartClassLoader, tmpClassDir)
 
   def newClassLoader() = {
-    classLoader = new AddURLClassLoader(classLoader, tmpClassDir)
+    classLoader0 = new AddURLClassLoader(classLoader0, tmpClassDir)
     compilerClassLoader = null
   }
 
@@ -231,7 +233,7 @@ class Classes(
   }
 
   def resetClassLoader() = {
-    classLoader = classLoaderClone()
+    classLoader0 = classLoaderClone()
     compilerClassLoader = null
   }
 
@@ -261,11 +263,11 @@ class Classes(
     var newJars = Seq.empty[File]
     var newDirs = Seq.empty[File]
     for (jar <- jars if jar.isFile && !startDeps._1.contains(jar) && !extraJars.contains(jar) && jar.getName.endsWith(".jar")) {
-      classLoader addURL jar.toURI.toURL
+      classLoader0 addURL jar.toURI.toURL
       newJars = newJars :+ jar
     }
     for (dir <- jars if dir.isDirectory && !startDeps._2.contains(dir) && !extraDirs.contains(dir)) {
-      classLoader addDir dir
+      classLoader0 addDir dir
       newDirs = newDirs :+ dir
     }
     newJars = newJars.distinct
@@ -286,7 +288,7 @@ class Classes(
   }
 
   def addClass(name: String, b: Array[Byte]): Unit = {
-    classLoader.map += name -> b
+    classLoader0.map += name -> b
     compilerClassLoader = null
   }
 
@@ -297,27 +299,31 @@ class Classes(
         case _ => Stream.empty
       }
 
-    helper(currentClassLoader)
+    helper(classLoader0)
   }
 
   def fromAddedClasses(name: String): Option[Array[Byte]] =
     classLoaders.collectFirst{ case c if c.map contains name => c.map(name) }
 
-  def currentClassLoader: ClassLoader = classLoader
-  def currentPluginClassLoader: ClassLoader = pluginClassLoader
+  def classLoader(tpe: ClassLoaderType): ClassLoader = 
+    tpe match {
+      case ClassLoaderType.Main   => classLoader0
+      case ClassLoaderType.Plugin => pluginClassLoader
+      case ClassLoaderType.Macro  =>
+        if (actualStartCompilerClassLoader == null || actualStartCompilerClassLoader == actualStartClassLoader)
+          classLoader0
+        else {
+          if (compilerClassLoader == null) {
+            compilerClassLoader = classLoaderClone(Option(actualStartCompilerClassLoader) getOrElse actualStartClassLoader)
+            extraCompilerJars.foreach(f => compilerClassLoader.addURL(f.toURI.toURL))
+          }
+
+          compilerClassLoader
+        }
+    }
 
   var compilerClassLoader: AddURLClassLoader = null
-  def currentCompilerClassLoader: ClassLoader =
-    if (actualStartCompilerClassLoader == null || actualStartCompilerClassLoader == actualStartClassLoader)
-      currentClassLoader
-    else {
-      if (compilerClassLoader == null) {
-        compilerClassLoader = classLoaderClone(Option(actualStartCompilerClassLoader) getOrElse actualStartClassLoader)
-        extraCompilerJars.foreach(f => compilerClassLoader.addURL(f.toURI.toURL))
-      }
 
-      compilerClassLoader
-    }
   def jars = startDeps._1 ++ extraJars
   def compilerJars = jars ++ effectiveStartCompilerDeps._1 ++ extraCompilerJars
   def pluginJars = startDeps._1 ++ effectiveStartCompilerDeps._1 ++ extraPluginJars

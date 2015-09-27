@@ -2,17 +2,16 @@ package ammonite.api
 
 import java.io.File
 
+sealed trait ClassLoaderType
+object ClassLoaderType {
+  case object Main extends ClassLoaderType
+  case object Plugin extends ClassLoaderType
+  case object Macro extends ClassLoaderType
+}
+
+/** Manages class paths and class loaders */
 trait Classes {
-  /**
-   * The current `ClassLoader`, able to load classes from the added JARs and classes.
-   *
-   * Note that the returned `ClassLoader` changes as JARs and classes are added. So it is
-   * recommended *not* to keep around the returned `ClassLoader`, and call `currentClassLoader`
-   * whenever a `ClassLoader` is needed.
-   */
-  def currentClassLoader: ClassLoader
-  def currentPluginClassLoader: ClassLoader
-  def currentCompilerClassLoader: ClassLoader
+  def classLoader(tpe: ClassLoaderType = ClassLoaderType.Main): ClassLoader
 
   def jars: Seq[File]
   def dirs: Seq[File]
