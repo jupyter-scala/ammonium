@@ -128,14 +128,14 @@ class Interpreter(
   initialHistory: Seq[String] = Nil
 ) extends ammonite.api.Interpreter with InterpreterInternals {
 
-  var currentCompilerOptions = List.empty[String]
+  var compilerOptions = List.empty[String]
 
   def updateImports(newImports: Seq[ImportData]): Unit = {
     imports.update(newImports)
 
     // This is required by the use of WeakTypeTag in the printers,
     // whose implicits get replaced by calls to implicitly
-    if (currentCompilerOptions.contains("-Yno-imports"))
+    if (compilerOptions.contains("-Yno-imports"))
       // FIXME And -Yno-predef too?
       // FIXME Remove the import when the option is dropped
       imports.update(Seq(
@@ -357,7 +357,7 @@ class Interpreter(
   var compiler: Compiler = _
   var pressy: Pressy = _
   def init(options: String*): Unit = {
-    currentCompilerOptions = options.toList
+    compilerOptions = options.toList
 
     val (jars, dirs) = (
       Classes.bootStartJars ++ Classes.bootStartDirs ++
@@ -368,7 +368,7 @@ class Interpreter(
       jars,
       dirs,
       dynamicClasspath,
-      currentCompilerOptions,
+      compilerOptions,
       classes.classLoader(ClassLoaderType.Macro),
       classes.classLoader(ClassLoaderType.Plugin),
       () => pressy.shutdownPressy()
@@ -401,7 +401,7 @@ class Interpreter(
   def onStop(action: => Unit): Unit =
     onStopHooks = onStopHooks :+ { () => action }
 
-  init(currentCompilerOptions: _*)
+  init(compilerOptions: _*)
   initBridge()
 
   private var _macroMode = false
@@ -409,7 +409,7 @@ class Interpreter(
     if (!_macroMode) {
       _macroMode = true
       classes.useMacroClassLoader(true)
-      init(currentCompilerOptions: _*)
+      init(compilerOptions: _*)
       initBridge()
     }
 }

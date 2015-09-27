@@ -30,7 +30,7 @@ class Load(
   lazy val compiler: AddDependency = new AddDependency {
     def jar(jar: File, jars: File*) = {
       intp.classes.addPath(ClassLoaderType.Macro)(jar +: jars: _*)
-      intp.init(intp.currentCompilerOptions: _*)
+      intp.init(intp.compilerOptions: _*)
     }
     def jar(url: URL, urls: URL*) =
       (url +: urls).map(fromCache).toList match {
@@ -57,7 +57,7 @@ class Load(
   lazy val plugin: AddDependency = new AddDependency {
     def jar(jar: File, jars: File*) = {
       intp.classes.addPath(ClassLoaderType.Plugin)(jar +: jars: _*)
-      intp.init(intp.currentCompilerOptions: _*)
+      intp.init(intp.compilerOptions: _*)
     }
     def jar(url: URL, urls: URL*) =
       (url +: urls).map(fromCache).toList match {
@@ -93,7 +93,7 @@ class Load(
     val jars0 = jar +: jars
     userJars = userJars ++ jars0
     intp.classes.addPath()(jars0: _*)
-    intp.init(intp.currentCompilerOptions: _*)
+    intp.init(intp.compilerOptions: _*)
   }
 
   lazy val urlCacheDir = {
@@ -154,7 +154,7 @@ class Load(
     warnedJars = removedJars
 
     intp.classes.addPath()(newJars ++ extra: _*)
-    intp.init(intp.currentCompilerOptions: _*)
+    intp.init(intp.compilerOptions: _*)
   }
 
   def resolve(coordinates: (String, String, String)*): Seq[File] =
