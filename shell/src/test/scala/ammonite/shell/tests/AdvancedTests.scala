@@ -11,7 +11,6 @@ class AdvancedTests(check0: => Checker,
   val scala2_10 = scala.util.Properties.versionNumberString.startsWith("2.10.")
 
   val tests = TestSuite{
-    println("AdvancedTests")
     val check = check0
     'load{
       'ivy{

@@ -66,10 +66,9 @@ object AmmonitePlugin{
         }
         val prefix = rec(expr).reverseMap(x => Parsers.backtickWrap(x.decoded)).mkString(".")
         val renamings =
-          for(g.ImportSelector(name, _, rename, _) <- selectors if rename != null && name.decoded != rename.decoded) yield {
-            Option(rename).map(name.decoded -> _.decoded)
-          }
-        val renameMap = renamings.flatten.map(_.swap).toMap
+          for (g.ImportSelector(name, _, rename, _) <- selectors if rename != null)
+            yield rename.decoded -> name.decoded
+        val renameMap = renamings.toMap
         val info = new g.analyzer.ImportInfo(t, 0)
 
         val symNames = for {
@@ -79,6 +78,8 @@ object AmmonitePlugin{
           if sym.isPublic
         } yield (sym.decodedName, sym.isImplicit)
 
+        val symNamesSet = symNames.map(_._1).toSet
+
         val syms = for{
           // For some reason `info.allImportedSymbols` does not show imported
           // type aliases when they are imported directly e.g.
@@ -87,7 +88,7 @@ object AmmonitePlugin{
           //
           // As opposed to via import scala.reflect.macros._.
           // Thus we need to combine allImportedSymbols with the renameMap
-          (sym, isImplicit) <- symNames.toList ++ renameMap.keys.map(s => (s, false /* ??? */))
+          (sym, isImplicit) <- symNames.toList ++ renameMap.keys.filterNot(symNamesSet.contains).map(s => (s, false /* ??? */))
         } yield {
           (renameMap.getOrElse(sym, sym), sym, prefix, isImplicit)
         }

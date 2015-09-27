@@ -8,7 +8,6 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
 
   val tests = TestSuite{
     val check = check0
-    println("EvaluatorTests")
     'simpleExpressions{
       check.session("""
         @ 1 + 2
