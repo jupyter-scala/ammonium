@@ -24,7 +24,7 @@ class Imports(
    */
   lazy val previousImports = mutable.Map(initialImports: _*)
 
-  def previousImportBlock(wanted: Set[String] = null): String = {
+  def importBlock(wanted: Set[String] = null): String = {
     def isReplClassWrapImport(d: ImportData) =
       useClassWrapper &&
       (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName) &&

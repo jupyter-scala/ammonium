@@ -169,7 +169,7 @@ class Interpreter(
 
 
   def complete(snippetIndex: Int, snippet: String, previousImports: String = null): (Int, Seq[String], Seq[String]) =
-    pressy.complete(snippetIndex, Option(previousImports) getOrElse imports.previousImportBlock(), snippet)
+    pressy.complete(snippetIndex, Option(previousImports) getOrElse imports.importBlock(), snippet)
 
   def decls(code: String): Either[String, Seq[Decl]] =
     Parsers.split(code) match {
@@ -307,8 +307,8 @@ class Interpreter(
         _ <- Catching { case e: ThreadDeath => interrupted() }
         (wrapperName, wrappedLine) = wrapper(
           input,
-          imports.previousImportBlock(input.flatMap(_.referencedNames).toSet),
-          imports.previousImportBlock(),
+          imports.importBlock(input.flatMap(_.referencedNames).toSet),
+          imports.importBlock(),
           wrapperName0
         )
         (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")

@@ -58,8 +58,8 @@ trait Interpreter {
     decls(code).right.map(decls =>
       wrapper(
         decls,
-        imports.previousImportBlock(decls.flatMap(_.referencedNames).toSet),
-        imports.previousImportBlock(),
+        imports.importBlock(decls.flatMap(_.referencedNames).toSet),
+        imports.importBlock(),
         wrapperName
       )
     )
