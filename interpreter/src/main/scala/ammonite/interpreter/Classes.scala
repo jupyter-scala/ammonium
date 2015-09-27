@@ -226,7 +226,9 @@ class Classes(
   def classLoaderClone(baseClassLoader: ClassLoader = null): AddURLClassLoader = {
     val classLoaders0 = classLoaders.toList.reverse // Reversing, so that dirs/classes added later override those previously added
     val classLoader = new AddURLClassLoader(Option(baseClassLoader) getOrElse actualStartClassLoader, tmpClassDir)
-    extraJars.foreach(classLoader addURL _.toURI.toURL)
+    extraPaths(ClassLoaderType.Main)
+      .filter(f => f.isFile && f.getName.endsWith(".jar"))
+      .foreach(f => classLoader.addURL(f.toURI.toURL))
     classLoaders0.foreach(classLoader.dirs ++= _.dirs)
     classLoaders0.foreach(classLoader.map ++= _.map)
     classLoader
@@ -237,55 +239,54 @@ class Classes(
     compilerClassLoader = null
   }
 
-  var extraJars = Seq.empty[File]
-  var extraDirs = Seq.empty[File]
+  var extraPaths = Map[ClassLoaderType, Seq[File]](
+    ClassLoaderType.Main -> Nil,
+    ClassLoaderType.Macro -> Nil,
+    ClassLoaderType.Plugin -> Nil
+  )
+
   var classMaps = Seq.empty[String => Option[Array[Byte]]]
 
-  var extraCompilerJars = Seq.empty[File]
-
   var pluginClassLoader: AddURLClassLoader = classLoaderClone(Option(actualStartCompilerClassLoader) getOrElse actualStartClassLoader)
-  var extraPluginJars = Seq.empty[File]
 
-  def addCompilerJars(jars: File*): Unit = {
-    val newJars = jars.filter(jar =>
-      !extraCompilerJars.contains(jar) &&
-        !effectiveStartCompilerDeps._1.contains(jar) &&
-        !startDeps._1.contains(jar) &&
-        !extraJars.contains(jar))
-    if (newJars.nonEmpty) {
-      extraCompilerJars = extraCompilerJars ++ newJars
-      compilerClassLoader = null
-    }
-  }
+  def addPath(tpe: ClassLoaderType = ClassLoaderType.Main)(paths: File*): Unit =
+    tpe match {
+      case ClassLoaderType.Main =>
+        newClassLoader()
+        var newJars = Seq.empty[File]
+        var newDirs = Seq.empty[File]
+        for (jar <- paths if jar.isFile && !startDeps._1.contains(jar) && !extraPaths(ClassLoaderType.Main).contains(jar) && jar.getName.endsWith(".jar")) {
+          classLoader0 addURL jar.toURI.toURL
+          newJars = newJars :+ jar
+        }
+        for (dir <- paths if dir.isDirectory && !startDeps._2.contains(dir) && !extraPaths(ClassLoaderType.Main).contains(dir)) {
+          classLoader0 addDir dir
+          newDirs = newDirs :+ dir
+        }
+        newJars = newJars.distinct
+        newDirs = newDirs.distinct
+        extraPaths += ClassLoaderType.Main -> (extraPaths(ClassLoaderType.Main) ++ newJars.distinct ++ newDirs.distinct)
+        onPathsAddedHooks.foreach(_(newJars ++ newDirs))
+        compilerClassLoader = null
 
-  def addJars(jars: File*) = {
-    newClassLoader()
-    var newJars = Seq.empty[File]
-    var newDirs = Seq.empty[File]
-    for (jar <- jars if jar.isFile && !startDeps._1.contains(jar) && !extraJars.contains(jar) && jar.getName.endsWith(".jar")) {
-      classLoader0 addURL jar.toURI.toURL
-      newJars = newJars :+ jar
-    }
-    for (dir <- jars if dir.isDirectory && !startDeps._2.contains(dir) && !extraDirs.contains(dir)) {
-      classLoader0 addDir dir
-      newDirs = newDirs :+ dir
-    }
-    newJars = newJars.distinct
-    newDirs = newDirs.distinct
-    extraJars = extraJars ++ newJars.distinct
-    extraDirs = extraDirs ++ newDirs.distinct
-    onJarsAddedHooks.foreach(_(newJars ++ newDirs))
-    compilerClassLoader = null
-  }
+      case ClassLoaderType.Macro =>
+        val newJars = paths.filter(jar =>
+          !extraPaths(ClassLoaderType.Macro).contains(jar) &&
+            !effectiveStartCompilerDeps._1.contains(jar) &&
+            !startDeps._1.contains(jar) &&
+            !extraPaths(ClassLoaderType.Main).contains(jar)
+        )
+        if (newJars.nonEmpty) {
+          extraPaths += ClassLoaderType.Macro -> (extraPaths(ClassLoaderType.Macro) ++ newJars)
+          compilerClassLoader = null
+        }
 
-  def addPluginJars(jars: File*) = {
-    for (jar <- jars if jar.isFile && !startDeps._1.contains(jar) && jar.getName.endsWith(".jar")) {
-      pluginClassLoader addURL jar.toURI.toURL
+      case ClassLoaderType.Plugin =>
+        for (jar <- paths if jar.isFile && !startDeps._1.contains(jar) && jar.getName.endsWith(".jar"))
+          pluginClassLoader.addURL(jar.toURI.toURL)
+        for (dir <- paths if dir.isDirectory && !startDeps._2.contains(dir))
+          pluginClassLoader.addDir(dir)
     }
-    for (dir <- jars if dir.isDirectory && !startDeps._2.contains(dir)) {
-      pluginClassLoader addDir dir
-    }
-  }
 
   def addClass(name: String, b: Array[Byte]): Unit = {
     classLoader0.map += name -> b
@@ -315,7 +316,9 @@ class Classes(
         else {
           if (compilerClassLoader == null) {
             compilerClassLoader = classLoaderClone(Option(actualStartCompilerClassLoader) getOrElse actualStartClassLoader)
-            extraCompilerJars.foreach(f => compilerClassLoader.addURL(f.toURI.toURL))
+            extraPaths(ClassLoaderType.Macro)
+              .filter(f => f.isFile && f.getName.endsWith(".jar"))
+              .foreach(f => compilerClassLoader.addURL(f.toURI.toURL))
           }
 
           compilerClassLoader
@@ -324,14 +327,24 @@ class Classes(
 
   var compilerClassLoader: AddURLClassLoader = null
 
-  def jars = startDeps._1 ++ extraJars
-  def compilerJars = jars ++ effectiveStartCompilerDeps._1 ++ extraCompilerJars
-  def pluginJars = startDeps._1 ++ effectiveStartCompilerDeps._1 ++ extraPluginJars
-  def dirs = startDeps._2 ++ extraDirs
-  // FIXME Add compilerDirs
+  def path(tpe: ClassLoaderType = ClassLoaderType.Main): Seq[File] =
+    tpe match {
+      case ClassLoaderType.Main =>
+        startDeps._1 ++
+          startDeps._2 ++
+          extraPaths(ClassLoaderType.Main)
+      case ClassLoaderType.Plugin =>
+        path(ClassLoaderType.Macro) ++
+          path(ClassLoaderType.Plugin)
+      case ClassLoaderType.Macro =>
+        path(ClassLoaderType.Main) ++
+          effectiveStartCompilerDeps._1 ++
+          effectiveStartCompilerDeps._2 ++
+          extraPaths(ClassLoaderType.Macro)
+    }
 
-  var onJarsAddedHooks = Seq.empty[Seq[File] => Unit]
-  def onJarsAdded(action: Seq[File] => Unit) = {
-    onJarsAddedHooks = onJarsAddedHooks :+ action
+  var onPathsAddedHooks = Seq.empty[Seq[File] => Unit]
+  def onPathsAdded(action: Seq[File] => Unit) = {
+    onPathsAddedHooks = onPathsAddedHooks :+ action
   }
 }

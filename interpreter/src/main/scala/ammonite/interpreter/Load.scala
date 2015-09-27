@@ -1,6 +1,6 @@
 package ammonite.interpreter
 
-import ammonite.api.{ Resolver => ApiResolver, AddDependency }
+import ammonite.api.{Resolver => ApiResolver, ClassLoaderType, AddDependency}
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
 import com.github.alexarchambault.ivylight.{ Resolver, Sbt, Ivy }
@@ -29,7 +29,7 @@ class Load(
 
   lazy val compiler: AddDependency = new AddDependency {
     def jar(jar: File, jars: File*) = {
-      intp.classes.addCompilerJars(jar +: jars: _*)
+      intp.classes.addPath(ClassLoaderType.Macro)(jar +: jars: _*)
       intp.init(intp.currentCompilerOptions: _*)
     }
     def jar(url: URL, urls: URL*) =
@@ -48,7 +48,7 @@ class Load(
       compilerIvys = compilerIvys ++ coordinates
       val ivyJars = Ivy.resolve((compilerIvys ++ userIvys ++ sbtIvys).filterNot(internalSbtIvys), userResolvers)
         .map(jarMap)
-        .filterNot(intp.classes.compilerJars.toSet)
+        .filterNot(intp.classes.path(ClassLoaderType.Macro).filter(f => f.isFile && f.getName.endsWith(".jar")).toSet)
       if (ivyJars.nonEmpty)
         jar(ivyJars(0), ivyJars.drop(1): _*)
     }
@@ -56,7 +56,7 @@ class Load(
 
   lazy val plugin: AddDependency = new AddDependency {
     def jar(jar: File, jars: File*) = {
-      intp.classes.addPluginJars(jar +: jars: _*)
+      intp.classes.addPath(ClassLoaderType.Plugin)(jar +: jars: _*)
       intp.init(intp.currentCompilerOptions: _*)
     }
     def jar(url: URL, urls: URL*) =
@@ -75,7 +75,7 @@ class Load(
       pluginIvys = pluginIvys ++ coordinates
       val ivyJars = Ivy.resolve((pluginIvys ++ userIvys ++ sbtIvys).filterNot(internalSbtIvys), userResolvers)
         .map(jarMap)
-        .filterNot(intp.classes.pluginJars.toSet)
+        .filterNot(intp.classes.path(ClassLoaderType.Plugin).filter(f => f.isFile && f.getName.endsWith(".jar")).toSet)
       if (ivyJars.nonEmpty)
         jar(ivyJars(0), ivyJars.drop(1):_ *)
     }
@@ -92,7 +92,7 @@ class Load(
   def jar(jar: File, jars: File*): Unit = {
     val jars0 = jar +: jars
     userJars = userJars ++ jars0
-    intp.classes.addJars(jars0: _*)
+    intp.classes.addPath()(jars0: _*)
     intp.init(intp.currentCompilerOptions: _*)
   }
 
@@ -141,7 +141,7 @@ class Load(
     val ivyJars = Ivy.resolve((userIvys ++ sbtIvys) filterNot internalSbtIvys, userResolvers).map(jarMap)
     val newJars = ivyJars ++ userJars
 
-    val removedJars = intp.classes.jars.toSet -- newJars
+    val removedJars = intp.classes.path().filter(f => f.isFile && f.getName.endsWith(".jar")).toSet -- newJars
     // Second condition: if startIvys is empty, it is likely the startJars were *not* computed
     // from ivy modules, so we do not warn users about the startJars not being found
     // later by ivy
@@ -153,7 +153,7 @@ class Load(
     }
     warnedJars = removedJars
 
-    intp.classes.addJars(newJars ++ extra: _*)
+    intp.classes.addPath()(newJars ++ extra: _*)
     intp.init(intp.currentCompilerOptions: _*)
   }
 

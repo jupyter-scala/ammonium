@@ -359,9 +359,14 @@ class Interpreter(
   def init(options: String*): Unit = {
     currentCompilerOptions = options.toList
 
+    val (jars, dirs) = (
+      Classes.bootStartJars ++ Classes.bootStartDirs ++
+        classes.path(if (_macroMode) ClassLoaderType.Macro else ClassLoaderType.Main)
+    ).toSeq.partition(f => f.isFile && f.getName.endsWith(".jar"))
+
     compiler = Compiler(
-      Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),
-      Classes.bootStartDirs ++ classes.dirs, // FIXME Add Classes.compilerDirs, use it here
+      jars,
+      dirs,
       dynamicClasspath,
       currentCompilerOptions,
       classes.classLoader(ClassLoaderType.Macro),
@@ -370,8 +375,8 @@ class Interpreter(
     )
 
     pressy = Pressy(
-      Classes.bootStartJars ++ (if (_macroMode) classes.compilerJars else classes.jars),
-      Classes.bootStartDirs ++ classes.dirs, // FIXME Add Classes.compilerDirs, use it here too
+      jars,
+      dirs,
       dynamicClasspath,
       classes.classLoader(ClassLoaderType.Macro)
     )
