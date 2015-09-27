@@ -35,7 +35,7 @@ object AmmonitePlugin{
       (sym.decodedName, sym.decodedName, "", sym.isImplicit)
     }
 
-    val stats = unit.body.children.last match {
+    val stats = unit.body.children.init.last match {
       case m: g.ModuleDef =>
         def inner(m: g.ModuleDef) =
           m.impl.body.collectFirst{case t: g.ModuleDef if t.name.toString == "$user" => t}
@@ -66,7 +66,7 @@ object AmmonitePlugin{
         }
         val prefix = rec(expr).reverseMap(x => Parsers.backtickWrap(x.decoded)).mkString(".")
         val renamings =
-          for(t @ g.ImportSelector(name, _, rename, _) <- selectors) yield {
+          for(g.ImportSelector(name, _, rename, _) <- selectors if rename != null && name.decoded != rename.decoded) yield {
             Option(rename).map(name.decoded -> _.decoded)
           }
         val renameMap = renamings.flatten.map(_.swap).toMap

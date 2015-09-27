@@ -377,13 +377,13 @@ class Interpreter(
     )
 
     // initializing the compiler so that it does not complain having no phase
-    compiler.compile("object $dummy".getBytes("UTF-8"), _ => ())
+    compiler.compile("object $dummy; object $dummy2".getBytes("UTF-8"), _ => ())
   }
 
   def initBridge(): Unit =
     bridgeConfig.initClass(
       this,
-      evalClass(bridgeConfig.init, bridgeConfig.name) match {
+      evalClass(bridgeConfig.init + "\n\nobject $Dummy\n", bridgeConfig.name) match {
         case Res.Success((s, _)) => s
         case other => throw new Exception(s"Error while initializing REPL API: $other")
       }
