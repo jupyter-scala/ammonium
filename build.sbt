@@ -186,8 +186,8 @@ def sparkProject(sparkVersion: String, hadoopVersion: String, extraDirSuffix: St
       moduleName := s"ammonite-spark_$binaryVersion",
       target := target.value / s"spark-$binaryVersion",
       libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core" % sparkVersion excludeAll(ExclusionRule("org.apache.hadoop")),
-        "org.apache.spark" %% "spark-sql" % sparkVersion excludeAll(ExclusionRule("org.apache.hadoop")),
+        "org.apache.spark" %% "spark-core" % sparkVersion excludeAll ExclusionRule("org.apache.hadoop", "*"),
+        "org.apache.spark" %% "spark-sql" % sparkVersion excludeAll ExclusionRule("org.apache.hadoop", "*"),
         "org.apache.hadoop" % "hadoop-client" % hadoopVersion,
         "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
       ),
