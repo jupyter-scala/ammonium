@@ -73,7 +73,7 @@ class Load(
     var pluginIvys = Seq.empty[(String, String, String)]
     def ivy(coordinates: (String, String, String)*) = {
       pluginIvys = pluginIvys ++ coordinates
-      val ivyJars = Ivy.resolve((pluginIvys ++ userIvys ++ sbtIvys).filterNot(internalSbtIvys), userResolvers)
+      val ivyJars = Ivy.resolve(pluginIvys, userResolvers)
         .map(jarMap)
         .filterNot(intp.classes.path(ClassLoaderType.Plugin).filter(f => f.isFile && f.getName.endsWith(".jar")).toSet)
       if (ivyJars.nonEmpty)

@@ -253,7 +253,7 @@ class Classes(
 
   var pluginClassLoader: AddURLClassLoader = classLoaderClone(Option(actualStartCompilerClassLoader) getOrElse actualStartClassLoader)
 
-  def addPath(tpe: ClassLoaderType = ClassLoaderType.Main)(paths: File*): Unit =
+  def addPath(tpe: ClassLoaderType)(paths: File*): Unit =
     tpe match {
       case ClassLoaderType.Main =>
         newClassLoader()
@@ -287,10 +287,17 @@ class Classes(
         }
 
       case ClassLoaderType.Plugin =>
-        for (jar <- paths if jar.isFile && !startPaths(ClassLoaderType.Main).contains(jar) && jar.getName.endsWith(".jar"))
+        var newPaths = Seq.empty[File]
+        for (jar <- paths if jar.isFile && !startPaths(ClassLoaderType.Plugin).contains(jar) && jar.getName.endsWith(".jar")) {
           pluginClassLoader.addURL(jar.toURI.toURL)
-        for (dir <- paths if dir.isDirectory && !startPaths(ClassLoaderType.Main).contains(dir))
+          newPaths = newPaths :+ jar
+        }
+        for (dir <- paths if dir.isDirectory && !startPaths(ClassLoaderType.Plugin).contains(dir)) {
           pluginClassLoader.addDir(dir)
+          newPaths = newPaths :+ dir
+        }
+
+        extraPaths += ClassLoaderType.Plugin -> (extraPaths(ClassLoaderType.Plugin) ++ newPaths)
     }
 
   def addClass(name: String, b: Array[Byte]): Unit = {
@@ -332,14 +339,14 @@ class Classes(
 
   var compilerClassLoader: AddURLClassLoader = null
 
-  def path(tpe: ClassLoaderType = ClassLoaderType.Main): Seq[File] =
+  def path(tpe: ClassLoaderType): Seq[File] =
     tpe match {
       case ClassLoaderType.Main =>
         startPaths(ClassLoaderType.Main) ++
           extraPaths(ClassLoaderType.Main)
       case ClassLoaderType.Plugin =>
-        path(ClassLoaderType.Macro) ++
-          path(ClassLoaderType.Plugin)
+        startPaths(ClassLoaderType.Plugin) ++
+          extraPaths(ClassLoaderType.Plugin)
       case ClassLoaderType.Macro =>
         path(ClassLoaderType.Main) ++
           startPaths(ClassLoaderType.Macro) ++
