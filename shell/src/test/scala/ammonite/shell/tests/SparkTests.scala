@@ -224,7 +224,7 @@ class SparkTests(checker: => Checker,
           defined class Foo
 
           @ sc.parallelize((1 to 100).map(Foo), 10).collect()
-          res5: Array[Foo] = Array(${(1 to 14).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...
+          res5: Array[Foo] = Array(${(1 to 19).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...
         """, postamble)
     }
 

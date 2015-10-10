@@ -307,8 +307,13 @@ class AdvancedTests(check0: => Checker,
     }
     'truncation{
       check.session("""
-      @ Seq.fill(20)(100)
+      @ Seq.fill(25)(100)
       res0: Seq[Int] = List(
+        100,
+        100,
+        100,
+        100,
+        100,
         100,
         100,
         100,
@@ -325,8 +330,13 @@ class AdvancedTests(check0: => Checker,
         100,
       ...
 
-      @ show(Seq.fill(20)(100))
+      @ show(Seq.fill(25)(100))
       List(
+        100,
+        100,
+        100,
+        100,
+        100,
         100,
         100,
         100,
