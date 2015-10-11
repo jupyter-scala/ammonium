@@ -54,7 +54,8 @@ class Spark(implicit
           } yield b
 
         def fromDirs =
-          interpreter.classes.dirs
+          interpreter.classes.path()
+            .filterNot(f => f.isFile && f.getName.endsWith(".jar"))
             .map(path.foldLeft(_)(new File(_, _)))
             .collectFirst{ case f if f.exists() => Files.readAllBytes(f.toPath) }
 
@@ -122,7 +123,16 @@ class Spark(implicit
     conf
       .setIfMissing("spark.master", defaultMaster)
       .setIfMissing("spark.app.name", "Ammonite Shell")
-      .setIfMissingLazy("spark.jars", interpreter.classes.jars.filterNot(sparkJars).map(_.toURI.toString) mkString ",")
+      .setIfMissingLazy(
+        "spark.jars",
+        interpreter
+          .classes
+          .path()
+          .filter(f => f.isFile && f.getName.endsWith(".jar"))
+          .filterNot(sparkJars)
+          .map(_.toURI.toString)
+          .mkString(",")
+      )
       .setIfMissingLazy("spark.repl.class.uri", classServerURI.toString)
       .setIfMissingLazy("spark.ui.port", availablePort(4040).toString)
 
@@ -150,7 +160,7 @@ class Spark(implicit
   def withConf(f: SparkConf => SparkConf): Unit =
     _sparkConf = f(sparkConf)
 
-  interpreter.classes.onJarsAdded { newJars =>
+  interpreter.classes.onPathsAdded { newJars =>
     if (_sc != null)
       newJars.filterNot(sparkJars).foreach(_sc addJar _.toURI.toString)
   }

@@ -2,8 +2,6 @@ package ammonite.shell.util
 
 import ammonite.api.DisplayItem, DisplayItem._
 
-import acyclic.file
-
 
 object ShellDisplay {
 
@@ -12,9 +10,9 @@ object ShellDisplay {
       case Definition(label, name) =>
         s"""ReplBridge.shell.Internal.printDef("$label", "$name")"""
       case Identity(ident) =>
-        s"""ReplBridge.shell.Internal.print($$user.$ident, "$ident", _root_.scala.None)"""
+        s"""ReplBridge.shell.Internal.print($$user.$ident, $$user.$ident, "$ident", _root_.scala.None)"""
       case LazyIdentity(ident) =>
-        s"""ReplBridge.shell.Internal.print($$user.$ident, "$ident", _root_.scala.Some("<lazy>"))"""
+        s"""ReplBridge.shell.Internal.print($$user.$ident, $$user.$ident, "$ident", _root_.scala.Some("<lazy>"))"""
       case Import(imported) =>
         s"""ReplBridge.shell.Internal.printImport("$imported")"""
     }

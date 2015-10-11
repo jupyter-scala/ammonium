@@ -2,7 +2,6 @@ package ammonite.interpreter
 
 import java.io.{ ByteArrayOutputStream, InputStream }
 
-import acyclic.file
 import fastparse._
 
 import scala.util.Try
@@ -13,6 +12,10 @@ object Res{
   def apply[T](o: Option[T], errMsg: => String) = o match{
     case Some(s) => Success(s)
     case None => Failure(errMsg)
+  }
+  def apply[T](o: Either[String, T]) = o match{
+    case Right(s) => Success(s)
+    case Left(t) => Failure(t)
   }
   def apply[T](o: Try[T], errMsg: Throwable => String) = o match{
     case util.Success(s) => Success(s)
@@ -82,22 +85,49 @@ case class Evaluated[T](wrapper: String,
 /**
  * Encapsulates a read-write cell that can be passed around
  */
-trait Ref[T]{
+trait StableRef[T]{
+  /**
+   * Get the current value of the this [[StableRef]] at this instant in time
+   */
   def apply(): T
+
+  /**
+   * Set the value of this [[StableRef]] to always be the value `t`
+   */
   def update(t: T): Unit
 }
+
+trait Ref[T] extends StableRef[T]{
+  /**
+   * Return a function that can be used to get the value of this [[Ref]]
+   * at any point in time
+   */
+  def live(): () => T
+
+  /**
+   * Set the value of this [[Ref]] to always be the value of the by-name
+   * argument `t`, at any point in time
+   */
+  def bind(t: => T): Unit
+}
+
 object Ref{
-  def apply[T](value0: T) = {
-    var value = value0
-    new Ref[T]{
-      def apply() = value
-      def update(t: T) = value = t
-    }
+  implicit def refer[T](t: T): Ref[T] = Ref(t)
+  // FIXME Move elsewhere
+//  implicit def refPPrint[T: PPrint]: PPrinter[Ref[T]] = PPrinter{ (ref, cfg) =>
+//    Iterator(cfg.colors.prefixColor, "Ref", cfg.colors.endColor, "(") ++
+//      implicitly[PPrint[T]].pprinter.render(ref(), cfg) ++
+//      Iterator(")")
+//  }
+  def live[T](value0: () => T) = new Ref[T]{
+    var value: () => T = value0
+    def live() = value
+    def apply() = value()
+    def update(t: T) = value = () => t
+    def bind(t: => T): Unit = value = () => t
+    override def toString = s"Ref($value)"
   }
-  def apply[T](value: T, update0: T => Unit) = new Ref[T]{
-    def apply() = value
-    def update(t: T) = update0(t)
-  }
+  def apply[T](value0: T) = live(() => value0)
 }
 
 /**
@@ -147,77 +177,6 @@ object Timer{
     val now = System.nanoTime()
     println(s + ": " + (now - current) / 1000000.0)
     current = now
-  }
-}
-object Parsers {
-
-  import fastparse._
-  import scalaparse.Scala._
-  private implicit def wspStr(s: String) = P(WL ~ s)(Utils.literalize(s).toString)
-
-  val PatVarSplitter = {
-    val Prefixes = P(Annot.rep ~ `private`.? ~ `implicit`.? ~ `lazy`.? ~ (`var` | `val`))
-    val Lhs = P( Prefixes ~! BindPattern.rep(1, "," ~! Pass) ~ (`:` ~! Type).? )
-    P( Lhs.! ~ (`=` ~! WL ~ StatCtx.Expr.!) ~ End )
-  }
-  def patVarSplit(code: String) = {
-    val Result.Success((lhs, rhs), _) = PatVarSplitter.parse(code)
-    (lhs, rhs)
-  }
-  val Id2 = P( Id ~ End )
-
-  // from ammonite-pprint
-  /**
-   * Escapes a string to turn it back into a string literal
-   */
-  def escape(text: String): String = {
-    val s = new StringBuilder
-    val len = text.length
-    var pos = 0
-    var prev = 0
-
-    @inline
-    def handle(snip: String) = {
-      s.append(text.substring(prev, pos))
-      s.append(snip)
-    }
-    while (pos < len) {
-      text.charAt(pos) match {
-        case '"' => handle("\\\""); prev = pos + 1
-        case '\n' => handle("\\n"); prev = pos + 1
-        case '\r' => handle("\\r"); prev = pos + 1
-        case '\t' => handle("\\t"); prev = pos + 1
-        case '\\' => handle("\\\\"); prev = pos + 1
-        case _ =>
-      }
-      pos += 1
-    }
-    handle("")
-    s.toString()
-  }
-
-  def backtickWrap(s: String) = {
-    Id2.parse(s) match{
-      case _: Result.Success[_] => s
-      case _ => "`" + escape(s) + "`"
-    }
-  }
-
-  val Prelude = P( Annot.rep ~ `private`.? ~ `implicit`.? ~ `lazy`.? ~ LocalMod.rep )
-  val Splitter = P( Semis.? ~ (scalaparse.Scala.Import | Prelude ~ BlockDef | StatCtx.Expr).!.rep(sep=Semis) ~ Semis.? ~ WL ~ End)
-  def split(code: String) = {
-    Splitter.parse(code) match{
-      case Result.Success(value, idx) => value
-      case f: Result.Failure => throw new SyntaxError(code, f.parser, f.index)
-    }
-  }
-
-  val BlockUnwrapper = P( "{" ~ Block.! ~ "}" ~ End)
-  def unwrapBlock(code: String) = {
-    BlockUnwrapper.parse(code) match{
-      case Result.Success(contents, _) => Some(contents)
-      case _ => None
-    }
   }
 }
 

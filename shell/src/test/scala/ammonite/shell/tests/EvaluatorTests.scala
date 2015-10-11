@@ -8,7 +8,6 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
 
   val tests = TestSuite{
     val check = check0
-    println("EvaluatorTests")
     'simpleExpressions{
       check.session("""
         @ 1 + 2
@@ -270,7 +269,7 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
 
     'packageImport{
       check.session("""
-        @ import ammonite.pprint._
+        @ import pprint._
 
         @ import Config.Defaults._
       """)

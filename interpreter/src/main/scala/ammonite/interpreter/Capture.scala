@@ -5,23 +5,29 @@ package ammonite.interpreter
 import java.io.{ Console => _, _ }
 
 object Capture {
-  private def watchStream(input: InputStream, fn: String => Unit, name: String, size: Int = 10240) = new Thread(name) {
-    override def run() = {
-      val buffer = Array.ofDim[Byte](size)
+  private def watchStream(
+    input: InputStream,
+    fn: String => Unit,
+    name: String,
+    size: Int = 10240
+  ) =
+    new Thread(name) {
+      override def run() = {
+        val buffer = Array.ofDim[Byte](size)
 
-      try {
-        while (true) {
-          val n = input read buffer
-          if (n > 0) fn(new String(buffer take n))
-          if (n < size) Thread.sleep(50) // a little delay to accumulate output
+        try {
+          while (true) {
+            val n = input read buffer
+            if (n > 0) fn(new String(buffer take n))
+            if (n < size) Thread.sleep(50) // little delay to accumulate output
+          }
+        } catch {
+          case _: IOException =>
+          case e: Exception =>
+            Console.err.println(s"Unexpected exception in $name thread: $e")
         }
-      } catch {
-        case _: IOException =>
-        case e: Exception =>
-          Console.err.println(s"Unexpected exception in $name thread: $e")
       }
     }
-  }
 
   private def withOut[T](newOut: PrintStream)(block: => T) =
     Console.withOut(newOut) {
@@ -40,25 +46,27 @@ object Capture {
       try block finally System.setErr(oldErr)
     }
 
-  private def withOutAndErr[T](outOpt: Option[PipedOutputStream],
-                               errOpt: Option[PipedOutputStream])(block: => T) = {
+  private def withOutAndErr[T](
+    outOpt: Option[PipedOutputStream],
+    errOpt: Option[PipedOutputStream] )(
+    block: => T
+  ) = {
     def ps(s: OutputStream) = new PrintStream(s, true)
 
     try {
       val res =
         (outOpt map ps, errOpt map ps) match {
           case (Some(newOut), Some(newErr)) => withOut(newOut)(withErr(newErr)(block))
-          case (None, Some(newErr)) => withErr(newErr)(block)
-          case (Some(newOut), None) => withOut(newOut)(block)
-          case (None, None) => block
+          case (None,         Some(newErr)) => withErr(newErr)(block)
+          case (Some(newOut), None        ) => withOut(newOut)(block)
+          case (None        , None        ) => block
         }
 
       outOpt.foreach(_.flush())
       errOpt.foreach(_.flush())
 
       res
-    }
-    finally  {
+    } finally {
       outOpt.foreach(_.close())
       errOpt.foreach(_.close())
     }
@@ -72,7 +80,10 @@ object Capture {
   // so technically speaking we have multiple producers, which completely
   // breaks the earlier intuitive approach.
 
-  def pipedInputOpt(name: String, fOpt: Option[String => Unit]) =
+  def pipedInputOpt(
+    name: String,
+    fOpt: Option[String => Unit]
+  ) =
     fOpt.map { f =>
       val in = new PipedInputStream()
       val out = new PipedOutputStream(in)
@@ -81,7 +92,11 @@ object Capture {
       (in, out, thread)
     }
 
-  def apply[T](stdoutOpt: Option[String => Unit], stderrOpt: Option[String => Unit])(block: => T): T = {
+  def apply[T](
+    stdoutOpt: Option[String => Unit],
+    stderrOpt: Option[String => Unit] )(
+    block: => T
+  ): T = {
     var stdoutInOpt, stderrInOpt = Option.empty[(PipedInputStream, PipedOutputStream, Thread)]
 
     try {
@@ -90,12 +105,14 @@ object Capture {
 
       val result = withOutAndErr(stdoutInOpt.map(_._2), stderrInOpt.map(_._2))(block)
 
-      while (stdoutInOpt.exists(t => t._1.available() > 0 && t._3.isAlive) || stderrInOpt.exists(t => t._1.available() > 0 && t._3.isAlive))
+      while (
+        stdoutInOpt.exists(t => t._1.available() > 0 && t._3.isAlive) ||
+        stderrInOpt.exists(t => t._1.available() > 0 && t._3.isAlive)
+      )
         Thread.sleep(10)
 
       result
-    }
-    finally {
+    } finally {
       stdoutInOpt.foreach(_._1.close())
       stderrInOpt.foreach(_._1.close())
       stdoutInOpt.foreach(_._2.close())
@@ -104,12 +121,15 @@ object Capture {
   }
 }
 
-case class Capturing(stdoutOpt: Option[String => Unit],
-                     stderrOpt: Option[String => Unit]) {
-
+case class Capturing(
+  stdoutOpt: Option[String => Unit],
+  stderrOpt: Option[String => Unit]
+) {
   def apply[T](t: Unit => T): T =
-    if (stdoutOpt.nonEmpty || stderrOpt.nonEmpty) Capture(stdoutOpt, stderrOpt)(t(()))
-    else t(())
+    if (stdoutOpt.nonEmpty || stderrOpt.nonEmpty)
+      Capture(stdoutOpt, stderrOpt)(t(()))
+    else
+      t(())
 
   def foreach[T](t: Unit => T): Unit = apply(t)
   def map[T](t: Unit => T): Res[T] = Res.Success(apply(t))

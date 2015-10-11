@@ -9,7 +9,7 @@ class AmmoniteClassWrapperChecker(sharedLoader: Boolean = false) extends Ammonit
     Ammonite.newInterpreter(
       predef,
       classWrap = true,
-      pprintConfig = ammonite.pprint.Config.Defaults.PPrintConfig.copy(lines = 15),
+      pprintConfig = pprint.Config.Defaults.PPrintConfig.copy(width = 80, height = 20),
       colors = ColorSet.BlackWhite,
       sharedLoader = sharedLoader
     )

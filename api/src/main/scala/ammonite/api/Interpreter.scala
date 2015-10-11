@@ -1,15 +1,21 @@
 package ammonite.api
 
-case class BridgeConfig(init: String,
-                        name: String,
-                        imports: Seq[ImportData],
-                        defaultPrinter: AnyRef => Unit
-                         )(
-                         val initClass: (Interpreter, Class[_]) => Unit
-                         )
+case class BridgeConfig(
+  init: String,
+  name: String,
+  imports: Seq[ImportData],
+  defaultPrinter: AnyRef => Unit )(
+  val initClass: (Interpreter, Class[_]) => Unit
+)
 
 object BridgeConfig {
-  val empty = BridgeConfig("object Bridge", "Bridge", Nil, _ => ())((_, _) => ())
+  val empty = BridgeConfig(
+    "object Bridge",
+    "Bridge",
+    Nil,
+    _ => () )(
+    (_, _) => ()
+  )
 }
 
 sealed trait DisplayItem
@@ -44,7 +50,7 @@ trait Interpreter {
   /**
    * Provide these to `init` above to keep the current compiler options
    */
-  def currentCompilerOptions: Seq[String]
+  def compilerOptions: Seq[String]
 
   def stop(): Unit
   def onStop(action: => Unit): Unit
@@ -54,13 +60,13 @@ trait Interpreter {
   def compile(src: Array[Byte], runLogger: String => Unit = print): Option[(Traversable[(String, Array[Byte])], Seq[ImportData])]
   def run(code: String): Either[String, Unit]
 
-  def wrap(code: String): Either[String, (String, String)] = {
+  def wrap(code: String, imports: Imports = imports, wrapperName: String = s"cmd$getCurrentLine"): Either[String, (String, String)] = {
     decls(code).right.map(decls =>
       wrapper(
         decls,
-        imports.previousImportBlock(decls.flatMap(_.referencedNames).toSet),
-        imports.previousImportBlock(),
-        s"cmd$getCurrentLine"
+        imports.importBlock(decls.flatMap(_.referencedNames).toSet),
+        imports.importBlock(),
+        wrapperName
       )
     )
   }

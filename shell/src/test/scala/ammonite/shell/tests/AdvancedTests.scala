@@ -8,8 +8,9 @@ class AdvancedTests(check0: => Checker,
                     isAmmonite: Boolean = true,
                     hasMacros: Boolean = !scala.util.Properties.versionNumberString.startsWith("2.10.")) extends TestSuite{
 
+  val scala2_10 = scala.util.Properties.versionNumberString.startsWith("2.10.")
+
   val tests = TestSuite{
-    println("AdvancedTests")
     val check = check0
     'load{
       'ivy{
@@ -161,102 +162,43 @@ class AdvancedTests(check0: => Checker,
       check.result("", Res.Skip)
       check("2", "res1: Int = 2")
     }
-    'history{
-      check.session("""
-        @ val x = 1
+    // FIXME Works in Ammonite main line, not here
+//    'specialPPrint{
+//      // Make sure these various "special" data structures get pretty-printed
+//      // correctly, i.e. not as their underlying type but as something more
+//      // pleasantly human-readable
+//      if (!scala2_10)
+//        check.session("""
+//          @ import ammonite.ops._
+//
+//          @ ls! wd/'ops
+//          res1: LsSeq = LsSeq(
+//            'src,
+//            'target
+//          )
+//
+//          @ %%ls 'ops
+//          res2: CommandResult =
+//          src
+//          target
+//        """)
+//      else
+//        check.session("""
+//          @ import ammonite.ops._
+//
+//          @ ls! wd/'ops
+//          res1: ammonite.ops.LsSeq = LsSeq(
+//            'src,
+//            'target
+//          )
+//
+//          @ %%ls 'ops
+//          res2: ammonite.ops.CommandResult =
+//          src
+//          target
+//        """)
+//    }
 
-        @ x
-
-        @ history
-        res2: Seq[String] = Vector("val x = 1", "x")
-      """)
-    }
-    'customPPrint{
-      check.session(s"""
-        @ class C
-        defined class C
-
-        @ implicit def pprint = ammonite.pprint.PPrinter[C]((t, c) => Iterator("INSTANCE OF CLASS C"))
-        defined function pprint
-
-        @ new C
-        res2: C = INSTANCE OF CLASS C
-      """)
-    }
-
-    'shapeless{
-      check.session("""
-        @ load.ivy("com.chuusai" %% "shapeless" % "2.2.0-RC6"); if (scala.util.Properties.versionNumberString.startsWith("2.10.")) load.compiler.ivy("org.scalamacros" % "paradise_2.10.5" % "2.0.1")
-
-        @ import shapeless._
-
-        @ (1 :: "lol" :: List(1, 2, 3) :: HNil)
-        res2: Int :: String :: List[Int] :: HNil = ::(1, ::("lol", ::(List(1, 2, 3), HNil)))
-
-        @ res2(1)
-        res3: String = "lol"
-
-        @ case class Foo(i: Int, blah: String, b: Boolean)
-        defined class Foo
-
-        @ Generic[Foo].to(Foo(2, "a", true))
-        res5: Int :: String :: Boolean :: HNil = ::(2, ::("a", ::(true, HNil)))
-      """)
-    }
-
-    'scalaz{
-      check.session("""
-        @ load.ivy("org.scalaz" %% "scalaz-core" % "7.1.1")
-
-        @ import scalaz._
-        import scalaz._
-
-        @ import Scalaz._
-        import Scalaz._
-
-        @ (Option(1) |@| Option(2))(_ + _)
-        res3: Option[Int] = Some(3)
-      """)
-    }
-    'scalazstream{
-      check.session("""
-        @ load.resolver("Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases")
-
-        @ load.ivy("org.scalaz.stream" %% "scalaz-stream" % "0.7a")
-
-        @ import scalaz.stream._
-        import scalaz.stream._
-
-        @ import scalaz.concurrent.Task
-        import scalaz.concurrent.Task
-
-        @ val p1 = Process.constant(1).toSource
-        p1: Process[Task, Int] = Append(Emit(Vector(1)),Vector(<function1>))
-
-        @ val pch = Process.constant((i:Int) => Task.now(())).take(3)
-        pch: Process[Nothing, Int => Task[Unit]] = Append(Halt(End),Vector(<function1>))
-
-        @ p1.to(pch).runLog.run.size == 3
-        res6: Boolean = true
-      """)
-    }
-    'scalaparse{
-      // Prevent regressions when wildcard-importing things called `macro` or `_`
-      check.session("""
-        @ load.ivy("com.github.alexarchambault.tmp" %% "scalaparse" % "0.1.6-SNAPSHOT")
-
-        @ import scalaparse.Scala._
-
-        @ 1
-        res2: Int = 1
-
-        @ ExprCtx.Parened.parse("1 + 1")
-        res3: fastparse.core.Result[Unit] = Failure(Parened:0 / "(":0 / "(":0 ..."1 + 1", false)
-
-        @ ExprCtx.Parened.parse("(1 + 1)")
-        res4: fastparse.core.Result[Unit] = Success((), 7)
-      """)
-    }
     'predef{
       if (isAmmonite) {
         val check2 = new AmmoniteChecker{
@@ -303,7 +245,8 @@ class AdvancedTests(check0: => Checker,
         """)
     }
     'typeScope{
-      check.session("""
+      // Fancy type-printing isn't implemented at all in 2.10.x
+      if (!scala2_10) check.session("""
         @ collection.mutable.Buffer(1)
         res0: collection.mutable.Buffer[Int] = ArrayBuffer(1)
 
@@ -326,10 +269,14 @@ class AdvancedTests(check0: => Checker,
         @ Array(1)
         res0: Array[Int] = Array(1)
 
-        @ import ammonite.pprint.TPrint
+        @ import ammonite.tprint.TPrint
 
-        @ implicit def ArrayTPrint[T: TPrint]: TPrint[Array[T]] = TPrint.lambda(
-        @   c => implicitly[TPrint[T]].render(c) + c.color.literal(" Array")
+        @ implicit def ArrayTPrint[T: TPrint]: TPrint[Array[T]] = TPrint.lambda( c =>
+        @   implicitly[TPrint[T]].render(c) +
+        @   " " +
+        @   c.colors.literalColor +
+        @   "Array" +
+        @   c.colors.endColor
         @ )
 
         @ Array(1)
@@ -360,8 +307,13 @@ class AdvancedTests(check0: => Checker,
     }
     'truncation{
       check.session("""
-      @ Seq.fill(20)(100)
+      @ Seq.fill(25)(100)
       res0: Seq[Int] = List(
+        100,
+        100,
+        100,
+        100,
+        100,
         100,
         100,
         100,
@@ -378,8 +330,13 @@ class AdvancedTests(check0: => Checker,
         100,
       ...
 
-      @ show(Seq.fill(20)(100))
-      res1: ammonite.pprint.Show[Seq[Int]] = List(
+      @ show(Seq.fill(25)(100))
+      List(
+        100,
+        100,
+        100,
+        100,
+        100,
         100,
         100,
         100,
@@ -402,13 +359,13 @@ class AdvancedTests(check0: => Checker,
         100
       )
 
-      @ show(Seq.fill(20)(100), lines = 3)
-      res2: ammonite.pprint.Show[Seq[Int]] = List(
+      @ show(Seq.fill(20)(100), height = 3)
+      List(
         100,
         100,
       ...
 
-      @ pprintConfig = pprintConfig.copy(lines = 5)
+      @ pprintConfig = pprintConfig.copy(height = 5)
 
       @ Seq.fill(20)(100)
       res4: Seq[Int] = List(
@@ -417,6 +374,68 @@ class AdvancedTests(check0: => Checker,
         100,
         100,
       ...
+      """, captureOut = true)
+    }
+    'private{
+      check.session("""
+        @ private val x = 1; val y = x + 1
+        y: Int = 2
+
+        @ y
+        res1: Int = 2
+
+        @ x
+        error: not found: value x
+      """)
+    }
+    'compilerPlugin{
+      check.session("""
+        @ // Make sure plugins from eval class loader are not loaded
+
+        @ load.ivy("org.spire-math" %% "kind-projector" % "0.6.3")
+
+        @ trait TC0[F[_]]
+        defined trait TC0
+
+        @ type TC0EitherStr = TC0[Either[String, ?]]
+        error: not found: type ?
+
+        @ // This one must be loaded
+
+        @ load.plugin.ivy("org.spire-math" %% "kind-projector" % "0.6.3")
+
+        @ trait TC[F[_]]
+        defined trait TC
+
+        @ type TCEitherStr = TC[Either[String, ?]]
+        defined type TCEitherStr
+
+        @ // Useless - does not add plugins, and ignored by eval class loader
+        
+        @ load.plugin.ivy("eu.timepit" %% "refined" % "0.2.1")
+
+        @ import eu.timepit.refined._
+        error: not found: value eu
+      """)
+    }
+    'replApiUniqueness{
+      // Make sure we can instantiate multiple copies of Interpreter, with each
+      // one getting its own `ReplBridge`. This ensures that the various
+      // Interpreters are properly encapsulated and don't interfere with each
+      // other.
+      val c1 = check0
+      val c2 = check0
+      c1.session("""
+        @ repl.prompt() = "A"
+      """)
+      c2.session("""
+        @ repl.prompt() = "B"
+      """)
+      c1.session("""
+        @ assert(repl.prompt() == "A")
+      """)
+      c2.session("""
+        @ assert(repl.prompt() == "B")
       """)
     }
   }

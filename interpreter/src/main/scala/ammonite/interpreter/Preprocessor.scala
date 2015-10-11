@@ -1,6 +1,6 @@
 package ammonite.interpreter
 
-import acyclic.file
+import fastparse.core.Result.Success
 
 import scala.reflect.internal.Flags
 import scala.tools.nsc.{Global => G}
@@ -75,8 +75,8 @@ object Preprocessor{
   )
 
   def apply(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], stmts: Seq[String], wrapperId: String): Res[Seq[Decl]] = {
-    val unwrapped = stmts.flatMap{x => Parsers.unwrapBlock(x) match {
-      case Some(contents) => Parsers.split(contents)
+    val unwrapped = stmts.flatMap{x => Parsers.unwrapBlock(x).flatMap(Parsers.split) match {
+      case Some(Success(contents, _)) => contents
       case None => Seq(x)
     }}
     unwrapped match{

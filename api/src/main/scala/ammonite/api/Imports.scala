@@ -1,10 +1,12 @@
 package ammonite.api
 
-case class ImportData(fromName: String,
-                      toName: String,
-                      wrapperName: String,
-                      prefix: String,
-                      isImplicit: Boolean)
+case class ImportData(
+  fromName: String,
+  toName: String,
+  wrapperName: String,
+  prefix: String,
+  isImplicit: Boolean
+)
 
 trait Imports {
   /**
@@ -13,7 +15,7 @@ trait Imports {
    * @param wanted: if non `null`, a set of names used to filter imports. Names from `wanted` are guaranteed to be
    *                imported. If `null`, no filtering is performed (everything is imported).
    */
-  def previousImportBlock(wanted: Set[String] = null): String
+  def importBlock(wanted: Set[String] = null): String
 
   /** Updates the previous import data with new ones */
   def update(newImports: Seq[ImportData]): Unit

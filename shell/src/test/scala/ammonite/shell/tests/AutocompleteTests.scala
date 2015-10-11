@@ -6,7 +6,6 @@ import utest._
 class AutocompleteTests(check0: => Checker, checkSignatures: Boolean = true) extends TestSuite{
 
   val tests = TestSuite{
-    println("AutocompleteTests")
     val check = check0
     def complete(caretCode: String,
                  cmp: (Set[String]) => Set[String],
@@ -46,7 +45,7 @@ class AutocompleteTests(check0: => Checker, checkSignatures: Boolean = true) ext
 
     'import{
       complete("""import <caret>""", Set("java", "javax", "scala") -- _)
-      complete("""import j<caret>""", x => Set("java", "javax", "jdk") ^ (x - "javafx"))
+      complete("""import j<caret>""", Set("java", "javax") -- _)
       complete("""import ja<caret>""", x => Set("java", "javax") ^ (x - "javafx"))
       complete("""import java.<caret>""", Set("lang", "util") -- _)
       complete("""import java.u<caret>""", Set("util") ^ _)
@@ -91,16 +90,16 @@ class AutocompleteTests(check0: => Checker, checkSignatures: Boolean = true) ext
         Set("MathContext", "BigDecimal", "BigInteger", "RoundingMode") ^
       )
 
-      complete("""scala.Option.<caret>""",
+      complete( """scala.Option.<caret>""",
         (anyCompletion ++ Set("apply", "empty", "option2Iterable")) ^
       )
 
-      complete("""Seq(1, 2, 3).map(_.<caret>)""",
-        (anyCompletion ++ Set("+", "-", "*", "/", "to", "until")) -- _
+      complete( """Seq(1, 2, 3).map(_.<caret>)""",
+        (anyCompletion ++ Set("+", "-", "*", "/")) -- _
       )
 
-      complete("""val x = 1; x + (x.<caret>)""",
-        Set("to", "max", "-", "+", "*", "/") -- _
+      complete( """val x = 1; x + (x.<caret>)""",
+        Set("-", "+", "*", "/") -- _
       )
     }
 
