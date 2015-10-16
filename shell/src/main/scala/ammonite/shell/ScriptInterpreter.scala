@@ -63,8 +63,6 @@ class ScriptInterpreter(
       Timer("cachedCompileBlock")
       interpreter.evalMain(cls)
       Timer("evalMain")
-      val res = interpreter.evaluationResult(wrapperName, newImports, ???)
-      Timer("evaluationResult")
-      res
+      ???
     }
 }
