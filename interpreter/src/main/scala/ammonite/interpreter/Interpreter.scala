@@ -130,10 +130,6 @@ object Interpreter {
   }
 }
 
-/**
- * A convenient bundle of all the functionality necessary
- * to interpret Scala code.
- */
 class Interpreter(
   val bridge: Bridge = Bridge.empty,
   val imports: ammonite.api.Imports = new Imports(),
@@ -142,19 +138,13 @@ class Interpreter(
   initialHistory: Seq[String] = Nil
 ) extends ammonite.api.Interpreter with InterpreterInternals {
 
-  def wrap(
-    decls: Seq[Decl],
-    imports: String,
-    unfilteredImports: String,
-    wrapper: String
-  ): (String, String) =
-    Interpreter.wrap(Interpreter.print, decls, imports, unfilteredImports, wrapper)
+  /** State of interpreter */
 
   var compilerOptions = List.empty[String]
   var filterImports = true
 
-  def updateImports(newImports: Seq[Import]): Unit = {
-    imports.add(newImports)
+  def addImports(imports0: Seq[Import]): Unit = {
+    imports.add(imports0)
 
     // This is required by the use of WeakTypeTag in the printers,
     // whose implicits get replaced by calls to implicitly
@@ -172,7 +162,7 @@ class Interpreter(
       ))
   }
 
-  updateImports(bridge.imports)
+  addImports(bridge.imports)
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
 
@@ -191,7 +181,21 @@ class Interpreter(
   def getCurrentLine: String = currentLine.toString.replace("-", "_")
 
 
-  def complete(snippetIndex: Int, snippet: String, previousImports: String = null): (Int, Seq[String], Seq[String]) =
+  /** Methods not modifying the state of the interpreter */
+
+  def wrap(
+    decls: Seq[Decl],
+    imports: String,
+    unfilteredImports: String,
+    wrapper: String
+  ): (String, String) =
+    Interpreter.wrap(Interpreter.print, decls, imports, unfilteredImports, wrapper)
+
+  def complete(
+    snippetIndex: Int,
+    snippet: String,
+    previousImports: String = null
+  ): (Int, Seq[String], Seq[String]) =
     pressy.complete(snippetIndex, Option(previousImports) getOrElse imports.block(), snippet)
 
   def decls(code: String): Either[String, Seq[Decl]] =
@@ -213,6 +217,9 @@ class Interpreter(
         Left("parse error")
     }
 
+
+  /** Methods modifying the state of the interpreter */
+
   def compile(src: Array[Byte], runLogger: String => Unit): Compiler.Output =
     compiler.compile(src, runLogger)
 
@@ -221,7 +228,7 @@ class Interpreter(
       case Some(Success(stmts, _)) =>
         apply(stmts, (_, _) => (), bridge.print) match {
           case Res.Success(ev) =>
-            updateImports(ev.imports)
+            addImports(ev.imports)
             Right(())
           case Res.Exit =>
             throw Exit
@@ -282,11 +289,6 @@ class Interpreter(
       cls <- loadClass(wrapperName, classFiles)
     } yield (cls, importData)
 
-  def interrupted(): Res.Failure = {
-    Thread.interrupted()
-    Res.Failure("\nInterrupted!")
-  }
-
   type InvEx = InvocationTargetException
   type InitEx = ExceptionInInitializerError
 
@@ -323,7 +325,19 @@ class Interpreter(
    * passing in the callback ensures the printing is still done lazily, but within
    * the exception-handling block of the `Evaluator`
    */
-  def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]] =
+  def process[T](input: Seq[Decl], process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]): Res[Evaluated[T]] = {
+    def interrupted(): Res.Failure = {
+      Thread.interrupted()
+      Res.Failure("\nInterrupted!")
+    }
+
+    /**
+     * Dummy function used to mark this method call in the stack trace,
+     * so we can easily cut out the irrelevant part of the trace when
+     * showing it to the user.
+     */
+    def evaluatorRunPrinter[U](f: => U): U = f
+
     withClassLoader(classes.classLoader()) {
       for {
         wrapperName0 <- Res.Success("cmd" + getCurrentLine)
@@ -352,13 +366,7 @@ class Interpreter(
         evaluationResult(wrapperName, newImports, value)
       }
     }
-
-  /**
-   * Dummy function used to mark this method call in the stack trace,
-   * so we can easily cut out the irrelevant part of the trace when
-   * showing it to the user.
-   */
-  def evaluatorRunPrinter[T](f: => T): T = f
+  }
 
   def handleOutput(res: Res[Evaluated[_]]) =
     res match {
@@ -370,7 +378,7 @@ class Interpreter(
         false
       case Res.Success(ev) =>
         buffered = ""
-        updateImports(ev.imports)
+        addImports(ev.imports)
         true
       case Res.Failure(msg) =>
         buffered = ""
