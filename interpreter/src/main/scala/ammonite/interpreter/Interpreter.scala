@@ -120,7 +120,7 @@ trait InterpreterInternals {
  * to interpret Scala code.
  */
 class Interpreter(
-  val bridgeConfig: BridgeConfig = BridgeConfig.empty,
+  val bridge: Bridge = Bridge.empty,
   val wrapper: (Seq[Decl], String, String, String) => (String, String) = Wrap.default,
   val imports: ammonite.api.Imports = new Imports(),
   val classes: ammonite.api.Classes = new Classes(),
@@ -150,7 +150,7 @@ class Interpreter(
       ))
   }
 
-  updateImports(bridgeConfig.imports)
+  updateImports(bridge.imports)
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
 
@@ -197,7 +197,7 @@ class Interpreter(
   def run(code: String): Either[String, Unit] =
     Parsers.split(code) match {
       case Some(Success(stmts, _)) =>
-        apply(stmts, (_, _) => (), bridgeConfig.defaultPrinter) match {
+        apply(stmts, (_, _) => (), bridge.defaultPrinter) match {
           case Res.Success(ev) =>
             updateImports(ev.imports)
             Right(())
@@ -387,9 +387,9 @@ class Interpreter(
   }
 
   def initBridge(): Unit =
-    bridgeConfig.initClass(
+    bridge.initClass(
       this,
-      evalClass(bridgeConfig.init + "\n\nobject $Dummy\n", bridgeConfig.name) match {
+      evalClass(bridge.init + "\n\nobject $Dummy\n", bridge.name) match {
         case Res.Success((s, _)) => s
         case other => throw new Exception(s"Error while initializing REPL API: $other")
       }

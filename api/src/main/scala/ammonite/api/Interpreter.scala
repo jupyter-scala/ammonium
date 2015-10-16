@@ -1,19 +1,19 @@
 package ammonite.api
 
-case class BridgeConfig(
+case class Bridge(
   init: String,
   name: String,
   imports: Seq[Import],
-  defaultPrinter: AnyRef => Unit )(
-  val initClass: (Interpreter, Class[_]) => Unit
+  defaultPrinter: AnyRef => Unit,
+  initClass: (Interpreter, Class[_]) => Unit
 )
 
-object BridgeConfig {
-  val empty = BridgeConfig(
+object Bridge {
+  val empty = Bridge(
     "object Bridge",
     "Bridge",
     Nil,
-    _ => () )(
+    _ => (),
     (_, _) => ()
   )
 }
@@ -32,7 +32,7 @@ case class Decl(code: String, display: Seq[DisplayItem], referencedNames: Seq[St
 
 trait Interpreter {
   /** Initialization parameters */
-  def bridgeConfig: BridgeConfig
+  def bridge: Bridge
   def wrapper: (Seq[Decl], String, String, String) => (String, String)
   def imports: Imports
   def classes: Classes

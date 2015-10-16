@@ -1,7 +1,7 @@
 package ammonite.shell
 
 import ammonite.interpreter._
-import ammonite.api.{ ClassLoaderType, IvyConstructor, Import, BridgeConfig }
+import ammonite.api.{ ClassLoaderType, IvyConstructor, Import, Bridge }
 import ammonite.shell.util._
 
 import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
@@ -142,25 +142,26 @@ object Ammonite extends AppOf[Ammonite] {
     reset: => Unit = (),
     pprintConfig: pprint.Config = pprint.Config.Defaults.PPrintConfig,
     colors: ColorSet = ColorSet.BlackWhite
-  ): BridgeConfig =
-    BridgeConfig(
+  ): Bridge =
+    Bridge(
       "object ReplBridge extends ammonite.shell.ReplAPIHolder",
       "ReplBridge",
       NamesFor[ReplAPI].map{case (n, isImpl) => Import(n, n, "", "ReplBridge.shell", isImpl)}.toSeq ++
         NamesFor[IvyConstructor.type].map{case (n, isImpl) => Import(n, n, "", "ammonite.api.IvyConstructor", isImpl)}.toSeq,
-      _.asInstanceOf[Iterator[String]].foreach(print)
-    ) {
-      var replApi: ReplAPI with FullReplAPI = null
-      def _reset() = reset
+      _.asInstanceOf[Iterator[String]].foreach(print),
+      {
+        var replApi: ReplAPI with FullReplAPI = null
+        def _reset() = reset
 
-      (intp, cls) =>
-        if (replApi == null)
-          replApi = new ReplAPIImpl(intp, startJars, startIvys, jarMap, startResolvers, colors, shellPrompt, pprintConfig) {
-            def reset() = _reset()
-          }
+        (intp, cls) =>
+          if (replApi == null)
+            replApi = new ReplAPIImpl(intp, startJars, startIvys, jarMap, startResolvers, colors, shellPrompt, pprintConfig) {
+              def reset() = _reset()
+            }
 
-        ReplAPIHolder.initReplBridge(cls.asInstanceOf[Class[ReplAPIHolder]], replApi)
-    }
+          ReplAPIHolder.initReplBridge(cls.asInstanceOf[Class[ReplAPIHolder]], replApi)
+      }
+    )
 
   def wrap(classWrap: Boolean) =
     Wrap(
