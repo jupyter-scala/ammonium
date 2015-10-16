@@ -143,25 +143,41 @@ object Ammonite extends AppOf[Ammonite] {
     pprintConfig: pprint.Config = pprint.Config.Defaults.PPrintConfig,
     colors: ColorSet = ColorSet.BlackWhite
   ): Bridge =
-    Bridge(
-      "object ReplBridge extends ammonite.shell.ReplAPIHolder",
-      "ReplBridge",
-      NamesFor[ReplAPI].map{case (n, isImpl) => Import(n, n, "", "ReplBridge.shell", isImpl)}.toSeq ++
-        NamesFor[IvyConstructor.type].map{case (n, isImpl) => Import(n, n, "", "ammonite.api.IvyConstructor", isImpl)}.toSeq,
-      _.asInstanceOf[Iterator[String]].foreach(print),
-      {
-        var replApi: ReplAPI with FullReplAPI = null
-        def _reset() = reset
+    new Bridge {
+      def init = "object ReplBridge extends ammonite.shell.ReplAPIHolder"
+      def name = "ReplBridge"
+      
+      def imports =
+        NamesFor[ReplAPI].map { case (name, isImpl) =>
+          Import(name, name, "", "ReplBridge.shell", isImpl)
+        }.toSeq ++
+        NamesFor[IvyConstructor.type].map { case (name, isImpl) =>
+          Import(name, name, "", "ammonite.api.IvyConstructor", isImpl)
+        }.toSeq
 
-        (intp, cls) =>
-          if (replApi == null)
-            replApi = new ReplAPIImpl(intp, startJars, startIvys, jarMap, startResolvers, colors, shellPrompt, pprintConfig) {
-              def reset() = _reset()
-            }
+      def print(v: AnyRef) = v.asInstanceOf[Iterator[String]].foreach(print)
 
-          ReplAPIHolder.initReplBridge(cls.asInstanceOf[Class[ReplAPIHolder]], replApi)
+      var replApi: ReplAPI with FullReplAPI = null
+      def reset0() = reset
+
+      def initClass(intp: ammonite.api.Interpreter, cls: Class[_]) = {
+        if (replApi == null)
+          replApi = new ReplAPIImpl(
+            intp,
+            startJars,
+            startIvys,
+            jarMap,
+            startResolvers,
+            colors,
+            shellPrompt,
+            pprintConfig
+          ) {
+            def reset() = reset0()
+          }
+
+        ReplAPIHolder.initReplBridge(cls.asInstanceOf[Class[ReplAPIHolder]], replApi)
       }
-    )
+    }
 
   def wrap(classWrap: Boolean) =
     Wrap(

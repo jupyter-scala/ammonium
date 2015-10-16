@@ -197,7 +197,7 @@ class Interpreter(
   def run(code: String): Either[String, Unit] =
     Parsers.split(code) match {
       case Some(Success(stmts, _)) =>
-        apply(stmts, (_, _) => (), bridge.defaultPrinter) match {
+        apply(stmts, (_, _) => (), bridge.print) match {
           case Res.Success(ev) =>
             updateImports(ev.imports)
             Right(())

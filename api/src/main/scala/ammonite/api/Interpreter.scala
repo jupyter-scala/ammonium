@@ -1,21 +1,21 @@
 package ammonite.api
 
-case class Bridge(
-  init: String,
-  name: String,
-  imports: Seq[Import],
-  defaultPrinter: AnyRef => Unit,
-  initClass: (Interpreter, Class[_]) => Unit
-)
+trait Bridge {
+  def init: String
+  def name: String
+  def imports: Seq[Import]
+  def print(v: AnyRef): Unit
+  def initClass(intp: Interpreter, cls: Class[_]): Unit
+}
 
 object Bridge {
-  val empty = Bridge(
-    "object Bridge",
-    "Bridge",
-    Nil,
-    _ => (),
-    (_, _) => ()
-  )
+  val empty: Bridge = new Bridge {
+    def init = "object Bridge"
+    def name = "Bridge"
+    def imports = Nil
+    def print(v: AnyRef) = ()
+    def initClass(intp: Interpreter, cls: Class[_]) = ()
+  }
 }
 
 sealed trait DisplayItem
