@@ -2,14 +2,14 @@ package ammonite.interpreter
 
 import scala.tools.nsc._
 import scala.tools.nsc.plugins.{PluginComponent, Plugin}
-import ammonite.api.ImportData
+import ammonite.api.Import
 
 /**
  * Used to capture the names in scope after every execution, reporting them
  * to the `output` function. Needs to be a compiler plugin so we can hook in
  * immediately after the `typer`
  */
-class AmmonitePlugin(g: scala.tools.nsc.Global, output: Seq[ImportData] => Unit) extends Plugin{
+class AmmonitePlugin(g: scala.tools.nsc.Global, output: Seq[Import] => Unit) extends Plugin{
   val name: String = "AmmonitePlugin"
   val global: Global = g
   val description: String = "Extracts the names in scope for the Ammonite REPL to use"
@@ -28,7 +28,7 @@ class AmmonitePlugin(g: scala.tools.nsc.Global, output: Seq[ImportData] => Unit)
   )
 }
 object AmmonitePlugin{
-  def apply(g: Global)(unit: g.CompilationUnit, output: Seq[ImportData] => Unit) = {
+  def apply(g: Global)(unit: g.CompilationUnit, output: Seq[Import] => Unit) = {
 
     def decode(t: g.Tree) = {
       val sym = t.symbol
@@ -113,7 +113,7 @@ object AmmonitePlugin{
         if fromName != "<init>"
         if fromName != "<clinit>"
         if fromName != "$main"
-      } yield ImportData(fromName, toName, "", importString, isImplicit)
+      } yield Import(fromName, toName, "", importString, isImplicit)
     )
   }
 }

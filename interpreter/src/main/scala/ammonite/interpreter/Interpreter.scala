@@ -129,17 +129,18 @@ class Interpreter(
 ) extends ammonite.api.Interpreter with InterpreterInternals {
 
   var compilerOptions = List.empty[String]
+  var filterImports = true
 
-  def updateImports(newImports: Seq[ImportData]): Unit = {
-    imports.update(newImports)
+  def updateImports(newImports: Seq[Import]): Unit = {
+    imports.add(newImports)
 
     // This is required by the use of WeakTypeTag in the printers,
     // whose implicits get replaced by calls to implicitly
     if (compilerOptions.contains("-Yno-imports"))
       // FIXME And -Yno-predef too?
       // FIXME Remove the import when the option is dropped
-      imports.update(Seq(
-        ImportData(
+      imports.add(Seq(
+        Import(
           "implicitly",
           "implicitly",
           "",
@@ -169,7 +170,7 @@ class Interpreter(
 
 
   def complete(snippetIndex: Int, snippet: String, previousImports: String = null): (Int, Seq[String], Seq[String]) =
-    pressy.complete(snippetIndex, Option(previousImports) getOrElse imports.importBlock(), snippet)
+    pressy.complete(snippetIndex, Option(previousImports) getOrElse imports.block(), snippet)
 
   def decls(code: String): Either[String, Seq[Decl]] =
     Parsers.split(code) match {
@@ -231,7 +232,7 @@ class Interpreter(
       out <- process(p, printer)
     } yield out
 
-  def compile(code: String): Res[(Traversable[(String, Array[Byte])], Seq[ImportData])] =
+  def compile(code: String): Res[(Traversable[(String, Array[Byte])], Seq[Import])] =
     for {
       (output, compiled) <- Res.Success {
         val output = mutable.Buffer.empty[String]
@@ -239,7 +240,7 @@ class Interpreter(
         (output, c)
       }
 
-      (classFiles, importData) <- Res[(Traversable[(String, Array[Byte])], Seq[ImportData])](
+      (classFiles, importData) <- Res[(Traversable[(String, Array[Byte])], Seq[Import])](
         compiled, "Compilation Failed\n" + output.mkString("\n")
       )
 
@@ -253,7 +254,7 @@ class Interpreter(
       }, e => "Failed to load compiled class " + e)
     } yield cls
 
-  def evalClass(code: String, wrapperName: String): Res[(Class[_], Seq[ImportData])] =
+  def evalClass(code: String, wrapperName: String): Res[(Class[_], Seq[Import])] =
     for {
       (classFiles, importData) <- compile(code)
       cls <- loadClass(wrapperName, classFiles)
@@ -270,11 +271,11 @@ class Interpreter(
   def evalMain(cls: Class[_]): AnyRef =
     cls.getDeclaredMethod("$main").invoke(null)
 
-  def evaluationResult[T](wrapperName: String, newImports: Seq[ImportData], value: T): Evaluated[T] =
+  def evaluationResult[T](wrapperName: String, newImports: Seq[Import], value: T): Evaluated[T] =
     Evaluated(
       wrapperName,
       newImports.map(id => id.copy(
-        wrapperName = wrapperName,
+        wrapper = wrapperName,
         prefix = if (id.prefix == "") wrapperName else id.prefix
       )),
       value
@@ -307,8 +308,8 @@ class Interpreter(
         _ <- Catching { case e: ThreadDeath => interrupted() }
         (wrapperName, wrappedLine) = wrapper(
           input,
-          imports.importBlock(input.flatMap(_.referencedNames).toSet),
-          imports.importBlock(),
+          imports.block(if (filterImports) input.flatMap(_.referencedNames).toSet else null),
+          imports.block(),
           wrapperName0
         )
         (cls, newImports) <- evalClass(wrappedLine, wrapperName + "$Main")

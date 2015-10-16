@@ -15,7 +15,7 @@ import scala.tools.nsc.reporters.AbstractReporter
 import scala.tools.nsc.util.ClassPath.JavaContext
 import scala.tools.nsc.util._
 
-import ammonite.api.ImportData
+import ammonite.api.Import
 
 
 /**
@@ -53,7 +53,7 @@ object Compiler {
    * If the Option is None, it means compilation failed
    * Otherwise it's a Traversable of (filename, bytes) tuples
    */
-  type Output = Option[(Traversable[(String, Array[Byte])], Seq[ImportData])]
+  type Output = Option[(Traversable[(String, Array[Byte])], Seq[Import])]
 
   /**
    * Converts a bunch of bytes into Scalac's weird VirtualFile class
@@ -172,7 +172,7 @@ object Compiler {
     var logger: String => Unit =
       s => ()
 
-    var lastImports = Seq.empty[ImportData]
+    var lastImports = Seq.empty[Import]
 
     val (settings, reporter, vd, jcp) = initGlobalBits(
       jarDeps, dirDeps, dynamicClasspath, options, logger, scala.Console.RED

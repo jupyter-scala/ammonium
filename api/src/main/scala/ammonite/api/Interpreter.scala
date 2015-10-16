@@ -3,7 +3,7 @@ package ammonite.api
 case class BridgeConfig(
   init: String,
   name: String,
-  imports: Seq[ImportData],
+  imports: Seq[Import],
   defaultPrinter: AnyRef => Unit )(
   val initClass: (Interpreter, Class[_]) => Unit
 )
@@ -52,20 +52,23 @@ trait Interpreter {
    */
   def compilerOptions: Seq[String]
 
+  def filterImports: Boolean
+  def filterImports_=(value: Boolean): Unit
+
   def stop(): Unit
   def onStop(action: => Unit): Unit
 
   def complete(snippetIndex: Int, snippet: String, previousImports: String = null): (Int, Seq[String], Seq[String])
   def decls(code: String): Either[String, Seq[Decl]]
-  def compile(src: Array[Byte], runLogger: String => Unit = print): Option[(Traversable[(String, Array[Byte])], Seq[ImportData])]
+  def compile(src: Array[Byte], runLogger: String => Unit = print): Option[(Traversable[(String, Array[Byte])], Seq[Import])]
   def run(code: String): Either[String, Unit]
 
   def wrap(code: String, imports: Imports = imports, wrapperName: String = s"cmd$getCurrentLine"): Either[String, (String, String)] = {
     decls(code).right.map(decls =>
       wrapper(
         decls,
-        imports.importBlock(decls.flatMap(_.referencedNames).toSet),
-        imports.importBlock(),
+        imports.block(decls.flatMap(_.referencedNames).toSet),
+        imports.block(),
         wrapperName
       )
     )

@@ -1,10 +1,10 @@
 package ammonite.interpreter
 
 import scala.collection.mutable
-import ammonite.api.ImportData
+import ammonite.api.Import
 
 class Imports(
-  initialImports: Seq[(String, ImportData)] = Nil,
+  initialImports: Seq[(String, Import)] = Nil,
   useClassWrapper: Boolean = false
 ) extends ammonite.api.Imports {
 
@@ -24,43 +24,41 @@ class Imports(
    */
   lazy val previousImports = mutable.Map(initialImports: _*)
 
-  def importBlock(wanted: Set[String] = null): String = {
-    def isReplClassWrapImport(d: ImportData) =
+  def block(wanted: Set[String] = null): String = {
+    def isReplClassWrapImport(d: Import) =
       useClassWrapper &&
-      (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName) &&
-      !d.wrapperName.startsWith("special")
+      (d.prefix.startsWith(d.wrapper + ".") || d.prefix == d.wrapper) &&
+      !d.wrapper.startsWith("special")
 
-    def isReplSpecialObjectWrapImport(d: ImportData) =
+    def isReplSpecialObjectWrapImport(d: Import) =
       useClassWrapper &&
-      (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName) &&
-      d.wrapperName.startsWith("special")
+      (d.prefix.startsWith(d.wrapper + ".") || d.prefix == d.wrapper) &&
+      d.wrapper.startsWith("special")
 
-    def isReplObjectWrapImport(d: ImportData) =
+    def isReplObjectWrapImport(d: Import) =
       !useClassWrapper &&
-      (d.prefix.startsWith(d.wrapperName + ".") || d.prefix == d.wrapperName)
+      (d.prefix.startsWith(d.wrapper + ".") || d.prefix == d.wrapper)
 
-    def transformIfReplImport(d: ImportData) =
+    def transformIfReplImport(d: Import) =
       if (isReplClassWrapImport(d))
         d.copy(prefix = "$ref$" + d.prefix)
       else if (isReplObjectWrapImport(d) || isReplSpecialObjectWrapImport(d))
-        d.copy(prefix = d.wrapperName + ".$user" + d.prefix.stripPrefix(d.wrapperName))
+        d.copy(prefix = d.wrapper + ".$user" + d.prefix.stripPrefix(d.wrapper))
       else
         d
 
     ensureHidden()
 
-    val previousImports0 =
-      Option(wanted) match {
-        case Some(wanted) if filtering => previousImports.filter(d => d._2.isImplicit || wanted(d._2.toName))
-        case _ => previousImports
-      }
+    val previousImports0 = Option(wanted).fold(previousImports)(wanted =>
+      previousImports.filter(d => d._2.isImplicit || wanted(d._2.to))
+    )
 
     val instanceRefs =
       previousImports0
         .values
         .toList
         .filter(isReplClassWrapImport)
-        .map(_.wrapperName)
+        .map(_.wrapper)
         .distinct
         .sorted
         .map(prefix =>
@@ -76,27 +74,27 @@ class Imports(
           .groupBy(_.prefix)
         imports0 <- Util.transpose(
           allImports
-            .groupBy(_.fromName)
+            .groupBy(_.from)
             .values
             .toList
         ).reverse
         // Don't import importable variables called `_`. They seem to
         // confuse Scala into thinking it's a wildcard even when it isn't
-        imports = imports0.filter(_.fromName != "_")
+        imports = imports0.filter(_.from != "_")
       } yield
         imports match {
-          case Seq(imp) if imp.fromName == imp.toName =>
-            s"import ${imp.prefix}.${Parsers.backtickWrap(imp.fromName)}"
+          case Seq(imp) if imp.from == imp.to =>
+            s"import ${imp.prefix}.${Parsers.backtickWrap(imp.from)}"
 
           case imports =>
             val lines = imports
-              .filterNot(_.toName.endsWith("_$eq"))
+              .filterNot(_.to.endsWith("_$eq"))
               .map { imp =>
-                Parsers.backtickWrap(imp.fromName) + (
-                  if (imp.fromName == imp.toName)
+                Parsers.backtickWrap(imp.from) + (
+                  if (imp.from == imp.to)
                     ""
                   else
-                    " => " + (if (imp.toName == "_") "_" else Parsers.backtickWrap(imp.toName))
+                    " => " + (if (imp.to == "_") "_" else Parsers.backtickWrap(imp.to))
                 )
               }
 
@@ -110,18 +108,16 @@ class Imports(
     instanceRefs.mkString("\n") + "\n" + snippets.mkString("\n")
   }
 
-  def update(newImports: Seq[ImportData]): Unit =
+  def add(newImports: Seq[Import]): Unit =
     for (imp0 <- newImports) {
       val imp =
-        if (useClassWrapper && imp0.prefix.startsWith(imp0.wrapperName + ".$ref$")) {
+        if (useClassWrapper && imp0.prefix.startsWith(imp0.wrapper + ".$ref$")) {
           // Assuming this is an import through previous REPL variables
-          val stripped = imp0.prefix.stripPrefix(imp0.wrapperName + ".$ref$")
-          imp0.copy(prefix = stripped, wrapperName = stripped.takeWhile(_ != '.'))
+          val stripped = imp0.prefix.stripPrefix(imp0.wrapper + ".$ref$")
+          imp0.copy(prefix = stripped, wrapper = stripped.takeWhile(_ != '.'))
         } else
           imp0
 
-      previousImports(imp.toName) = imp
+      previousImports(imp.to) = imp
     }
-
-  var filtering = true
 }

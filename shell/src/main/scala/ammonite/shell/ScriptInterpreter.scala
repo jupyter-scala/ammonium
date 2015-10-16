@@ -2,14 +2,14 @@ package ammonite.shell
 
 import java.security.MessageDigest
 
-import ammonite.api.ImportData
+import ammonite.api.Import
 import ammonite.interpreter.Compiler.ClassFiles
 import ammonite.interpreter.{Timer, Res, Interpreter}
 import ammonite.shell.ScriptInterpreter.CompileCache
 
 object ScriptInterpreter {
 
-  type CompileCache = (ClassFiles, Seq[ImportData])
+  type CompileCache = (ClassFiles, Seq[Import])
 
 }
 
@@ -28,14 +28,14 @@ class ScriptInterpreter(
    * Previous commands are hashed in the wrapper names, which are contained
    * in imports, so we don't need to pass them explicitly.
    */
-  def cacheTag(code: String, imports: Seq[ImportData], classpathHash: Array[Byte]): String = {
+  def cacheTag(code: String, imports: Seq[Import], classpathHash: Array[Byte]): String = {
     val bytes = md5Hash(md5Hash(code.getBytes) ++ md5Hash(imports.mkString.getBytes) ++ classpathHash)
     "cache" + bytes.map("%02x".format(_)).mkString //add prefix to make sure it begins with a letter
   }
 
   def cachedCompileBlock(code: String,
-                         imports: Seq[ImportData],
-                         printCode: String = ""): Res[(String, Class[_], Seq[ImportData])] = {
+                         imports: Seq[Import],
+                         printCode: String = ""): Res[(String, Class[_], Seq[Import])] = {
     Timer("cachedCompileBlock 0")
     val wrapperName = cacheTag(code, imports, ??? /* interpreter.classes.currentClassLoader.classpathHash */)
 
@@ -58,7 +58,7 @@ class ScriptInterpreter(
     } yield (wrapperName, cls, newImports)
   }
 
-  def processScriptBlock(code: String, scriptImports: Seq[ImportData]) =
+  def processScriptBlock(code: String, scriptImports: Seq[Import]) =
     for ((wrapperName, cls, newImports) <- cachedCompileBlock(code, scriptImports)) yield {
       Timer("cachedCompileBlock")
       interpreter.evalMain(cls)

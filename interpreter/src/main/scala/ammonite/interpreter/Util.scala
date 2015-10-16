@@ -5,7 +5,7 @@ import java.io.{ ByteArrayOutputStream, InputStream }
 import fastparse._
 
 import scala.util.Try
-import ammonite.api.ImportData
+import ammonite.api.Import
 import scalaparse.Scala._
 
 object Res{
@@ -79,7 +79,7 @@ case class Catching(handler: PartialFunction[Throwable, Res.Failing]) {
 }
 
 case class Evaluated[T](wrapper: String,
-                        imports: Seq[ImportData],
+                        imports: Seq[Import],
                         value: T)
 
 /**

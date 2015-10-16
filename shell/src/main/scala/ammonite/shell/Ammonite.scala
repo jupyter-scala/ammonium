@@ -1,7 +1,7 @@
 package ammonite.shell
 
 import ammonite.interpreter._
-import ammonite.api.{ ClassLoaderType, IvyConstructor, ImportData, BridgeConfig }
+import ammonite.api.{ ClassLoaderType, IvyConstructor, Import, BridgeConfig }
 import ammonite.shell.util._
 
 import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
@@ -146,8 +146,8 @@ object Ammonite extends AppOf[Ammonite] {
     BridgeConfig(
       "object ReplBridge extends ammonite.shell.ReplAPIHolder",
       "ReplBridge",
-      NamesFor[ReplAPI].map{case (n, isImpl) => ImportData(n, n, "", "ReplBridge.shell", isImpl)}.toSeq ++
-        NamesFor[IvyConstructor.type].map{case (n, isImpl) => ImportData(n, n, "", "ammonite.api.IvyConstructor", isImpl)}.toSeq,
+      NamesFor[ReplAPI].map{case (n, isImpl) => Import(n, n, "", "ReplBridge.shell", isImpl)}.toSeq ++
+        NamesFor[IvyConstructor.type].map{case (n, isImpl) => Import(n, n, "", "ammonite.api.IvyConstructor", isImpl)}.toSeq,
       _.asInstanceOf[Iterator[String]].foreach(print)
     ) {
       var replApi: ReplAPI with FullReplAPI = null
