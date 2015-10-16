@@ -1,5 +1,6 @@
 package ammonite.api
 
+/** Handles the shared class between user and interpreter class loaders (so called "bridge") */
 trait Bridge {
   def init: String
   def name: String
@@ -33,7 +34,12 @@ case class Decl(code: String, display: Seq[DisplayItem], referencedNames: Seq[St
 trait Interpreter {
   /** Initialization parameters */
   def bridge: Bridge
-  def wrapper: (Seq[Decl], String, String, String) => (String, String)
+  def wrap(
+    decls: Seq[Decl],
+    imports: String,
+    unfilteredImports: String,
+    wrapper: String
+  ): (String, String)
   def imports: Imports
   def classes: Classes
 
@@ -65,7 +71,7 @@ trait Interpreter {
 
   def wrap(code: String, imports: Imports = imports, wrapperName: String = s"cmd$getCurrentLine"): Either[String, (String, String)] = {
     decls(code).right.map(decls =>
-      wrapper(
+      wrap(
         decls,
         imports.block(decls.flatMap(_.referencedNames).toSet),
         imports.block(),

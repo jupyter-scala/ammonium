@@ -11,84 +11,6 @@ import scala.util.control.ControlThrowable
 
 import ammonite.api._
 
-
-object Wrap {
-  val default =
-    apply(_.map {
-      case DisplayItem.Definition(label, name) => s"""println("defined $label $name")"""
-      case DisplayItem.Import(imported)        => s"""println("import $imported")"""
-      case DisplayItem.Identity(ident)         => s"""println("$ident = " + $$user.$ident)"""
-      case DisplayItem.LazyIdentity(ident)     => s"""println("$ident = <lazy>")"""
-    } .mkString(" ; "))
-
-  def hasObjWrapSpecialImport(d: Decl): Boolean =
-    d.display.exists {
-      case DisplayItem.Import("special.wrap.obj") => true
-      case _                                      => false
-    }
-
-  def apply(
-    displayCode: Seq[DisplayItem] => String,
-    classWrap: Boolean = false
-  ) = {
-    (initialDecls: Seq[Decl], previousImportBlock: String, unfilteredPreviousImportBlock: String, wrapperName: String) =>
-      val (doClassWrap, decls) =
-        if (classWrap && initialDecls.exists(hasObjWrapSpecialImport))
-          (false, initialDecls.filterNot(hasObjWrapSpecialImport))
-        else
-          (classWrap, initialDecls)
-
-      val userCode = decls.map(_.code).mkString(" ; ")
-      val mainCore = displayCode(decls.flatMap(_.display))
-
-      def mainCode(userRef: String) =
-        // Using the unfiltered imports in the -$Main class, so that types are correctly pretty-printed
-        // (imported prefixes get stripped by the type pretty-printer)
-        s"""
-          object $wrapperName$$Main {
-            $unfilteredPreviousImportBlock
-
-            def $$main() = {
-              val $$user: $userRef.type = $userRef
-
-              $mainCore
-            }
-          }
-         """
-
-      val (userRef, wrappedUserCode) =
-        if (doClassWrap)
-          s"$wrapperName.INSTANCE.$$user" -> s"""
-            object $wrapperName {
-              val INSTANCE = new $wrapperName
-            }
-
-            class $wrapperName extends _root_.java.io.Serializable {
-              $previousImportBlock
-
-              class $$user extends _root_.java.io.Serializable {
-                $userCode
-              }
-
-              val $$user = new $$user
-            }
-          """
-        else
-          s"$wrapperName.$$user" -> s"""
-            object $wrapperName {
-              $previousImportBlock
-
-              object $$user {
-                $userCode
-              }
-            }
-          """
-
-      wrapperName -> (wrappedUserCode + "\n\n" + mainCode(userRef))
-  }
-}
-
-
 /**
  * Thrown to exit the interpreter cleanly
  */
@@ -115,18 +37,118 @@ trait InterpreterInternals {
 
 }
 
+object Interpreter {
+  def print(items: Seq[DisplayItem]): String = items.map {
+    case DisplayItem.Definition(label, name) => s"""println("defined $label $name")"""
+    case DisplayItem.Import(imported)        => s"""println("import $imported")"""
+    case DisplayItem.Identity(ident)         => s"""println("$ident = " + $$user.$ident)"""
+    case DisplayItem.LazyIdentity(ident)     => s"""println("$ident = <lazy>")"""
+  } .mkString(" ; ")
+
+  def wrap(
+    displayCode: Seq[DisplayItem] => String,
+    decls: Seq[Decl],
+    imports: String,
+    unfilteredImports: String,
+    wrapper: String
+  ): (String, String) = {
+    val userCode = decls.map(_.code).mkString(" ; ")
+    val mainCore = displayCode(decls.flatMap(_.display))
+
+    def mainCode(userRef: String) =
+      // Using the unfiltered imports in the -$Main class, so that types are correctly pretty-printed
+      // (imported prefixes get stripped by the type pretty-printer)
+      s"""
+        object $wrapper$$Main {
+          $unfilteredImports
+
+          def $$main() = {
+            val $$user: $userRef.type = $userRef
+
+            $mainCore
+          }
+        }
+       """
+
+    val (userRef, wrappedUserCode) =
+      s"$wrapper.$$user" -> s"""
+          object $wrapper {
+            $imports
+
+            object $$user {
+              $userCode
+            }
+          }
+       """
+
+    wrapper -> (wrappedUserCode + "\n\n" + mainCode(userRef))
+  }
+
+  def classWrap(
+    displayCode: Seq[DisplayItem] => String,
+    decls: Seq[Decl],
+    imports: String,
+    unfilteredImports: String,
+    wrapper: String
+  ): (String, String) = {
+    val userCode = decls.map(_.code).mkString(" ; ")
+    val mainCore = displayCode(decls.flatMap(_.display))
+
+    def mainCode(userRef: String) =
+    // Using the unfiltered imports in the -$Main class, so that types are correctly pretty-printed
+    // (imported prefixes get stripped by the type pretty-printer)
+      s"""
+          object $wrapper$$Main {
+            $unfilteredImports
+
+            def $$main() = {
+              val $$user: $userRef.type = $userRef
+
+              $mainCore
+            }
+          }
+         """
+
+    val (userRef, wrappedUserCode) =
+      s"$wrapper.INSTANCE.$$user" -> s"""
+          object $wrapper {
+            val INSTANCE = new $wrapper
+          }
+
+          class $wrapper extends _root_.java.io.Serializable {
+            $imports
+
+            class $$user extends _root_.java.io.Serializable {
+              $userCode
+            }
+
+            val $$user = new $$user
+          }
+        """
+
+    wrapper -> (wrappedUserCode + "\n\n" + mainCode(userRef))
+  }
+}
+
 /**
  * A convenient bundle of all the functionality necessary
  * to interpret Scala code.
  */
 class Interpreter(
   val bridge: Bridge = Bridge.empty,
-  val wrapper: (Seq[Decl], String, String, String) => (String, String) = Wrap.default,
   val imports: ammonite.api.Imports = new Imports(),
   val classes: ammonite.api.Classes = new Classes(),
   startingLine: Int = 0,
   initialHistory: Seq[String] = Nil
 ) extends ammonite.api.Interpreter with InterpreterInternals {
+
+  def wrap(
+    decls: Seq[Decl],
+    imports: String,
+    unfilteredImports: String,
+    wrapper: String
+  ): (String, String) =
+    Interpreter.wrap(Interpreter.print, decls, imports, unfilteredImports, wrapper)
 
   var compilerOptions = List.empty[String]
   var filterImports = true
@@ -306,7 +328,7 @@ class Interpreter(
       for {
         wrapperName0 <- Res.Success("cmd" + getCurrentLine)
         _ <- Catching { case e: ThreadDeath => interrupted() }
-        (wrapperName, wrappedLine) = wrapper(
+        (wrapperName, wrappedLine) = wrap(
           input,
           imports.block(if (filterImports) input.flatMap(_.referencedNames).toSet else null),
           imports.block(),

@@ -1,7 +1,10 @@
 package ammonite.shell
 
+import ammonite.interpreter.Classes
+import ammonite.interpreter.Imports
+import ammonite.interpreter.Interpreter
 import ammonite.interpreter._
-import ammonite.api.{ ClassLoaderType, IvyConstructor, Import, Bridge }
+import ammonite.api.{ ClassLoaderType, IvyConstructor, Import, Bridge, DisplayItem, Decl }
 import ammonite.shell.util._
 
 import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
@@ -179,11 +182,8 @@ object Ammonite extends AppOf[Ammonite] {
       }
     }
 
-  def wrap(classWrap: Boolean) =
-    Wrap(
-      decls => s"ReplBridge.shell.Internal.combinePrints(${decls.map(ShellDisplay(_)).mkString(", ")})",
-      classWrap
-    )
+  def print0(items: Seq[DisplayItem]): String =
+    s"ReplBridge.shell.Internal.combinePrints(${items.map(ShellDisplay(_)).mkString(", ")})"
 
   val scalaVersion = scala.util.Properties.versionNumberString
   val startIvys = Seq(
@@ -217,6 +217,12 @@ object Ammonite extends AppOf[Ammonite] {
     new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ macroStartPaths).toSet)
 
 
+  def hasObjWrapSpecialImport(d: Decl): Boolean =
+    d.display.exists {
+      case DisplayItem.Import("special.wrap.obj") => true
+      case _                                      => false
+    }
+
   def newInterpreter(
     predef: String,
     classWrap: Boolean,
@@ -240,7 +246,6 @@ object Ammonite extends AppOf[Ammonite] {
         pprintConfig = pprintConfig,
         colors = colors
       ),
-      wrap(classWrap),
       imports = new Imports(useClassWrapper = classWrap),
       classes =
         if (sharedLoader)
@@ -260,7 +265,25 @@ object Ammonite extends AppOf[Ammonite] {
           ),
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory
-    )
+    ) {
+      override def wrap(
+        decls: Seq[Decl],
+        imports: String,
+        unfilteredImports: String,
+        wrapper: String
+      ) = {
+        val (doClassWrap, decls0) =
+          if (classWrap && decls.exists(hasObjWrapSpecialImport))
+            (false, decls.filterNot(hasObjWrapSpecialImport))
+          else
+            (classWrap, decls)
+
+        if (doClassWrap)
+          Interpreter.classWrap(print0, decls0, imports, unfilteredImports, wrapper)
+        else
+          Interpreter.wrap(print0, decls0, imports, unfilteredImports, wrapper)
+      }
+    }
   }
 
 }
