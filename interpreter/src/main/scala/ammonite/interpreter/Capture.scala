@@ -120,18 +120,3 @@ object Capture {
     }
   }
 }
-
-case class Capturing(
-  stdoutOpt: Option[String => Unit],
-  stderrOpt: Option[String => Unit]
-) {
-  def apply[T](t: Unit => T): T =
-    if (stdoutOpt.nonEmpty || stderrOpt.nonEmpty)
-      Capture(stdoutOpt, stderrOpt)(t(()))
-    else
-      t(())
-
-  def foreach[T](t: Unit => T): Unit = apply(t)
-  def map[T](t: Unit => T): Res[T] = Res.Success(apply(t))
-  def flatMap[T](t: Unit => Res[T]): Res[T] = apply(t)
-}
