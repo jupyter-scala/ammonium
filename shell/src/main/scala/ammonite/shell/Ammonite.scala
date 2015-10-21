@@ -2,9 +2,10 @@ package ammonite.shell
 
 import ammonite.interpreter.Classes
 import ammonite.interpreter.Imports
+import ammonite.interpreter.Bridge
 import ammonite.interpreter.Interpreter
 import ammonite.interpreter._
-import ammonite.api.{ ClassLoaderType, IvyConstructor, Import, Bridge, DisplayItem, Decl }
+import ammonite.api.{ ClassLoaderType, IvyConstructor, Import, CodeItem, ParsedCode }
 import ammonite.shell.util._
 
 import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
@@ -269,7 +270,7 @@ object Ammonite extends AppOf[Ammonite] {
       var replApi: ReplAPI with FullReplAPI = null
       def reset0() = reset
 
-      def initClass(intp: ammonite.api.Interpreter, cls: Class[_]) = {
+      def initClass(intp: Interpreter, cls: Class[_]) = {
         if (replApi == null)
           replApi = new ReplAPIImpl(
             intp,
@@ -289,8 +290,8 @@ object Ammonite extends AppOf[Ammonite] {
       }
     }
 
-  def print0(items: Seq[DisplayItem]): String =
-    s"ReplBridge.shell.Internal.combinePrints(${items.map(ShellDisplay(_)).mkString(", ")})"
+  def print0(items: Seq[CodeItem]): String =
+    s"ReplBridge.shell.Internal.combinePrints(${items.map(ShellDisplay(_)).mkString(", ")})" + " ++ Iterator(\"\\n\")"
 
   val scalaVersion = scala.util.Properties.versionNumberString
   val startIvys = Seq(
@@ -324,9 +325,9 @@ object Ammonite extends AppOf[Ammonite] {
     new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ macroStartPaths).toSet)
 
 
-  def hasObjWrapSpecialImport(d: Decl): Boolean =
-    d.display.exists {
-      case DisplayItem.Import("special.wrap.obj") => true
+  def hasObjWrapSpecialImport(d: ParsedCode): Boolean =
+    d.items.exists {
+      case CodeItem.Import("special.wrap.obj") => true
       case _                                      => false
     }
 
@@ -365,7 +366,7 @@ object Ammonite extends AppOf[Ammonite] {
       initialHistory = initialHistory
     ) {
       override def wrap(
-        decls: Seq[Decl],
+        decls: Seq[ParsedCode],
         imports: String,
         unfilteredImports: String,
         wrapper: String

@@ -6,7 +6,6 @@ import fastparse.core.Result.Success
 
 import scala.collection.mutable
 import scala.reflect.io.VirtualDirectory
-import scala.util.Try
 import scala.util.control.ControlThrowable
 
 import ammonite.api._
@@ -18,22 +17,22 @@ case object Exit extends ControlThrowable
 
 object Interpreter {
 
-  def print(items: Seq[DisplayItem]): String = items.map {
-    case DisplayItem.Definition(label, name) => s"""println("defined $label $name")"""
-    case DisplayItem.Import(imported)        => s"""println("import $imported")"""
-    case DisplayItem.Identity(ident)         => s"""println("$ident = " + $$user.$ident)"""
-    case DisplayItem.LazyIdentity(ident)     => s"""println("$ident = <lazy>")"""
+  def print(items: Seq[CodeItem]): String = items.map {
+    case CodeItem.Definition(label, name) => s"""println("defined $label $name")"""
+    case CodeItem.Import(imported)        => s"""println("import $imported")"""
+    case CodeItem.Identity(ident)         => s"""println("$ident = " + $$user.$ident)"""
+    case CodeItem.LazyIdentity(ident)     => s"""println("$ident = <lazy>")"""
   } .mkString(" ; ")
 
   def wrap(
-    displayCode: Seq[DisplayItem] => String,
-    decls: Seq[Decl],
+    displayCode: Seq[CodeItem] => String,
+    decls: Seq[ParsedCode],
     imports: String,
     unfilteredImports: String,
     wrapper: String
   ): (String, String) = {
     val userCode = decls.map(_.code).mkString(" ; ")
-    val mainCore = displayCode(decls.flatMap(_.display))
+    val mainCore = displayCode(decls.flatMap(_.items))
 
     def mainCode(userRef: String) =
       // Using the unfiltered imports in the -$Main class, so that types are correctly pretty-printed
@@ -65,14 +64,14 @@ object Interpreter {
   }
 
   def classWrap(
-    displayCode: Seq[DisplayItem] => String,
-    decls: Seq[Decl],
+    displayCode: Seq[CodeItem] => String,
+    decls: Seq[ParsedCode],
     imports: String,
     unfilteredImports: String,
     wrapper: String
   ): (String, String) = {
     val userCode = decls.map(_.code).mkString(" ; ")
-    val mainCore = displayCode(decls.flatMap(_.display))
+    val mainCore = displayCode(decls.flatMap(_.items))
 
     def mainCode(userRef: String) =
     // Using the unfiltered imports in the -$Main class, so that types are correctly pretty-printed
@@ -200,7 +199,7 @@ object Interpret {
         }
     }
 
-  def preprocessor(statements: Seq[String]): Interpret[Seq[Decl]] =
+  def preprocessor(statements: Seq[String]): Interpret[Seq[ParsedCode]] =
     instance { interpreter =>
       Preprocessor(interpreter.compiler.parse, statements, interpreter.getCurrentLine) match {
         case Res.Success(l) =>
@@ -245,7 +244,7 @@ object Interpret {
       Right("cmd" + interpreter.getCurrentLine)
     }
 
-  def wrap(wrapper0: String, decls: Seq[Decl]): Interpret[(String, String)] =
+  def wrap(wrapper0: String, decls: Seq[ParsedCode]): Interpret[(String, String)] =
     instance { interpreter =>
       Right(
         interpreter.wrap(
@@ -443,8 +442,6 @@ class Interpreter(
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
 
-  var buffered = ""
-
   var sourcesMap = new mutable.HashMap[String, String]
   def sources: Map[String, String] = sourcesMap.toMap
 
@@ -459,7 +456,7 @@ class Interpreter(
 
 
   def wrap(
-    decls: Seq[Decl],
+    decls: Seq[ParsedCode],
     imports: String,
     unfilteredImports: String,
     wrapper: String
@@ -472,25 +469,6 @@ class Interpreter(
     previousImports: String = null
   ): (Int, Seq[String], Seq[String]) =
     pressy.complete(snippetIndex, Option(previousImports) getOrElse imports.block(), snippet)
-
-  def decls(code: String): Either[String, Seq[Decl]] =
-    Parsers.split(code) match {
-      case Some(Success(stmts, _)) =>
-        Preprocessor(compiler.parse, stmts, getCurrentLine) match {
-          case Res.Success(l) =>
-            Right(l)
-          case Res.Exit =>
-            throw new Exception("Can't happen")
-          case Res.Skip =>
-            Right(Nil)
-          case Res.Failure(err) =>
-            Left(err)
-        }
-      case Some(res) =>
-        Left(s"Error: $res")
-      case None =>
-        Left("parse error")
-    }
 
   def stop(): Unit =
     onStopHooks.foreach(_())

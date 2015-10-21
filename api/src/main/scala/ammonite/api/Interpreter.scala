@@ -1,34 +1,15 @@
 package ammonite.api
 
-/** Handles the shared class between user and interpreter class loaders (so called "bridge") */
-trait Bridge {
-  def init: String
-  def name: String
-  def imports: Seq[Import]
-  def print(v: AnyRef): Unit
-  def initClass(intp: Interpreter, cls: Class[_]): Unit
+sealed trait CodeItem
+
+object CodeItem {
+  case class Definition(definitionLabel: String, name: String) extends CodeItem
+  case class Identity(ident: String) extends CodeItem
+  case class LazyIdentity(ident: String) extends CodeItem
+  case class Import(imported: String) extends CodeItem
 }
 
-object Bridge {
-  val empty: Bridge = new Bridge {
-    def init = "object Bridge"
-    def name = "Bridge"
-    def imports = Nil
-    def print(v: AnyRef) = ()
-    def initClass(intp: Interpreter, cls: Class[_]) = ()
-  }
-}
-
-sealed trait DisplayItem
-
-object DisplayItem {
-  case class Definition(definitionLabel: String, name: String) extends DisplayItem
-  case class Identity(ident: String) extends DisplayItem
-  case class LazyIdentity(ident: String) extends DisplayItem
-  case class Import(imported: String) extends DisplayItem
-}
-
-case class Decl(code: String, display: Seq[DisplayItem], referencedNames: Seq[String])
+case class ParsedCode(code: String, items: Seq[CodeItem], referencedNames: Seq[String])
 
 
 sealed trait InterpreterError {
@@ -61,7 +42,6 @@ trait Interpreter {
   def classes: Classes
 
   def getCurrentLine: String
-  def buffered: String
   def sources: Map[String, String]
 
   /**
@@ -76,5 +56,4 @@ trait Interpreter {
   def onStop(action: => Unit): Unit
 
   def complete(snippetIndex: Int, snippet: String, previousImports: String = null): (Int, Seq[String], Seq[String])
-  def decls(code: String): Either[String, Seq[Decl]]
 }

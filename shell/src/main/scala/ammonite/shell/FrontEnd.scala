@@ -58,9 +58,8 @@ object FrontEnd{
                colors: Colors,
                compilerComplete: (Int, String) => (Int, Seq[String], Seq[String]),
                history: Seq[String],
-               addHistory: String => Unit) = {
-      Timer("FrontEnd.Ammonite.action start")
-      val res = readLine(reader, output, prompt, colors, compilerComplete, history) match{
+               addHistory: String => Unit) =
+      readLine(reader, output, prompt, colors, compilerComplete, history) match {
         case None => Res.Exit
         case Some(code) =>
           addHistory(code)
@@ -71,16 +70,13 @@ object FrontEnd{
             )
           }
       }
-      Timer("FrontEnd.Ammonite.action end")
-      res
-    }
+
     def readLine(reader: java.io.Reader,
                  output: OutputStream,
                  prompt: String,
                  colors: Colors,
                  compilerComplete: (Int, String) => (Int, Seq[String], Seq[String]),
                  history: Seq[String]) = {
-      Timer("FrontEnd.Ammonite.readLine start")
       val writer = new OutputStreamWriter(output)
       val autocompleteFilter: TermCore.Filter = {
         case TermInfo(TermState(9 ~: rest, b, c), width) => // Enter
@@ -144,8 +140,7 @@ object FrontEnd{
         multilineFilter orElse
         BasicFilters.all
 
-      Timer("FrontEnd.Ammonite.readLine 1")
-      val res = TermCore.readLine(
+      TermCore.readLine(
         prompt,
         reader,
         writer,
@@ -183,8 +178,6 @@ object FrontEnd{
           }
         }
       )
-      Timer("TermCore.readLine")
-      res
     }
   }
   object JLineUnix extends JLineTerm(() => new jline.UnixTerminal())

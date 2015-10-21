@@ -1,11 +1,11 @@
 package ammonite.shell.util
 
-import ammonite.api.DisplayItem, DisplayItem._
+import ammonite.api.CodeItem, CodeItem._
 
 
 object ShellDisplay {
 
-  def apply(d: DisplayItem): String =
+  def apply(d: CodeItem): String =
     d match {
       case Definition(label, name) =>
         s"""ReplBridge.shell.Internal.printDef("$label", "$name")"""

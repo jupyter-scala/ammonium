@@ -5,12 +5,12 @@ import fastparse.core.Result.Success
 import scala.reflect.internal.Flags
 import scala.tools.nsc.{Global => G}
 
-import ammonite.api.{ DisplayItem, Decl }
+import ammonite.api.{ CodeItem, ParsedCode }
 
 object Preprocessor{
-  import DisplayItem._
+  import CodeItem._
 
-  def Processor(cond: PartialFunction[(String, String, G#Tree, Seq[G#Name]), Decl]) = {
+  def Processor(cond: PartialFunction[(String, String, G#Tree, Seq[G#Name]), ParsedCode]) = {
     (code: String, name: String, tree: G#Tree, refNames: Seq[G#Name]) => cond.lift(name, code, tree, refNames)
   }
 
@@ -20,7 +20,7 @@ object Preprocessor{
   def DefProc(definitionLabel: String)(cond: PartialFunction[G#Tree, G#Name]) =
     (code: String, name: String, tree: G#Tree, refNames: Seq[G#Name]) =>
       cond.lift(tree).map{ name =>
-        Decl(
+        ParsedCode(
           code,
           Seq(Definition(definitionLabel, Parsers.backtickWrap(name.decoded))),
           refNames.map(_.toString)
@@ -41,7 +41,7 @@ object Preprocessor{
       s"$lhs = { () =>\n$rhs \n}.apply\n"
     }
 
-    Decl(
+    ParsedCode(
       //Only wrap rhs in function if it is not a function
       //Wrapping functions causes type inference errors.
       t.rhs match {
@@ -62,19 +62,19 @@ object Preprocessor{
   val Import = Processor{
     case (name, code, tree: G#Import, refNames: Seq[G#Name]) =>
       val Array(keyword, body) = code.split(" ", 2)
-      Decl(code, Seq(DisplayItem.Import(body)), refNames.map(_.toString))
+      ParsedCode(code, Seq(CodeItem.Import(body)), refNames.map(_.toString))
   }
 
   val Expr = Processor{ case (name, code, tree, refNames: Seq[G#Name]) =>
     //Expressions are lifted to anon function applications so they will be JITed
-    Decl(s"val $name = { () =>\n$code\n}.apply\n", Seq(Identity(name)), refNames.map(_.toString))
+    ParsedCode(s"val $name = { () =>\n$code\n}.apply\n", Seq(Identity(name)), refNames.map(_.toString))
   }
 
-  val decls = Seq[(String, String, G#Tree, Seq[G#Name]) => Option[Decl]](
+  val decls = Seq[(String, String, G#Tree, Seq[G#Name]) => Option[ParsedCode]](
     ObjectDef, ClassDef, TraitDef, DefDef, TypeDef, PatVarDef, Import, Expr
   )
 
-  def apply(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], stmts: Seq[String], wrapperId: String): Res[Seq[Decl]] = {
+  def apply(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], stmts: Seq[String], wrapperId: String): Res[Seq[ParsedCode]] = {
     val unwrapped = stmts.flatMap{x => Parsers.unwrapBlock(x).flatMap(Parsers.split) match {
       case Some(Success(contents, _)) => contents
       case None => Seq(x)
@@ -85,7 +85,7 @@ object Preprocessor{
     }
   }
 
-  def complete(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], code: String, wrapperId: String, postSplit: Seq[String]): Res[Seq[Decl]] = {
+  def complete(parse: String => Either[String, Seq[(G#Tree, Seq[G#Name])]], code: String, wrapperId: String, postSplit: Seq[String]): Res[Seq[ParsedCode]] = {
     val reParsed = postSplit.map(p => (parse(p), p))
     val errors = reParsed.collect{case (Left(e), _) => e }
     if (errors.length != 0) Res.Failure(errors.mkString("\n"))
@@ -110,11 +110,11 @@ object Preprocessor{
             val printers = for {
               (tree, referencedNames) <- trees
               if tree.isInstanceOf[G#ValDef]
-              Decl(_, printers, _) = handleTree(tree, referencedNames)
+              ParsedCode(_, printers, _) = handleTree(tree, referencedNames)
               printer <- printers
             } yield printer
 
-            Seq(Decl(code, printers, trees.flatMap(_._2).map(_.toString)))
+            Seq(ParsedCode(code, printers, trees.flatMap(_._2).map(_.toString)))
         }
       }
       Res(
