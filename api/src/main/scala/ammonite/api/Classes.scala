@@ -32,17 +32,6 @@ trait Classes {
    * Returns a `ClassLoader` having the same JARs and added classes than `classLoader()`, but loaded
    * by a different `ClassLoader`
    */
-  def classLoaderClone(baseClassLoader: ClassLoader = null): ClassLoader
-
-  /**
-   * For macro testing
-   *
-   * If @value is true, use the same class loader for runtime and compilation (macros), having the scala compiler
-   * and compiler plugin JARs in particular. If false, switch to different loaders for runtime and compilation.
-   *
-   * If an actual class loader change occurs, all previously calculated REPL values are wiped, and are re-computed lazily.
-   * Use with caution.
-   */
-  def useMacroClassLoader(value: Boolean): Unit
+  def classLoaderClone(): ClassLoader
 }
 

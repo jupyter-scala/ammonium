@@ -22,13 +22,14 @@ abstract class ReplAPIImpl(
   startResolvers: Seq[DependencyResolver],
   colors: Colors,
   shellPromptRef: Ref[String],
-  var pprintConfig: pprint.Config
+  var pprintConfig: pprint.Config,
+  history0: => Seq[String]
 ) extends FullReplAPI {
 
   def exit: Nothing = throw Exit
   val load: Load = new Load(intp, startJars, startIvys, jarMap, startResolvers)
   def interpreter: ammonite.api.Interpreter = intp
-  def history: Seq[String] = intp.history.toVector.dropRight(1)
+  def history: Seq[String] = history0
 
 
   def shellPrompt: String = shellPromptRef()

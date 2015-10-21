@@ -62,7 +62,6 @@ trait Interpreter {
 
   def getCurrentLine: String
   def buffered: String
-  def history: Seq[String]
   def sources: Map[String, String]
 
   /**

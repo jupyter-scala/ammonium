@@ -10,6 +10,7 @@ class AmmoniteClassWrapperChecker(sharedLoader: Boolean = false) extends Ammonit
       classWrap = true,
       pprintConfig = pprint.Config.Defaults.PPrintConfig.copy(width = 80, height = 20),
       colors = Colors.BlackWhite,
-      sharedLoader = sharedLoader
+      sharedLoader = sharedLoader,
+      history = ???
     )
 }

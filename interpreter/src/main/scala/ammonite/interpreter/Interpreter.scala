@@ -389,12 +389,6 @@ object Interpret {
                   _ <- addImports(bridge.imports)
     } yield ()
 
-  def addHistory(line: String): Interpret[Unit] =
-    instance { interpreter =>
-      interpreter.history += line
-      Right(())
-    }
-
   def apply[T](
     statements: Seq[String],
       compiled: => Unit,
@@ -432,7 +426,6 @@ object Interpret {
     process: AnyRef => T
   ): Interpret[Evaluated[T]] =
     for {
-               _ <- addHistory(code)
       statements <- splitCode(code)
               ev <- apply(statements, compiled, stdout, stderr, process)
     } yield ev
@@ -450,7 +443,6 @@ class Interpreter(
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
 
-  val history = initialHistory.to[collection.mutable.Buffer]
   var buffered = ""
 
   var sourcesMap = new mutable.HashMap[String, String]

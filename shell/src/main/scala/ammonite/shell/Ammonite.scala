@@ -147,7 +147,8 @@ class Shell(
       sharedLoader,
       prompt,
       () => ???,
-      initialHistory
+      initialHistory,
+      history
     )
 
 }
@@ -248,7 +249,8 @@ object Ammonite extends AppOf[Ammonite] {
     shellPrompt: => Ref[String],
     reset: => Unit,
     pprintConfig: pprint.Config,
-    colors: Colors
+    colors: Colors,
+    history: => Seq[String]
   ): Bridge =
     new Bridge {
       def init = "object ReplBridge extends ammonite.shell.ReplAPIHolder"
@@ -277,7 +279,8 @@ object Ammonite extends AppOf[Ammonite] {
             startResolvers,
             colors,
             shellPrompt,
-            pprintConfig
+            pprintConfig,
+            history
           ) {
             def reset() = reset0()
           }
@@ -335,7 +338,8 @@ object Ammonite extends AppOf[Ammonite] {
     sharedLoader: Boolean,
     shellPromptRef: => Ref[String] = Ref("@"),
     reset: => Unit = (),
-    initialHistory: Seq[String] = Nil
+    initialHistory: Seq[String] = Nil,
+    history: => Seq[String]
   ): ammonite.api.Interpreter = {
     val startPaths = Classes.defaultPaths()
 
@@ -345,17 +349,17 @@ object Ammonite extends AppOf[Ammonite] {
         if (sharedLoader)
           new Classes(
             Thread.currentThread().getContextClassLoader,
-            startPaths
+            startPaths = startPaths
           )
         else
           new Classes(
             startClassLoader,
-            Map(
+            macroClassLoader0 = startCompilerClassLoader,
+            startPaths = Map(
               ClassLoaderType.Main -> mainStartPaths,
               ClassLoaderType.Macro -> macroStartPaths,
               ClassLoaderType.Plugin -> mainStartPaths
-            ),
-            startCompilerClassLoader = startCompilerClassLoader
+            )
           ),
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory
@@ -388,7 +392,8 @@ object Ammonite extends AppOf[Ammonite] {
         shellPrompt = shellPromptRef,
         reset = reset,
         pprintConfig = pprintConfig,
-        colors = colors
+        colors = colors,
+        history = history
       ),
       None,
       None

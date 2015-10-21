@@ -162,6 +162,73 @@ class AdvancedTests(check0: => Checker,
       // check.result("", Res.Skip)
       check("2", "res1: Int = 2")
     }
+    'customPPrint{
+      check.session(s"""
+        @ class C
+        defined class C
+
+        @ implicit def pprint = _root_.pprint.PPrinter[C]((t, c) => Iterator("INSTANCE OF CLASS C"))
+        defined function pprint
+
+        @ new C
+        res2: C = INSTANCE OF CLASS C
+      """)
+    }
+
+    'shapeless{
+      check.session("""
+        @ load.ivy("com.chuusai" %% "shapeless" % "2.2.5"); if (scala.util.Properties.versionNumberString.startsWith("2.10.")) load.plugin.ivy("org.scalamacros" % "paradise_2.10.6" % "2.0.1")
+
+        @ import shapeless._
+
+        @ (1 :: "lol" :: List(1, 2, 3) :: HNil)(1)
+        res2: String = "lol"
+
+        @ case class Foo(i: Int, blah: String, b: Boolean)
+        defined class Foo
+
+        @ Generic[Foo].to(Foo(2, "a", true))
+        res4: shapeless.::[Int,shapeless.::[String,shapeless.::[Boolean,shapeless.HNil]]] = ::(2, ::("a", ::(true, HNil)))
+      """)
+    }
+
+    'scalaz{
+      check.session("""
+        @ load.ivy("org.scalaz" %% "scalaz-core" % "7.1.1")
+
+        @ import scalaz._
+        import scalaz._
+
+        @ import Scalaz._
+        import Scalaz._
+
+        @ (Option(1) |@| Option(2))(_ + _)
+        res3: Option[Int] = Some(3)
+      """)
+    }
+    'scalazstream{
+      check.session("""
+        @ load.resolver("Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases")
+
+        @ load.ivy("org.scalaz.stream" %% "scalaz-stream" % "0.7a")
+
+        @ import scalaz.stream._
+        import scalaz.stream._
+
+        @ import scalaz.concurrent.Task
+        import scalaz.concurrent.Task
+
+        @ val p1 = Process.constant(1).toSource
+        p1: scalaz.stream.Process[scalaz.concurrent.Task,Int] = Append(Emit(Vector(1)), Vector(<function1>))
+
+        @ val pch = Process.constant((i:Int) => Task.now(())).take(3)
+        pch: scalaz.stream.Process[Nothing,Int => scalaz.concurrent.Task[Unit]] = Append(Halt(End), Vector(<function1>))
+
+        @ p1.to(pch).runLog.run.size == 3
+        res6: Boolean = true
+      """)
+    }
+
     // FIXME Works in Ammonite main line, not here
 //    'specialPPrint{
 //      // Make sure these various "special" data structures get pretty-printed

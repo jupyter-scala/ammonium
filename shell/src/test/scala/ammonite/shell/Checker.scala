@@ -46,7 +46,8 @@ class AmmoniteChecker extends Checker {
       classWrap = false,
       pprintConfig = pprint.Config.Defaults.PPrintConfig.copy(width = 80, height = 20),
       colors = Colors.BlackWhite,
-      sharedLoader = false
+      sharedLoader = false,
+      history = ???
     )
 
   val interp = newInterpreter()
