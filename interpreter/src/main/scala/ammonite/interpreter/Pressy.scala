@@ -156,8 +156,8 @@ object Pressy {
        */
       def complete(snippetIndex: Int, previousImports: String, snippet: String): (Int, Seq[String], Seq[String]) = {
 
-        val prefix = previousImports + "\nobject AutocompleteWrapper{\n"
-        val suffix = "\n}"
+        val prefix = "object Wrap{\n" + previousImports + "\nobject AutocompleteWrapper{\n"
+        val suffix = "\n}\n}"
         val allCode =  prefix + snippet + suffix
         val index = snippetIndex + prefix.length
         if (cachedPressy == null) cachedPressy = initPressy
