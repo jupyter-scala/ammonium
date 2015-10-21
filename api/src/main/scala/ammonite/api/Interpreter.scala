@@ -56,13 +56,7 @@ object InterpreterError {
 
 trait Interpreter {
   /** Initialization parameters */
-  def bridge: Bridge
-  def wrap(
-    decls: Seq[Decl],
-    imports: String,
-    unfilteredImports: String,
-    wrapper: String
-  ): (String, String)
+
   def imports: Imports
   def classes: Classes
 
@@ -70,11 +64,6 @@ trait Interpreter {
   def buffered: String
   def history: Seq[String]
   def sources: Map[String, String]
-
-  /**
-   * Throw away the current scala.tools.nsc.Global and get a new one
-   */
-  def init(options: String*): Unit
 
   /**
    * Provide these to `init` above to keep the current compiler options
@@ -89,19 +78,4 @@ trait Interpreter {
 
   def complete(snippetIndex: Int, snippet: String, previousImports: String = null): (Int, Seq[String], Seq[String])
   def decls(code: String): Either[String, Seq[Decl]]
-  def compile(src: Array[Byte], runLogger: String => Unit = print): Option[(Traversable[(String, Array[Byte])], Seq[Import])]
-  def run(code: String): Either[String, Unit]
-
-  def wrap(code: String, imports: Imports = imports, wrapperName: String = s"cmd$getCurrentLine"): Either[String, (String, String)] = {
-    decls(code).right.map(decls =>
-      wrap(
-        decls,
-        imports.block(decls.flatMap(_.referencedNames).toSet),
-        imports.block(),
-        wrapperName
-      )
-    )
-  }
-
-  def macroMode(): Unit
 }

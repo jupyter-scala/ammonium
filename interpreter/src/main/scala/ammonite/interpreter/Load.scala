@@ -22,15 +22,15 @@ class Load(
 ) extends ammonite.api.Load {
 
   def apply(line: String) =
-    intp.run(line) match {
-      case Left(msg) => println(Console.RED + msg + Console.RESET)
-      case _ =>
+    Interpret.run(line, (), None, None, _ => ())(intp.asInstanceOf[Interpreter]) match {
+      case Left(err) => println(Console.RED + err.toString + Console.RESET)
+      case Right(_) =>
     }
 
   lazy val compiler: AddDependency = new AddDependency {
     def jar(jar: File, jars: File*) = {
       intp.classes.addPath(ClassLoaderType.Macro)(jar +: jars: _*)
-      intp.init(intp.compilerOptions: _*)
+      Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
     }
     def jar(url: URL, urls: URL*) =
       (url +: urls).map(fromCache).toList match {
@@ -57,7 +57,7 @@ class Load(
   lazy val plugin: AddDependency = new AddDependency {
     def jar(jar: File, jars: File*) = {
       intp.classes.addPath(ClassLoaderType.Plugin)(jar +: jars: _*)
-      intp.init(intp.compilerOptions: _*)
+      Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
     }
     def jar(url: URL, urls: URL*) =
       (url +: urls).map(fromCache).toList match {
@@ -93,7 +93,7 @@ class Load(
     val jars0 = jar +: jars
     userJars = userJars ++ jars0
     intp.classes.addPath()(jars0: _*)
-    intp.init(intp.compilerOptions: _*)
+    Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
   }
 
   lazy val urlCacheDir = {
@@ -154,7 +154,7 @@ class Load(
     warnedJars = removedJars
 
     intp.classes.addPath()(newJars ++ extra: _*)
-    intp.init(intp.compilerOptions: _*)
+    Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
   }
 
   def resolve(coordinates: (String, String, String)*): Seq[File] =

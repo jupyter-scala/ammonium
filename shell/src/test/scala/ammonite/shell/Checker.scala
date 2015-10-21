@@ -40,7 +40,7 @@ class AmmoniteChecker extends Checker {
   var allOutput = ""
   var captureOut = false
 
-  def newInterpreter(): ammonite.api.Interpreter with InterpreterInternals =
+  def newInterpreter(): ammonite.api.Interpreter =
     Ammonite.newInterpreter(
       predef,
       classWrap = false,
@@ -54,12 +54,14 @@ class AmmoniteChecker extends Checker {
   if (predef.nonEmpty) {
     Parsers.split(predef) match {
       case Some(Success(stmts, _)) =>
-        interp(
+        Interpret(
           stmts,
           (),
-          _.asInstanceOf[Iterator[String]].foreach(allOutput += _),
-          if (captureOut) Some(allOutput += _) else None
-        )
+          if (captureOut) Some(allOutput += _) else None,
+          None,
+          _.asInstanceOf[Iterator[String]].foreach(allOutput += _)
+        )(interp.asInstanceOf[Interpreter])
+
         allOutput += "\n"
       case other =>
         allOutput += s"Error (predef): $other"
@@ -103,12 +105,13 @@ class AmmoniteChecker extends Checker {
     val msgOut = collection.mutable.Buffer.empty[String]
     val processed = Parsers.split(input) match {
       case Some(Success(stmts, _)) =>
-        interp(
+        Interpret(
           stmts,
           (),
-          _.asInstanceOf[Iterator[String]].foreach(msg.append(_)),
-          if (captureOut) Some(msgOut.append(_)) else None
-        )
+          if (captureOut) Some(msgOut.append(_)) else None,
+          None,
+          _.asInstanceOf[Iterator[String]].foreach(msg.append(_))
+        )(interp.asInstanceOf[Interpreter])
       case _ =>
         ???
     }

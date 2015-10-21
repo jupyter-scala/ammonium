@@ -64,7 +64,7 @@ object ShellAction {
     instance { shell =>
       shell.frontEnd().action(
         System.in, shell.reader, System.out,
-        shell.colors().prompt + shell.prompt() + scala.Console.RESET + " ",
+        shell.colors().prompt() + shell.prompt() + scala.Console.RESET + " ",
         shell.colors(),
         shell.interp.complete(_, _),
         shell.history,
@@ -110,7 +110,13 @@ object ShellAction {
 
   def interpret(statements: Seq[String], compiled: => Unit): ShellAction[Evaluated[Unit]] =
     instance { shell =>
-      shell.interp(statements, compiled, _.asInstanceOf[Iterator[String]].foreach(print))
+      Interpret(
+        statements,
+        compiled,
+        None,
+        None,
+        _.asInstanceOf[Iterator[String]].foreach(print)
+      )(shell.interp.asInstanceOf[Interpreter])
         .left.map(ShellError.InterpreterError)
     }
 }
@@ -132,7 +138,7 @@ class Shell(
 
   val pprintConfig = pprint.Config.Colors.PPrintConfig
 
-  val interp: ammonite.api.Interpreter with InterpreterInternals =
+  val interp: ammonite.api.Interpreter =
     Ammonite.newInterpreter(
       predef,
       classWrap,
@@ -188,8 +194,16 @@ case class Ammonite(
   if (predef.nonEmpty)
     Parsers.split(predef) match {
       case Some(Success(stmts, _)) =>
-        interp(stmts, (), _.asInstanceOf[Iterator[String]].foreach(print))
+        Interpret(
+          stmts,
+          (),
+          None,
+          None,
+          _.asInstanceOf[Iterator[String]].foreach(print)
+        )(interp.asInstanceOf[Interpreter])
+
         // FIXME Handle errors
+
         print("\n")
       case other =>
         println(s"Error while running predef: $other")
@@ -322,20 +336,10 @@ object Ammonite extends AppOf[Ammonite] {
     shellPromptRef: => Ref[String] = Ref("@"),
     reset: => Unit = (),
     initialHistory: Seq[String] = Nil
-  ): ammonite.api.Interpreter with InterpreterInternals = {
+  ): ammonite.api.Interpreter = {
     val startPaths = Classes.defaultPaths()
 
-    new Interpreter(
-      bridge(
-        startJars = if (sharedLoader) startPaths(ClassLoaderType.Main) else mainStartPaths,
-        startIvys = startIvys,
-        startResolvers = resolvers,
-        jarMap = packJarMap,
-        shellPrompt = shellPromptRef,
-        reset = reset,
-        pprintConfig = pprintConfig,
-        colors = colors
-      ),
+    val intp = new Interpreter(
       imports = new Imports(useClassWrapper = classWrap),
       classes =
         if (sharedLoader)
@@ -374,6 +378,25 @@ object Ammonite extends AppOf[Ammonite] {
           Interpreter.wrap(print0, decls0, imports, unfilteredImports, wrapper)
       }
     }
+
+    val init = Interpret.init(
+      bridge(
+        startJars = if (sharedLoader) startPaths(ClassLoaderType.Main) else mainStartPaths,
+        startIvys = startIvys,
+        startResolvers = resolvers,
+        jarMap = packJarMap,
+        shellPrompt = shellPromptRef,
+        reset = reset,
+        pprintConfig = pprintConfig,
+        colors = colors
+      ),
+      None,
+      None
+    )
+
+    init(intp) // FIXME Check result
+
+    intp
   }
 
 }
