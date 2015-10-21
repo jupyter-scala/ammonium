@@ -256,7 +256,7 @@ class Classes(
       case ClassLoaderType.Main =>
         startPaths(ClassLoaderType.Main) ++ extraPaths(ClassLoaderType.Main)
       case ClassLoaderType.Macro =>
-        paths(ClassLoaderType.Main) ++ startPaths(ClassLoaderType.Macro) ++ extraPaths(ClassLoaderType.Macro)
+        startPaths(ClassLoaderType.Macro) ++ extraPaths(ClassLoaderType.Macro)
       case ClassLoaderType.Plugin =>
         startPaths(ClassLoaderType.Plugin) ++ extraPaths(ClassLoaderType.Plugin)
     }
@@ -268,26 +268,32 @@ class Classes(
 
         if (newPaths.nonEmpty) {
           extraPaths += ClassLoaderType.Main -> (extraPaths(ClassLoaderType.Main) ++ newPaths)
-          classLoaders0(ClassLoaderType.Main).add(newPaths: _*)
+          val cl0 = cl(classLoaders0(ClassLoaderType.Main))
+          cl0.add(newPaths: _*)
+          classLoaders0(ClassLoaderType.Main) = cl0
           onPathsAddedHooks.foreach(_(newPaths))
         }
+
+        addPath(ClassLoaderType.Macro)(paths0: _*)
 
       case ClassLoaderType.Macro =>
         val newPaths = paths0.filterNot(paths(ClassLoaderType.Macro).toSet).distinct
 
         if (newPaths.nonEmpty) {
           extraPaths += ClassLoaderType.Macro -> (extraPaths(ClassLoaderType.Macro) ++ newPaths)
-          classLoaders0(ClassLoaderType.Macro).add(newPaths: _*)
+          val cl0 = cl(classLoaders0(ClassLoaderType.Macro))
+          cl0.add(newPaths: _*)
+          classLoaders0(ClassLoaderType.Macro) = cl0
         }
-
-        addPath(ClassLoaderType.Main)(paths0: _*)
 
       case ClassLoaderType.Plugin =>
         val newPaths = paths0.filterNot(paths(ClassLoaderType.Plugin).toSet).distinct
 
         if (newPaths.nonEmpty) {
           extraPaths += ClassLoaderType.Plugin -> (extraPaths(ClassLoaderType.Plugin) ++ newPaths)
-          classLoaders0(ClassLoaderType.Plugin).add(newPaths: _*)
+          val cl0 = cl(classLoaders0(ClassLoaderType.Plugin))
+          cl0.add(newPaths: _*)
+          classLoaders0(ClassLoaderType.Plugin) = cl0
         }
     }
 

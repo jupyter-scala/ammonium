@@ -157,11 +157,6 @@ class AdvancedTests(check0: => Checker,
       if (isAmmonite)
         check.result("exit", Left(InterpreterError.Exit))
     }
-    'skip{
-      check("1", "res0: Int = 1")
-      // check.result("", Res.Skip)
-      check("2", "res1: Int = 2")
-    }
     'customPPrint{
       check.session(s"""
         @ class C
@@ -188,7 +183,7 @@ class AdvancedTests(check0: => Checker,
         defined class Foo
 
         @ Generic[Foo].to(Foo(2, "a", true))
-        res4: shapeless.::[Int,shapeless.::[String,shapeless.::[Boolean,shapeless.HNil]]] = ::(2, ::("a", ::(true, HNil)))
+        res4: Int :: String :: Boolean :: HNil = ::(2, ::("a", ::(true, HNil)))
       """)
     }
 
@@ -218,13 +213,13 @@ class AdvancedTests(check0: => Checker,
         @ import scalaz.concurrent.Task
         import scalaz.concurrent.Task
 
-        @ val p1 = Process.constant(1).toSource
-        p1: scalaz.stream.Process[scalaz.concurrent.Task,Int] = Append(Emit(Vector(1)), Vector(<function1>))
+        @ // val p1 = Process.constant(1).toSource
+        @ // p1: scalaz.stream.Process[scalaz.concurrent.Task,Int] = Append(Emit(Vector(1)), Vector(<function1>))
 
         @ val pch = Process.constant((i:Int) => Task.now(())).take(3)
-        pch: scalaz.stream.Process[Nothing,Int => scalaz.concurrent.Task[Unit]] = Append(Halt(End), Vector(<function1>))
+        pch: Process[Nothing, Int => Task[Unit]] = Append(Halt(End), Vector(<function1>))
 
-        @ p1.to(pch).runLog.run.size == 3
+        @ Process.constant(1).toSource.to(pch).runLog.run.size == 3
         res6: Boolean = true
       """)
     }

@@ -163,8 +163,8 @@ object TPrintLowPri{
         }"
     }
     lazy val cfgSym = c.freshName[TermName]("cfg")
-    val res = c.Expr[TPrint[T]](q"""ammonite.tprint.TPrint.lambda{
-      ($cfgSym: pprint.Config) =>
+    val res = c.Expr[TPrint[T]](q"""_root_.ammonite.tprint.TPrint.lambda{
+      ($cfgSym: _root_.pprint.Config) =>
         ${rec0(tpe, end = true)}
     }""")
     //    println("RES " + res)
