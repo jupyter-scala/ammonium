@@ -38,6 +38,13 @@ object ShellError {
 
 trait ShellAction[T] { self =>
   def apply(shell: Shell): Either[ShellError, T]
+  def filter(p: T => Boolean): ShellAction[T] =
+    ShellAction.instance { shell =>
+      self(shell).right.map { t =>
+        if (!p(t)) throw new Exception(s"Unmatched shell action")
+        t
+      }
+    }
   def map[U](f: T => U): ShellAction[U] = flatMap(t => ShellAction.point(f(t)))
   def flatMap[U](f: T => ShellAction[U]): ShellAction[U] =
     ShellAction.instance { shell =>
@@ -219,15 +226,15 @@ case class Ammonite(
 object Ammonite extends AppOf[Ammonite] {
   val parser = default
 
-  def bridgeConfig(
-    startJars: Seq[File] = Nil,
-    startIvys: Seq[(String, String, String)] = Nil,
-    jarMap: File => File = identity,
-    startResolvers: Seq[DependencyResolver] = Seq(Resolver.localRepo, Resolver.defaultMaven),
-    shellPrompt: => Ref[String] = Ref("@"),
-    reset: => Unit = (),
-    pprintConfig: pprint.Config = pprint.Config.Defaults.PPrintConfig,
-    colors: Colors = Colors.BlackWhite
+  def bridge(
+    startJars: Seq[File],
+    startIvys: Seq[(String, String, String)],
+    jarMap: File => File,
+    startResolvers: Seq[DependencyResolver],
+    shellPrompt: => Ref[String],
+    reset: => Unit,
+    pprintConfig: pprint.Config,
+    colors: Colors
   ): Bridge =
     new Bridge {
       def init = "object ReplBridge extends ammonite.shell.ReplAPIHolder"
@@ -319,7 +326,7 @@ object Ammonite extends AppOf[Ammonite] {
     val startPaths = Classes.defaultPaths()
 
     new Interpreter(
-      bridgeConfig(
+      bridge(
         startJars = if (sharedLoader) startPaths(ClassLoaderType.Main) else mainStartPaths,
         startIvys = startIvys,
         startResolvers = resolvers,

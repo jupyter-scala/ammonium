@@ -1,7 +1,7 @@
 package ammonite.shell
 package tests
 
-import ammonite.interpreter.Res
+import ammonite.api.InterpreterError
 import utest._
 
 class AdvancedTests(check0: => Checker,
@@ -155,11 +155,11 @@ class AdvancedTests(check0: => Checker,
     }
     'exit{
       if (isAmmonite)
-        check.result("exit", Res.Exit)
+        check.result("exit", Left(InterpreterError.Exit))
     }
     'skip{
       check("1", "res0: Int = 1")
-      check.result("", Res.Skip)
+      // check.result("", Res.Skip)
       check("2", "res1: Int = 2")
     }
     // FIXME Works in Ammonite main line, not here

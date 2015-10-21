@@ -302,9 +302,9 @@ object Interpret {
               interrupted()
             case Ex(_: InvocationTargetException, _: ThreadDeath) =>
               interrupted()
-            case Ex(_: InvocationTargetException, _: ExceptionInInitializerError, userEx@_*) =>
+            case Ex(_: InvocationTargetException, _: ExceptionInInitializerError, userEx: Exception, _) =>
               // Res.Failure(userEx, stopMethod = "$main", stopClass = s"$wrapperName$$$$user")
-              ???
+              Left(InterpreterError.UserException(userEx))
             case ex: Exception =>
               Left(InterpreterError.UserException(ex))
           }
