@@ -166,10 +166,10 @@ object Interpret {
 
   def loadByteCode(byteCode: Seq[(String, Array[Byte])]): Interpret[Unit] =
     instance { interpreter =>
-      Right(
-        for ((name, bytes) <- byteCode)
-          interpreter.classes.addClass(name, bytes)
-      )
+      for ((name, bytes) <- byteCode)
+        interpreter.classes.addClass(name, bytes)
+
+      Right(())
     }
   def loadClass(name: String): Interpret[Class[_]] =
     instance[Class[_]] { interpreter =>
