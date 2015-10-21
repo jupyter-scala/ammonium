@@ -31,6 +31,29 @@ object DisplayItem {
 case class Decl(code: String, display: Seq[DisplayItem], referencedNames: Seq[String])
 
 
+sealed trait InterpreterError {
+  def msg: String
+}
+object InterpreterError {
+  case class ParseError(msg0: Option[String]) extends InterpreterError {
+    def msg = msg0.mkString
+  }
+  case class UnexpectedError(ex: Exception) extends InterpreterError {
+    def msg = s"Unexpected error: ${ex.getMessage}\n${ex.getStackTrace.map("  " + _).mkString("\n")}"
+  }
+  case class PreprocessingError(msg: String) extends InterpreterError
+  case class CompilationError(msg: String) extends InterpreterError
+  case object Exit extends InterpreterError {
+    def msg = "Exiting"
+  }
+  case object Interrupted extends InterpreterError {
+    def msg = "Interrupted"
+  }
+  case class UserException(ex: Exception) extends InterpreterError {
+    def msg = s"Exception: ${ex.getMessage}\n${ex.getStackTrace.map("  " + _).mkString("\n")}"
+  }
+}
+
 trait Interpreter {
   /** Initialization parameters */
   def bridge: Bridge

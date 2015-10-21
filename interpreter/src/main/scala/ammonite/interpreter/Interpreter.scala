@@ -20,11 +20,11 @@ trait InterpreterInternals {
 
   def apply[T](
     stmts: Seq[String],
-    saveHistory: (String => Unit, String) => Unit = _(_),
+    compiled: => Unit = (),
     printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T],
     stdout: Option[String => Unit] = None,
     stderr: Option[String => Unit] = None
-  ): Res[Evaluated[T]]
+  ): Either[InterpreterError, Evaluated[T]]
 
   // def evalClass(code: String, wrapperName: String) // return type???
 
@@ -32,8 +32,6 @@ trait InterpreterInternals {
     input: Seq[Decl],
     process: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T]
   ): Res[Evaluated[T]]
-
-  def handleOutput(res: Res[Evaluated[_]]): Boolean
 
 }
 
@@ -129,17 +127,6 @@ object Interpreter {
 
     wrapper -> (wrappedUserCode + "\n\n" + mainCode(userRef))
   }
-}
-
-sealed trait InterpreterError
-object InterpreterError {
-  case class ParseError(msg: Option[String]) extends InterpreterError
-  case class UnexpectedError(ex: Exception) extends InterpreterError
-  case class PreprocessingError(msg: String) extends InterpreterError
-  case class CompilationError(msg: String) extends InterpreterError
-  case object Exit extends InterpreterError
-  case object Interrupted extends InterpreterError
-  case class UserException(ex: Exception) extends InterpreterError
 }
 
 sealed trait Interpret[T] { self =>
@@ -336,14 +323,20 @@ object Interpret {
       Right(())
     }
 
-  def run[T](
-       code: String,
-     stdout: Option[String => Unit],
-     stderr: Option[String => Unit],
-    process: AnyRef => T
+  def callback(f: => Unit): Interpret[Unit] =
+    instance { interpreter =>
+      f
+      Right(())
+    }
+
+  def apply[T](
+    statements: Seq[String],
+      compiled: => Unit,
+        stdout: Option[String => Unit],
+        stderr: Option[String => Unit],
+       process: AnyRef => T
   ): Interpret[Evaluated[T]] =
     for {
-                  statements <- splitCode(code)
                            _ <- catchUnexpectedException
                        decls <- preprocessor(statements)
                            _ <- capturing(stdout, stderr)
@@ -351,6 +344,7 @@ object Interpret {
                     wrapper0 <- newWrapper
       (wrapper, wrappedCode) <- wrap(wrapper0, decls)
         (byteCode, imports0) <- compile(wrappedCode)
+                           _ <- callback(compiled)
                            _ <- loadByteCode(byteCode)
                          cls <- loadClass(wrapper + "$Main")
                            _ <- increaseLineCounter
@@ -363,6 +357,18 @@ object Interpret {
                                 ))
                            _ <- addImports(imports)
     } yield Evaluated(wrapper, imports, t)
+
+  def run[T](
+    code: String,
+    compiled: => Unit,
+    stdout: Option[String => Unit],
+    stderr: Option[String => Unit],
+    process: AnyRef => T
+  ): Interpret[Evaluated[T]] =
+    for {
+      statements <- splitCode(code)
+              ev <- apply(statements, compiled, stdout, stderr, process)
+    } yield ev
 }
 
 // God object :-|
@@ -577,24 +583,15 @@ class Interpreter(
 
   def apply[T](
     stmts: Seq[String],
-    saveHistory: (String => Unit, String) => Unit = _(_),
-    printer: AnyRef => T = (x: AnyRef) => x.asInstanceOf[T],
-    stdout: Option[String => Unit] = None,
-    stderr: Option[String => Unit] = None
-  ): Res[Evaluated[T]] =
-    for {
-      _ <- Catching { case Ex(x @ _*) =>
-        val Res.Failure(trace) = Res.Failure(x)
-        Res.Failure(trace + "\nSomething unexpected went wrong =(")
-      }
-      p <- Preprocessor(compiler.parse, stmts, getCurrentLine)
-      _ = saveHistory(history.append(_), stmts.mkString("; "))
-      _ <- Capturing(stdout, stderr)
-      out <- process(p, printer)
-    } yield out
+    compiled: => Unit,
+    printer: AnyRef => T,
+    stdout: Option[String => Unit],
+    stderr: Option[String => Unit]
+  ): Either[InterpreterError, Evaluated[T]] =
+    Interpret.apply(stmts, compiled, stdout, stderr, printer)(this)
 
   def run(code: String): Either[String, Unit] =
-    Interpret.run(code, None, None, _ => ())(this) match {
+    Interpret.run(code, (), None, None, _ => ())(this) match {
       case Left(err) => Left(err.toString)
       case Right(_) => Right(())
     }

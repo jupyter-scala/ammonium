@@ -20,7 +20,7 @@ abstract class ReplAPIImpl(
   startIvys: Seq[(String, String, String)],
   jarMap: File => File,
   startResolvers: Seq[DependencyResolver],
-  colors: ColorSet,
+  colors: Colors,
   shellPromptRef: Ref[String],
   var pprintConfig: pprint.Config
 ) extends FullReplAPI {
@@ -102,16 +102,16 @@ abstract class ReplAPIImpl(
         }
 
         Iterator(
-          colors.ident, ident, colors.reset, ": ",
+          colors.ident(), ident, colors.reset(), ": ",
           implicitly[TPrint[T]].render(cfg), " = "
         ) ++ rhs
       }
 
     def printDef(definitionLabel: String, ident: String) =
-      Iterator("defined ", colors.`type`, definitionLabel, " ", colors.ident, ident, colors.reset)
+      Iterator("defined ", colors.`type`(), definitionLabel, " ", colors.ident(), ident, colors.reset())
 
     def printImport(imported: String) =
-      Iterator(colors.`type`, "import ", colors.ident, imported, colors.reset)
+      Iterator(colors.`type`(), "import ", colors.ident(), imported, colors.reset())
   }
 
   def show[T: PPrint](implicit cfg: Config): T => Unit = {

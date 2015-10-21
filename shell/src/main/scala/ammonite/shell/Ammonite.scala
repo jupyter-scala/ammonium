@@ -20,21 +20,138 @@ import scala.annotation.tailrec
 
 // TODO Add options --predef-file, --no-scala-predef, --no-preimports, --hist-file
 
+sealed trait ShellError {
+  def msg: String
+}
+object ShellError {
+  case object Exit extends ShellError {
+    def msg = "Exiting"
+  }
+  case object Skip extends ShellError {
+    def msg = "Incomplete"
+  }
+  case class ParseError(msg: String) extends ShellError
+  case class InterpreterError(underlying: ammonite.api.InterpreterError) extends ShellError {
+    def msg = underlying.msg
+  }
+}
+
+trait ShellAction[T] { self =>
+  def apply(shell: Shell): Either[ShellError, T]
+  def map[U](f: T => U): ShellAction[U] = flatMap(t => ShellAction.point(f(t)))
+  def flatMap[U](f: T => ShellAction[U]): ShellAction[U] =
+    ShellAction.instance { shell =>
+      self(shell).right.flatMap(f(_)(shell))
+    }
+}
+
+object ShellAction {
+  def point[T](t: T): ShellAction[T] = instance(_ => Right(t))
+
+  def instance[T](f: Shell => Either[ShellError, T]): ShellAction[T] =
+    new ShellAction[T] {
+      def apply(shell: Shell) = f(shell)
+    }
+
+  val readTerm: ShellAction[(String, Seq[String])] =
+    instance { shell =>
+      shell.frontEnd().action(
+        System.in, shell.reader, System.out,
+        shell.colors().prompt + shell.prompt() + scala.Console.RESET + " ",
+        shell.colors(),
+        shell.interp.complete(_, _),
+        shell.history,
+        addHistory = (code) => if (code != "") {
+          // storage().fullHistory() = storage().fullHistory() :+ code
+          shell.history = shell.history :+ code
+        }
+      ) match {
+        case Res.Success((code, statements)) => Right((code, statements))
+        case Res.Exit => Left(ShellError.Exit)
+        case Res.Skip => Left(ShellError.Skip)
+        case Res.Failure(msg) => Left(ShellError.ParseError(msg))
+      }
+    }
+
+  def handleInterruptions(handler: => Unit): ShellAction[Unit] =
+    new ShellAction[Unit] {
+      import sun.misc.{ Signal, SignalHandler }
+
+      var oldSigInt = List.empty[SignalHandler]
+      def handlers = {
+        val handlersField = classOf[Signal].getDeclaredField("handlers")
+        handlersField.setAccessible(true)
+        handlersField.get(null).asInstanceOf[java.util.Hashtable[Signal, SignalHandler]]
+      }
+
+      def apply(shell: Shell) = Right(())
+      override def flatMap[U](f: Unit => ShellAction[U]) =
+        ShellAction.instance { shell =>
+          val sig = new Signal("INT")
+          oldSigInt = handlers.get(sig) :: oldSigInt
+          Signal.handle(sig, new SignalHandler () {
+            def handle(sig: Signal) = handler
+          })
+
+          try f(())(shell)
+          finally {
+            handlers.put(sig, oldSigInt.head)
+            oldSigInt = oldSigInt.tail
+          }
+        }
+    }
+
+  def interpret(statements: Seq[String], compiled: => Unit): ShellAction[Evaluated[Unit]] =
+    instance { shell =>
+      shell.interp(statements, compiled, _.asInstanceOf[Iterator[String]].foreach(print))
+        .left.map(ShellError.InterpreterError)
+    }
+}
+
+class Shell(
+  initialHistory: Seq[String],
+  predef: String,
+  classWrap: Boolean,
+  sharedLoader: Boolean
+) {
+
+  val reader = new InputStreamReader(System.in)
+
+  var history = new History(initialHistory.toVector)
+
+  val frontEnd = Ref[FrontEnd](FrontEnd.Ammonite)
+  val prompt = Ref("@")
+  val colors = Ref[Colors](Colors.Default)
+
+  val pprintConfig = pprint.Config.Colors.PPrintConfig
+
+  val interp: ammonite.api.Interpreter with InterpreterInternals =
+    Ammonite.newInterpreter(
+      predef,
+      classWrap,
+      pprintConfig.copy(width = frontEnd().width, height = frontEnd().height),
+      colors(),
+      sharedLoader,
+      prompt,
+      () => ???,
+      initialHistory
+    )
+
+}
+
 case class Ammonite(
-  shellPrompt: String = "@",
+  initialPrompt: String = "@",
   predef: String,
   wrap: String,
   histFile: String = new File(System.getProperty("user.home"), ".amm") .toString,
   sharedLoader: Boolean = false
 ) extends App {
 
-  import Ammonite._
-
   println("Loading Ammonite Shell...")
 
-  val saveFileOpt = Some(histFile).filter(_.nonEmpty).map(new File(_))
-
   val delimiter = "\n\n\n"
+
+  val saveFileOpt = Some(histFile).filter(_.nonEmpty).map(new File(_))
 
   val initialHistory =
     saveFileOpt .fold(Seq.empty[String]) { saveFile =>
@@ -42,95 +159,61 @@ case class Ammonite(
       catch { case e: FileNotFoundException => Nil }
     }
 
-  val saveHistory =
-    saveFileOpt.fold((_: String) => ()) { saveFile => s =>
-      val fw = new FileWriter(saveFile, true)
-      try fw.write(delimiter + s)
-      finally fw.close()
-    }
-
-  val colorSet = ColorSet.Default
-  val pprintConfig = pprint.Config.Colors.PPrintConfig
-
   val classWrap = wrap match {
     case "class" | "cls" | "" => true
     case "object" | "obj" => false
     case _ => Console.err.println(s"Unrecognized wrap argument: $wrap"); sys exit 255
   }
 
-  val shellPromptRef = Ref(shellPrompt)
+  val shell = new Shell(
+    initialHistory,
+    predef,
+    classWrap,
+    sharedLoader
+  )
 
-  val colors = Ref[Colors](Colors.Default)
-  val frontEnd = Ref[FrontEnd](FrontEnd.Ammonite)
-
-  var history = new History(Vector())
-
-  val interp: ammonite.api.Interpreter with InterpreterInternals =
-    newInterpreter(
-      predef,
-      classWrap,
-      pprintConfig.copy(width = frontEnd().width, height = 15),
-      colorSet,
-      sharedLoader,
-      shellPromptRef,
-      () => ???,
-      initialHistory
-    )
-
-  interp.onStop { println("Bye!") }
+  import shell._
 
   // Run the predef. For now we assume that the whole thing is a single
   // command, and will get compiled & run at once. We hard-code the
   // line number to -1 if the predef exists so the first user-entered
   // line becomes 0
-  if (predef.nonEmpty) {
+  if (predef.nonEmpty)
     Parsers.split(predef) match {
       case Some(Success(stmts, _)) =>
-        val res1 = interp(stmts, (_, _) => (), _.asInstanceOf[Iterator[String]].foreach(print))
-        interp.handleOutput(res1)
+        interp(stmts, (), _.asInstanceOf[Iterator[String]].foreach(print))
+        // FIXME Handle errors
         print("\n")
       case other =>
         println(s"Error while running predef: $other")
     }
+
+  val saveHistory = saveFileOpt.fold((_: String) => ()) { saveFile => s =>
+    val fw = new FileWriter(saveFile, true)
+    try fw.write(delimiter + s)
+    finally fw.close()
   }
 
-  val reader = new InputStreamReader(System.in)
-  def action() = for{
-    // Condition to short circuit early if `interp` hasn't finished evaluating
-    (_, stmts) <- frontEnd().action(
-      System.in, reader, System.out,
-      colorSet.prompt + shellPromptRef() + scala.Console.RESET + " ",
-      colors(),
-      interp.complete(_, _),
-      initialHistory,
-      addHistory = (code) => if (code != "") {
-        // storage().fullHistory() = storage().fullHistory() :+ code
-        history = history :+ code
-      }
-    )
-    _ <- Signaller("INT") { Thread.currentThread().stop() }
-    out <- interp(stmts, (f, x) => {saveHistory(x); f(x)}, _.asInstanceOf[Iterator[String]].foreach(print))
-  } yield {
-    println()
-    out
-  }
+  val readEvalPrint =
+    for {
+      (code, stmts) <- ShellAction.readTerm
+                  _ <- ShellAction.handleInterruptions { Thread.currentThread().stop() }
+                 ev <- ShellAction.interpret(stmts, saveHistory(code))
+    } yield ev
 
-
-  def run() = {
-    @tailrec def loop(): Unit = {
-      val res = action()
-      res match {
-        case Res.Failure(msg) => println(Console.RED + msg + Console.RESET)
-        case _ =>
-      }
-
-      if (interp.handleOutput(res)) loop()
-      else interp.stop()
+  @tailrec final def loop(): Unit =
+    readEvalPrint(shell) match {
+      case Left(ShellError.Exit) =>
+        println("Bye!")
+        interp.stop()
+      case Left(err) =>
+        println(Console.RED + err.msg + Console.RESET)
+        loop()
+      case Right(_) =>
+        loop()
     }
-    loop()
-  }
 
-  run()
+  loop()
 }
 
 object Ammonite extends AppOf[Ammonite] {
@@ -144,7 +227,7 @@ object Ammonite extends AppOf[Ammonite] {
     shellPrompt: => Ref[String] = Ref("@"),
     reset: => Unit = (),
     pprintConfig: pprint.Config = pprint.Config.Defaults.PPrintConfig,
-    colors: ColorSet = ColorSet.BlackWhite
+    colors: Colors = Colors.BlackWhite
   ): Bridge =
     new Bridge {
       def init = "object ReplBridge extends ammonite.shell.ReplAPIHolder"
@@ -227,7 +310,7 @@ object Ammonite extends AppOf[Ammonite] {
     predef: String,
     classWrap: Boolean,
     pprintConfig: pprint.Config,
-    colors: ColorSet,
+    colors: Colors,
     sharedLoader: Boolean,
     shellPromptRef: => Ref[String] = Ref("@"),
     reset: => Unit = (),
