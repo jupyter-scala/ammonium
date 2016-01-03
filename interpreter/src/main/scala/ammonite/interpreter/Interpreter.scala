@@ -445,19 +445,19 @@ class Interpreter(
   var compilerOptions = List.empty[String]
   var filterImports = true
 
-  val dynamicClasspath = new VirtualDirectory("(memory)", None)
+  private val dynamicClasspath = new VirtualDirectory("(memory)", None)
 
-  var sourcesMap = new mutable.HashMap[String, String]
+  private var sourcesMap = new mutable.HashMap[String, String]
   def sources: Map[String, String] = sourcesMap.toMap
 
-  var currentLine = startingLine
+  private var currentLine = startingLine
 
   def getCurrentLine: String = currentLine.toString.replace("-", "_")
 
-  var compiler: Compiler = _
-  var pressy: Pressy = _
+  private var compiler: Compiler = _
+  private var pressy: Pressy = _
 
-  var onStopHooks = Seq.empty[() => Unit]
+  private var onStopHooks = Seq.empty[() => Unit]
 
 
   def wrap(
