@@ -1,4 +1,4 @@
-package ammonite.interpreter
+package ammonite
 
 import ammonite.api.Import
 

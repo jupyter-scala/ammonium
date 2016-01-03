@@ -1,7 +1,8 @@
 package ammonite.util
 
 import ammonite.api.{ Repository => ApiRepository, ClassLoaderType }
-import ammonite.interpreter.{ InterpreterAction, Interpreter, ClassesAction }
+import ammonite.{ InterpreterAction, Interpreter }
+import ammonite.interpreter.ClassesAction
 import coursier._
 
 import java.net.URL

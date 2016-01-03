@@ -1,8 +1,8 @@
-package ammonite.shell
+package ammonite
 
-import ammonite.interpreter.Interpreter
 import ammonite.interpreter._
-import ammonite.api.{InterpreterError, Evaluated}
+import ammonite.api.{ InterpreterError, Evaluated }
+import ammonite.shell._
 import ammonite.shell.util._
 
 import java.io.{ Console => _, _ }

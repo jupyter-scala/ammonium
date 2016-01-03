@@ -1,7 +1,8 @@
-package ammonite.shell
+package ammonite
 
 import ammonite.interpreter._
 import ammonite.api.{ ClassLoaderType, CodeItem, ParsedCode }
+import ammonite.shell.BuildInfo
 import ammonite.shell.util._
 import ammonite.util.Load
 
@@ -211,7 +212,7 @@ object Ammonite extends AppOf[Ammonite] {
     }
 
     val init = Interpreter.init(
-      new BridgeConfig(
+      new shell.BridgeConfig(
         paths = intp.classes.startPaths,
         modules = modules0, // wrong if sharedModules is true
         repositories0 = repositories,

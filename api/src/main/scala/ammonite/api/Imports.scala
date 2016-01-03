@@ -8,6 +8,7 @@ case class Import(
   isImplicit: Boolean
 )
 
+/** Manages imports of an interpreter */
 trait Imports {
   /**
    * Import block, based on the previously added import data.

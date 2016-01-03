@@ -1,4 +1,4 @@
-package ammonite.interpreter
+package ammonite
 
 import java.lang.reflect.InvocationTargetException
 
@@ -9,7 +9,8 @@ import scala.reflect.io.VirtualDirectory
 import scala.util.control.ControlThrowable
 
 import ammonite.util.Capture
-import ammonite.api._
+import ammonite.api.{ Classes => _, Imports => _, _ }
+import ammonite.interpreter._
 
 /**
  * Thrown to exit the interpreter cleanly

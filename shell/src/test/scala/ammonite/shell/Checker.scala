@@ -1,8 +1,11 @@
 package ammonite.shell
 
+import ammonite.{ Ammonite, Interpreter }
 import ammonite.api.{ Evaluated, InterpreterError }
 import ammonite.interpreter._
+
 import fastparse.core.Result.Success
+
 import utest._
 
 trait Checker {

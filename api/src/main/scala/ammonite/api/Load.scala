@@ -2,6 +2,7 @@ package ammonite.api
 
 import java.io.File
 
+/** Complement of `Classes` - manages things put in the classpath as Maven-style dependencies */
 trait Load {
   def path(paths: String*)(implicit tpe: ClassLoaderType = ClassLoaderType.Main): Unit
 

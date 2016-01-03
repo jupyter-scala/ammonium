@@ -2,9 +2,11 @@ package ammonite.shell
 
 import java.io.File
 
-import ammonite.api.{ClassLoaderType, ModuleConstructor, Import}
-import ammonite.interpreter.{Ref, Interpreter, NamesFor}
+import ammonite.api.{ ClassLoaderType, ModuleConstructor, Import }
+import ammonite.Interpreter
+import ammonite.interpreter.{ Ref, NamesFor }
 import ammonite.interpreter.Colors
+
 import coursier.core.Repository
 
 class BridgeConfig(
@@ -17,7 +19,7 @@ class BridgeConfig(
   pprintConfig: pprint.Config,
   colors: Colors,
   history: => Seq[String]
-) extends ammonite.interpreter.BridgeConfig {
+) extends ammonite.BridgeConfig {
 
   def init = "object BridgeHolder extends ammonite.shell.BridgeHolder"
   def name = "BridgeHolder"

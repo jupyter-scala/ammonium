@@ -35,6 +35,7 @@ object InterpreterError {
   }
 }
 
+/** API for an interpreter */
 trait Interpreter {
   /** Initialization parameters */
 
