@@ -2,7 +2,7 @@ package ammonite.shell
 
 import ammonite.interpreter.Interpreter
 import ammonite.interpreter._
-import ammonite.api.Evaluated
+import ammonite.api.{InterpreterError, Evaluated}
 import ammonite.shell.util._
 
 import java.io.{ Console => _, _ }
@@ -107,7 +107,10 @@ object ShellAction {
         None,
         _.asInstanceOf[Iterator[String]].foreach(print)
       )(shell.interp.asInstanceOf[Interpreter])
-        .left.map(ShellError.InterpreterError)
+        .left.map {
+          case InterpreterError.Exit => ShellError.Exit
+          case other => ShellError.InterpreterError(other)
+        }
     }
 }
 

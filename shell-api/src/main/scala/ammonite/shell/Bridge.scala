@@ -10,6 +10,8 @@ trait Bridge {
   implicit def setup: Setup
   implicit def term: Term
 
+  implicit def NothingPPrint: PPrint[Nothing] = PPrint[Nothing](_root_.pprint.PPrinter[Nothing]((t: Nothing, c: Config) => Iterator()))
+
   implicit def pprintConfig: pprint.Config = term.pprintConfig
   def pprintConfig_=(cfg: pprint.Config): Unit =
     term.pprintConfig = cfg
