@@ -218,7 +218,7 @@ lazy val shell = Project(id = "shell", base = file("shell"))
     libraryDependencies ++= Seq(
       "jline" % "jline" % "2.12",
       "com.github.alexarchambault" %% "case-app" % "0.2.2",
-      "com.lihaoyi" %% "ammonite-terminal" % "0.4.5"
+      "com.lihaoyi" %% "ammonite-terminal" % "0.5.2"
     ),
     libraryDependencies ++= {
       if (scalaVersion.value startsWith "2.10.")
