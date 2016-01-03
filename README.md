@@ -18,6 +18,34 @@ repository is mainly that its changes don't have to go through the time consumin
 imply overhauling the whole code, and the idea of having to justify every single line change sounds nightmarish to
 me!
 
+## Try it
+
+```
+$ git clone https://github.com/alexarchambault/ammonite-shell.git
+$ cd ammonite-shell
+$ sbt shell/pack publishLocal
+$ shell/target/pack/bin/ammonite
+Loading Ammonite Shell...
+@ load.module("com.github.alexarchambault" % "ammonite-spark_1.5_2.11.7" % "0.4.0-SNAPSHOT")
+@ @transient val Spark = new ammonite.spark.Spark
+log4j:WARN No appenders could be found for logger (org.eclipse.jetty.util.log).
+log4j:WARN Please initialize the log4j system properly.
+log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
+Spark: Spark = Spark(uninitialized)
+@ Spark.withConf(_.setMaster("local[1]"))
+@ import Spark.sc
+import Spark.sc
+@ sc
+...
+res9: org.apache.spark.SparkContext = SparkContext
+@ val accum = sc.accumulator(0)
+accum: org.apache.spark.Accumulator[Int] = 0
+@ sc.parallelize(1 to 10).foreach(x => accum += x)
+...
+@ accum.value
+res12: Int = 55
+```
+
 ## Notice
 
 Copyright 2015, Alexandre Archambault
