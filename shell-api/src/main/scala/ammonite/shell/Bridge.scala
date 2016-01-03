@@ -8,19 +8,12 @@ trait Bridge {
   implicit def setup: Setup
   implicit def term: Term
 
+  implicit def pprintConfig = term.pprintConfig
+
   def exit: Nothing
 }
 
-class ReplAPIHolder {
+class BridgeHolder {
   @transient var shell0: Bridge = null
   @transient lazy val shell = shell0
-}
-
-object ReplAPIHolder {
-  def initReplBridge(holder: Class[ReplAPIHolder], api: Bridge) =
-    holder
-      .getDeclaredMethods
-      .find(_.getName == "shell0_$eq")
-      .get
-      .invoke(null, api)
 }

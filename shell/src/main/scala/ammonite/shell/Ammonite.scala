@@ -253,12 +253,12 @@ object Ammonite extends AppOf[Ammonite] {
     history: => Seq[String]
   ): ammonite.interpreter.Bridge =
     new ammonite.interpreter.Bridge {
-      def init = "object ReplBridge extends ammonite.shell.ReplAPIHolder"
-      def name = "ReplBridge"
+      def init = "object BridgeHolder extends ammonite.shell.BridgeHolder"
+      def name = "BridgeHolder"
       
       def imports =
         NamesFor[Bridge].map { case (name, isImpl) =>
-          Import(name, name, "", "ReplBridge.shell", isImpl)
+          Import(name, name, "", "BridgeHolder.shell", isImpl)
         }.toSeq ++
         NamesFor[IvyConstructor.type].map { case (name, isImpl) =>
           Import(name, name, "", "ammonite.api.IvyConstructor", isImpl)
@@ -266,12 +266,12 @@ object Ammonite extends AppOf[Ammonite] {
 
       def print(v: AnyRef) = v.asInstanceOf[Iterator[String]].foreach(print)
 
-      var replApi: Bridge = null
+      var bridge: Bridge = null
       def reset0() = reset
 
       def initClass(intp: Interpreter, cls: Class[_]) = {
-        if (replApi == null)
-          replApi = new BridgeImpl(
+        if (bridge == null)
+          bridge = new BridgeImpl(
             intp,
             startJars,
             startIvys,
@@ -280,12 +280,15 @@ object Ammonite extends AppOf[Ammonite] {
             colors,
             shellPrompt,
             pprintConfig,
-            history
-          ) {
-            def reset() = reset0()
-          }
+            history,
+            reset0()
+          )
 
-        ReplAPIHolder.initReplBridge(cls.asInstanceOf[Class[ReplAPIHolder]], replApi)
+        cls
+          .getDeclaredMethods
+          .find(_.getName == "shell0_$eq")
+          .get
+          .invoke(null, bridge)
       }
     }
 
@@ -400,7 +403,7 @@ object Ammonite extends AppOf[Ammonite] {
     )
 
     // FIXME Check result
-    init(intp)
+    println(init(intp))
 
     intp
   }

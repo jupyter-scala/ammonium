@@ -24,7 +24,7 @@ object Setup {
 
 }
 
-abstract class BridgeImpl(
+class BridgeImpl(
   intp: ammonite.api.Interpreter,
   startJars: Seq[File],
   startIvys: Seq[(String, String, String)],
@@ -33,7 +33,8 @@ abstract class BridgeImpl(
   colors: Colors,
   shellPromptRef: Ref[String],
   pprintConfig0: pprint.Config,
-  history0: => Seq[String]
+  history0: => Seq[String],
+  reset0: => Unit
 ) extends Bridge {
 
   def exit: Nothing = throw Exit
@@ -51,7 +52,7 @@ abstract class BridgeImpl(
 
   val term: Term = new Term {
 
-    def reset() = ???
+    def reset() = reset0
 
     def history: Seq[String] = history0
 

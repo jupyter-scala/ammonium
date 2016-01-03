@@ -482,7 +482,7 @@ class AdvancedTests(check0: => Checker,
     }
     'replApiUniqueness{
       // Make sure we can instantiate multiple copies of Interpreter, with each
-      // one getting its own `ReplBridge`. This ensures that the various
+      // one getting its own `BridgeHolder`. This ensures that the various
       // Interpreters are properly encapsulated and don't interfere with each
       // other.
       val c1 = check0
