@@ -36,6 +36,7 @@ object ShellError {
   }
 }
 
+/** Mix of IO-like and Either[ShellError, ?] monads, acting on a Shell */
 trait ShellAction[T] { self =>
   def apply(shell: Shell): Either[ShellError, T]
   def filter(p: T => Boolean): ShellAction[T] =
@@ -138,7 +139,7 @@ class Shell(
 
   val pprintConfig = pprint.Config.Colors.PPrintConfig
 
-  val interp: ammonite.api.Interpreter =
+  val interp: Interpreter =
     Ammonite.newInterpreter(
       predef,
       classWrap,
@@ -343,7 +344,7 @@ object Ammonite extends AppOf[Ammonite] {
     reset: => Unit = (),
     initialHistory: Seq[String] = Nil,
     history: => Seq[String]
-  ): ammonite.api.Interpreter = {
+  ): Interpreter = {
     val startPaths = Classes.defaultPaths()
 
     val intp = new Interpreter(

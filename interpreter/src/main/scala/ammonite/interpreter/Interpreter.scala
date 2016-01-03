@@ -109,6 +109,7 @@ object Interpreter {
   }
 }
 
+/** Mix of IO-like and Either[InterpreterError, ?] monads, acting on an Interpreter */
 sealed trait InterpreterAction[T] { self =>
   def apply(interpreter: Interpreter): Either[InterpreterError, T]
 
@@ -432,7 +433,7 @@ object InterpreterAction {
 
 class Interpreter(
   val imports: ammonite.api.Imports = new Imports(),
-  val classes: ammonite.api.Classes = new Classes(),
+  val classes: Classes = new Classes(),
   startingLine: Int = 0,
   initialHistory: Seq[String] = Nil
 ) extends ammonite.api.Interpreter {

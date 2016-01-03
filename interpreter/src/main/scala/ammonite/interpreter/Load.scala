@@ -13,7 +13,7 @@ import scala.collection.mutable
 
 
 class Load(
-  intp: ammonite.api.Interpreter,
+  intp: Interpreter,
   startJars: Seq[File],
   startIvys: Seq[(String, String, String)],
   jarMap: File => File,
@@ -37,8 +37,8 @@ class Load(
     val newPaths = paths.map(fileFor).filterNot(paths0(tpe).toSet)
     if (newPaths.nonEmpty) {
       paths0 += tpe -> (paths0(tpe) ++ newPaths)
-      ClassesAction.addPath(tpe)(newPaths: _*)(intp.classes.asInstanceOf[Classes])
-      InterpreterAction.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
+      ClassesAction.addPath(tpe)(newPaths: _*)(intp.classes)
+      InterpreterAction.initCompiler()(intp)
     }
   }
 
@@ -93,8 +93,8 @@ class Load(
     }
     warnedJars = removedJars
 
-    ClassesAction.addPath(tpe)(newJars ++ extra: _*)(intp.classes.asInstanceOf[Classes])
-    InterpreterAction.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
+    ClassesAction.addPath(tpe)(newJars ++ extra: _*)(intp.classes)
+    InterpreterAction.initCompiler()(intp)
   }
 
   def resolve(coordinates: (String, String, String)*): Seq[File] =
