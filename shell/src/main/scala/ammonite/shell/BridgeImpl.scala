@@ -41,7 +41,7 @@ class BridgeImpl(
 
   val eval: Eval = new Eval {
     def apply(code: String) =
-      InterpreterAction.run(code, (), None, None, _ => ())(intp)
+      Interpreter.run(code, (), None, None, _ => ())(intp)
   }
 
   val load: Load = new Load(intp, paths, modules, pathMap, repositories)

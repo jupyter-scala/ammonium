@@ -16,6 +16,43 @@ import ammonite.api._
  */
 case object Exit extends ControlThrowable
 
+/** Mix of IO-like and Either[InterpreterError, ?] monads, acting on an Interpreter */
+sealed trait InterpreterAction[T] { self =>
+  def apply(interpreter: Interpreter): Either[InterpreterError, T]
+
+  def filter(p: T => Boolean): InterpreterAction[T] =
+    InterpreterAction { interpreter =>
+      self(interpreter).right.flatMap { t =>
+        if (p(t))
+          Right(t)
+        else
+          Left(InterpreterError.UnexpectedError(new Exception("Unmatched result")))
+      }
+    }
+
+  def map[U](f: T => U): InterpreterAction[U] =
+    flatMap(t => InterpreterAction.point(f(t)))
+
+  def flatMap[U](f: T => InterpreterAction[U]): InterpreterAction[U] =
+    InterpreterAction { interpreter =>
+      self(interpreter).right.flatMap(f(_)(interpreter))
+    }
+}
+
+object InterpreterAction {
+
+  def point[T](t: T): InterpreterAction[T] =
+    apply { interpreter =>
+      Right(t)
+    }
+
+  def apply[T](f: Interpreter => Either[InterpreterError, T]): InterpreterAction[T] =
+    new InterpreterAction[T] {
+      def apply(interpreter: Interpreter) = f(interpreter)
+    }
+
+}
+
 object Interpreter {
 
   def print(items: Seq[CodeItem]): String = items.map {
@@ -108,44 +145,10 @@ object Interpreter {
 
     wrapper -> (wrappedUserCode + "\n\n" + mainCode(userRef))
   }
-}
 
-/** Mix of IO-like and Either[InterpreterError, ?] monads, acting on an Interpreter */
-sealed trait InterpreterAction[T] { self =>
-  def apply(interpreter: Interpreter): Either[InterpreterError, T]
-
-  def filter(p: T => Boolean): InterpreterAction[T] =
-    InterpreterAction.instance { interpreter =>
-      self(interpreter).right.flatMap { t =>
-        if (p(t))
-          Right(t)
-        else
-          Left(InterpreterError.UnexpectedError(new Exception("Unmatched result")))
-      }
-    }
-
-  def map[U](f: T => U): InterpreterAction[U] =
-    flatMap(t => InterpreterAction.point(f(t)))
-
-  def flatMap[U](f: T => InterpreterAction[U]): InterpreterAction[U] =
-    InterpreterAction.instance { interpreter =>
-      self(interpreter).right.flatMap(f(_)(interpreter))
-    }
-}
-
-object InterpreterAction {
-  def point[T](t: T): InterpreterAction[T] =
-    instance { interpreter =>
-      Right(t)
-    }
-
-  def instance[T](f: Interpreter => Either[InterpreterError, T]): InterpreterAction[T] =
-    new InterpreterAction[T] {
-      def apply(interpreter: Interpreter) = f(interpreter)
-    }
 
   def addImports(imports: Seq[Import]): InterpreterAction[Unit] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       interpreter.imports.add(imports)
 
       // This is required by the use of WeakTypeTag in the printers,
@@ -167,19 +170,19 @@ object InterpreterAction {
     }
 
   def loadByteCode(byteCode: Seq[(String, Array[Byte])]): InterpreterAction[Unit] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       for ((name, bytes) <- byteCode)
         interpreter.classes.addClass(name, bytes)
 
       Right(())
     }
   def loadClass(name: String): InterpreterAction[Class[_]] =
-    instance[Class[_]] { interpreter =>
+    InterpreterAction[Class[_]] { interpreter =>
       Right(Class.forName(name, true, interpreter.classes.classLoader()))
     }
 
   def splitCode(code: String): InterpreterAction[Seq[String]] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       Parsers.split(code) match {
         case Some(Success(stmts, _)) =>
           Right(stmts)
@@ -192,7 +195,7 @@ object InterpreterAction {
     new InterpreterAction[Unit] {
       def apply(interpreter: Interpreter) = Right(())
       override def flatMap[U](f: Unit => InterpreterAction[U]) =
-        instance { interpreter =>
+        InterpreterAction { interpreter =>
           try f(())(interpreter)
           catch {
             case ex: Throwable =>
@@ -202,7 +205,7 @@ object InterpreterAction {
     }
 
   def preprocessor(statements: Seq[String]): InterpreterAction[Seq[ParsedCode]] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       Preprocessor(interpreter.compiler.parse, statements, interpreter.getCurrentLine) match {
         case Res.Success(l) =>
           Right(l)
@@ -219,7 +222,7 @@ object InterpreterAction {
     new InterpreterAction[Unit] {
       def apply(interpreter: Interpreter) = Right(())
       override def flatMap[U](f: Unit => InterpreterAction[U]) =
-        instance { interpreter =>
+        InterpreterAction { interpreter =>
           Capture(stdout, stderr)(f(())(interpreter))
         }
     }
@@ -228,7 +231,7 @@ object InterpreterAction {
     new InterpreterAction[Unit] {
       def apply(interpreter: Interpreter) = Right(())
       override def flatMap[U](f: Unit => InterpreterAction[U]) =
-        instance { interpreter =>
+        InterpreterAction { interpreter =>
           val thread = Thread.currentThread()
           val oldClassLoader = thread.getContextClassLoader
 
@@ -242,12 +245,12 @@ object InterpreterAction {
     }
 
   val newWrapper: InterpreterAction[String] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       Right("cmd" + interpreter.getCurrentLine)
     }
 
   def wrap(wrapper0: String, decls: Seq[ParsedCode]): InterpreterAction[(String, String)] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       Right(
         interpreter.wrap(
           decls,
@@ -261,7 +264,7 @@ object InterpreterAction {
     }
 
   def compile(code: String): InterpreterAction[(Seq[(String, Array[Byte])], Seq[Import])] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       val output = mutable.Buffer.empty[String]
       val result = interpreter.compiler.compile(code.getBytes("UTF-8"), output.append(_))
 
@@ -274,7 +277,7 @@ object InterpreterAction {
     }
 
   val increaseLineCounter: InterpreterAction[Unit] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       interpreter.currentLine += 1
       Right(())
     }
@@ -290,7 +293,7 @@ object InterpreterAction {
           Left(InterpreterError.Interrupted)
         }
 
-        instance { interpreter =>
+        InterpreterAction { interpreter =>
           try f(())(interpreter)
           catch {
             case Ex(_: ExceptionInInitializerError, Exit) =>
@@ -312,24 +315,24 @@ object InterpreterAction {
     }
 
   def evaluate[T](cls: Class[_], process: AnyRef => T): InterpreterAction[T] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       Right(evaluating(process(cls.getDeclaredMethod("$main").invoke(null))))
     }
 
   def saveSource(wrapper: String, wrappedCode: String): InterpreterAction[Unit] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       interpreter.sourcesMap(wrapper) = wrappedCode
       Right(())
     }
 
   def callback(f: => Unit): InterpreterAction[Unit] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       f
       Right(())
     }
 
   def initBridgeCls(bridge: BridgeConfig, cls: Class[_]): InterpreterAction[Unit] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
       Right(
         bridge.initClass(
           interpreter,
@@ -339,7 +342,7 @@ object InterpreterAction {
     }
 
   def initCompiler(options: Seq[String] = null): InterpreterAction[Unit] =
-    instance { interpreter =>
+    InterpreterAction { interpreter =>
 
       for (opts <- Option(options))
         interpreter.compilerOptions = opts.toList
@@ -390,7 +393,7 @@ object InterpreterAction {
                   _ <- addImports(bridge.imports)
     } yield ()
 
-  def apply[T](
+  def interpret[T](
     statements: Seq[String],
       compiled: => Unit,
         stdout: Option[String => Unit],
@@ -428,7 +431,7 @@ object InterpreterAction {
   ): InterpreterAction[Evaluated[T]] =
     for {
       statements <- splitCode(code)
-              ev <- apply(statements, compiled, stdout, stderr, process)
+              ev <- interpret(statements, compiled, stdout, stderr, process)
     } yield ev
 }
 

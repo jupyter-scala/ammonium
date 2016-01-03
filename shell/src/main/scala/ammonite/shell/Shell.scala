@@ -100,7 +100,7 @@ object ShellAction {
 
   def interpret(statements: Seq[String], compiled: => Unit): ShellAction[Evaluated[Unit]] =
     instance { shell =>
-      InterpreterAction(
+      Interpreter.interpret(
         statements,
         compiled,
         None,

@@ -143,7 +143,7 @@ class Load(
     if (newPaths.nonEmpty) {
       paths0 += tpe -> (paths0(tpe) ++ newPaths)
       ClassesAction.addPath(tpe)(newPaths: _*)(intp.classes)
-      InterpreterAction.initCompiler()(intp)
+      Interpreter.initCompiler()(intp)
     }
   }
 
@@ -221,7 +221,7 @@ class Load(
       warnedJars = removedJars
 
       ClassesAction.addPath(tpe)(newJars ++ extra: _*)(intp.classes)
-      InterpreterAction.initCompiler()(intp)
+      Interpreter.initCompiler()(intp)
     }
   }
 

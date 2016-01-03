@@ -59,7 +59,7 @@ case class Ammonite(
   if (predef.nonEmpty)
     Parsers.split(predef) match {
       case Some(Success(stmts, _)) =>
-        InterpreterAction(
+        Interpreter.interpret(
           stmts,
           (),
           None,
@@ -210,7 +210,7 @@ object Ammonite extends AppOf[Ammonite] {
       }
     }
 
-    val init = InterpreterAction.init(
+    val init = Interpreter.init(
       new BridgeConfig(
         paths = intp.classes.startPaths,
         modules = modules0, // wrong if sharedModules is true
