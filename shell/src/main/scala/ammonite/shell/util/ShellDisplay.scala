@@ -11,9 +11,9 @@ object ShellDisplay {
       case Definition(label, name) =>
         s""" Iterator("defined ", "${colors.`type`()}", "$label", " ", "${colors.ident()}", "$name", "${colors.reset()}") """
       case Identity(ident) =>
-        s"""BridgeHolder.shell.term.display($$user.$ident, "$ident", _root_.scala.None)"""
+        s"""{ import $$user._; BridgeHolder.shell.term.display($$user.$ident, "$ident", _root_.scala.None) }"""
       case LazyIdentity(ident) =>
-        s"""BridgeHolder.shell.term.display($$user.$ident, "$ident", _root_.scala.Some("<lazy>"))"""
+        s"""{ import $$user._; BridgeHolder.shell.term.display($$user.$ident, "$ident", _root_.scala.Some("<lazy>")) }"""
       case Import(imported) =>
         s""" Iterator("${colors.`type`()}", "import ", "${colors.ident()}", "$imported", "${colors.reset()}") """
     }
