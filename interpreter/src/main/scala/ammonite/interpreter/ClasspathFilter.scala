@@ -1,4 +1,4 @@
-package com.github.alexarchambault.ivylight
+package ammonite.interpreter
 
 // Extracted and refactored from SBT
 

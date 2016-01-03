@@ -1,13 +1,8 @@
 package ammonite.shell
 
-import ammonite.interpreter.Classes
-import ammonite.interpreter.Imports
-import ammonite.interpreter.Interpreter
 import ammonite.interpreter._
 import ammonite.api.{ ClassLoaderType, CodeItem, ParsedCode }
 import ammonite.shell.util._
-
-import com.github.alexarchambault.ivylight.ClasspathFilter
 
 import caseapp._
 
