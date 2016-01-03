@@ -26,10 +26,10 @@ object Setup {
 
 class BridgeImpl(
   intp: Interpreter,
-  startJars: Seq[File],
-  startIvys: Seq[(String, String, String)],
-  jarMap: File => File,
-  startResolvers: Seq[DependencyResolver],
+  paths0: Seq[File],
+  modules0: Seq[(String, String, String)],
+  pathMap: File => File,
+  repositories0: Seq[DependencyResolver],
   colors: Colors,
   shellPromptRef: Ref[String],
   pprintConfig0: pprint.Config,
@@ -44,7 +44,7 @@ class BridgeImpl(
       InterpreterAction.run(code, (), None, None, _ => ())(intp)
   }
 
-  val load: Load = new Load(intp, startJars, startIvys, jarMap, startResolvers)
+  val load: Load = new Load(intp, paths0, modules0, pathMap, repositories0)
   def interpreter: ammonite.api.Interpreter = intp
 
   val setup: ammonite.api.Setup =

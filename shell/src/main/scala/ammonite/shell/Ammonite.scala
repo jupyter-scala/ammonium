@@ -4,7 +4,7 @@ import ammonite.interpreter.Classes
 import ammonite.interpreter.Imports
 import ammonite.interpreter.Interpreter
 import ammonite.interpreter._
-import ammonite.api.{ ClassLoaderType, ModuleConstructor, Import, CodeItem, ParsedCode }
+import ammonite.api.{ ClassLoaderType, CodeItem, ParsedCode }
 import ammonite.shell.util._
 
 import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
@@ -13,7 +13,6 @@ import caseapp._
 
 import java.io.{ Console => _, _ }
 import fastparse.core.Result.Success
-import org.apache.ivy.plugins.resolver.DependencyResolver
 
 import scala.annotation.tailrec
 
@@ -112,35 +111,35 @@ object Ammonite extends AppOf[Ammonite] {
     s""" Iterator[Iterator[String]](${items.map(ShellDisplay(_, colors)).mkString(", ")}).filter(_.nonEmpty).flatMap(_ ++ Iterator("\\n")) """
 
   val scalaVersion = scala.util.Properties.versionNumberString
-  val startIvys = Seq(
+  val modules = Seq(
     ("org.scala-lang", "scala-library", scalaVersion),
     ("com.github.alexarchambault", s"ammonite-shell-api_$scalaVersion", BuildInfo.version)
   )
-  val startCompilerIvys = startIvys ++ Seq(("org.scala-lang", "scala-compiler", scalaVersion))
+  val macroModules = modules ++ Seq(("org.scala-lang", "scala-compiler", scalaVersion))
 
-  val resolvers =
+  val repositories =
     Seq(Resolver.localRepo, Resolver.defaultMaven) ++ {
       if (BuildInfo.version endsWith "-SNAPSHOT") Seq(Resolver.sonatypeRepo("snapshots")) else Seq()
     }
 
-  lazy val packJarMap = Classes.jarMap(getClass.getClassLoader)
+  lazy val pathMap = Classes.jarMap(getClass.getClassLoader)
 
-  lazy val mainStartPaths =
-    Ivy.resolve(startIvys, resolvers).toSeq
-      .map(packJarMap)
+  lazy val paths =
+    Ivy.resolve(modules, repositories).toSeq
+      .map(pathMap)
       .filter(_.exists())
 
-  lazy val macroStartPaths =
-    Ivy.resolve(startCompilerIvys, resolvers).toSeq
-      .map(packJarMap)
+  lazy val macroPaths =
+    Ivy.resolve(macroModules, repositories).toSeq
+      .map(pathMap)
       .filter(_.exists())
 
 
-  lazy val startClassLoader =
-    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ mainStartPaths).toSet)
+  lazy val classLoader =
+    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ paths).toSet)
 
-  lazy val startCompilerClassLoader =
-    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ macroStartPaths).toSet)
+  lazy val macroClassLoader =
+    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ macroPaths).toSet)
 
 
   def hasObjWrapSpecialImport(d: ParsedCode): Boolean =
@@ -172,12 +171,12 @@ object Ammonite extends AppOf[Ammonite] {
           )
         else
           new Classes(
-            startClassLoader,
-            macroClassLoader0 = startCompilerClassLoader,
+            classLoader,
+            macroClassLoader0 = macroClassLoader,
             startPaths = Map(
-              ClassLoaderType.Main -> mainStartPaths,
-              ClassLoaderType.Macro -> macroStartPaths,
-              ClassLoaderType.Plugin -> mainStartPaths
+              ClassLoaderType.Main -> paths,
+              ClassLoaderType.Macro -> macroPaths,
+              ClassLoaderType.Plugin -> paths
             )
           ),
       startingLine = if (predef.nonEmpty) -1 else 0,
@@ -204,10 +203,10 @@ object Ammonite extends AppOf[Ammonite] {
 
     val init = InterpreterAction.init(
       new BridgeConfig(
-        startJars = if (sharedLoader) startPaths(ClassLoaderType.Main) else mainStartPaths,
-        startIvys = startIvys,
-        startResolvers = resolvers,
-        jarMap = packJarMap,
+        paths0 = if (sharedLoader) startPaths(ClassLoaderType.Main) else paths,
+        modules0 = modules,
+        repositories0 = repositories,
+        pathMap = pathMap,
         shellPrompt = shellPromptRef,
         reset = reset,
         pprintConfig = pprintConfig,

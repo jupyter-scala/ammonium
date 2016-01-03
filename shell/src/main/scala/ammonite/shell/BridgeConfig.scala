@@ -8,10 +8,10 @@ import ammonite.shell.util.Colors
 import org.apache.ivy.plugins.resolver.DependencyResolver
 
 class BridgeConfig(
-  startJars: Seq[File],
-  startIvys: Seq[(String, String, String)],
-  jarMap: File => File,
-  startResolvers: Seq[DependencyResolver],
+  paths0: Seq[File],
+  modules0: Seq[(String, String, String)],
+  pathMap: File => File,
+  repositories0: Seq[DependencyResolver],
   shellPrompt: => Ref[String],
   reset: => Unit,
   pprintConfig: pprint.Config,
@@ -39,10 +39,10 @@ class BridgeConfig(
     if (bridge == null)
       bridge = new BridgeImpl(
         intp,
-        startJars,
-        startIvys,
-        jarMap,
-        startResolvers,
+        paths0,
+        modules0,
+        pathMap,
+        repositories0,
         colors,
         shellPrompt,
         pprintConfig,
