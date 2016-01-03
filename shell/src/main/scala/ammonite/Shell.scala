@@ -125,12 +125,7 @@ class Shell(
 
   var history = new History(initialHistory.toVector)
 
-  val frontEnd = Ref[FrontEnd](
-    if (System.getProperty("os.name").startsWith("Windows"))
-      FrontEnd.JLineWindows
-    else
-      FrontEnd.JLineUnix
-  )
+  val frontEnd = Ref[FrontEnd](AmmoniteFrontEnd())
   val prompt = Ref("@")
   val colors = Ref[Colors](Colors.Default)
 

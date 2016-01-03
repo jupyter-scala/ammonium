@@ -1,16 +1,14 @@
 package ammonite.shell
 
+// almost as is FrontEnd.scala from Ammonite
+
 import java.io.{ OutputStream, InputStream }
 
 import ammonite.interpreter._
-import ammonite.shell.util.Highlighter
 import fastparse.core.Parsed
-import jline.console.{completer, ConsoleReader}
+import jline.console.{ completer, ConsoleReader }
 
 import scala.annotation.tailrec
-import collection.JavaConversions._
-import ammonite.terminal._
-import ammonite.terminal.LazyList._
 
 import scala.tools.nsc.interpreter.JList
 
@@ -101,9 +99,11 @@ object FrontEnd{
               case Some(Parsed.Success(value, idx)) =>
                 addHistory(code)
                 Res.Success(code -> value)
-              case Some(f: Parsed.Failure) =>
+              case Some(Parsed.Failure(p, index, extra)) =>
                 addHistory(code)
-                Res.Failure(fastparse.core.ParseError.msg(f.extra.input, f.extra.traced.expected, f.index))
+                Res.Failure(
+                  fastparse.core.ParseError.msg(extra.input, extra.traced.expected, index)
+                )
               case None => readCode(code + "\n")
             }
         }
