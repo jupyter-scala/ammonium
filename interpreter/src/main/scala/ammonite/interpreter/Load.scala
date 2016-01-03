@@ -231,7 +231,8 @@ class Load(
   def repository(repository: ApiRepository*): Unit = {
     repositories0 = repositories0 ++ repository.map {
       case ApiRepository.Local => Repository.ivy2Local
-      case ApiRepository.Maven(name, base) =>
+      case ApiRepository.Maven(name, base0) =>
+        val base = if (base0.endsWith("/")) base0 else base0 + "/"
         cache.list().find { case (_, repo, _) => repo.root == base } match {
           case None =>
             cache.add(UUID.randomUUID().toString, base, ivyLike = false)

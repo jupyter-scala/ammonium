@@ -157,6 +157,22 @@ lazy val tprint = project
     }
   )
 
+val hadoopExclusions = Seq(
+  ExclusionRule("asm", "asm"),
+  ExclusionRule("org.codehaus.jackson", "jackson-mapper-asl"),
+  ExclusionRule("org.ow2.asm", "asm"),
+  ExclusionRule("org.jboss.netty", "netty"),
+  ExclusionRule("commons-logging", "commons-logging"),
+  ExclusionRule("org.mockito", "mockito-all"),
+  ExclusionRule("org.mortbay.jetty", "servlet-api-2.5"),
+  ExclusionRule("javax.servlet", "servlet-api"),
+  ExclusionRule("junit", "junit")
+)
+
+val sparkExclusions = Seq(
+  ExclusionRule("org.apache.hadoop", "*"),
+  ExclusionRule("org.jboss.netty", "netty")
+)
 
 def sparkProject(sparkVersion: String, hadoopVersion: String, extraDirSuffix: String = "") = {
   val binaryVersion = sparkVersion.split('.').take(2).mkString(".")
@@ -170,9 +186,9 @@ def sparkProject(sparkVersion: String, hadoopVersion: String, extraDirSuffix: St
       moduleName := s"ammonite-spark_$binaryVersion",
       target := target.value / s"spark-$binaryVersion",
       libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core" % sparkVersion excludeAll ExclusionRule("org.apache.hadoop", "*"),
-        "org.apache.spark" %% "spark-sql" % sparkVersion excludeAll ExclusionRule("org.apache.hadoop", "*"),
-        "org.apache.hadoop" % "hadoop-client" % hadoopVersion,
+        "org.apache.spark" %% "spark-core" % sparkVersion excludeAll(sparkExclusions: _*),
+        "org.apache.spark" %% "spark-sql" % sparkVersion excludeAll(sparkExclusions: _*),
+        "org.apache.hadoop" % "hadoop-client" % hadoopVersion excludeAll(hadoopExclusions: _*),
         "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
       ),
       unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"extra$extraDirSuffix"

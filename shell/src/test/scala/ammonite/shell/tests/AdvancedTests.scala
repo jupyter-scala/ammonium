@@ -203,7 +203,7 @@ class AdvancedTests(check0: => Checker,
     }
     'scalazstream{
       check.session("""
-        @ load.resolver("Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases")
+        @ load.repository("Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases")
 
         @ load.module("org.scalaz.stream" %% "scalaz-stream" % "0.7a")
 
@@ -220,7 +220,7 @@ class AdvancedTests(check0: => Checker,
         pch: Process[Nothing, Int => Task[Unit]] = Append(Halt(End), Vector(<function1>))
 
         @ Process.constant(1).toSource.to(pch).runLog.run.size == 3
-        res5: Boolean = true
+        res6: Boolean = true
       """)
     }
 
