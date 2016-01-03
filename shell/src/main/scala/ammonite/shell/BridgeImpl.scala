@@ -1,6 +1,5 @@
 package ammonite.shell
 
-import ammonite.api.{Load0, Setup}
 import ammonite.interpreter._
 import pprint.{PPrint, Config}
 import ammonite.tprint.TPrint
@@ -38,7 +37,7 @@ class BridgeImpl(
 ) extends Bridge {
 
   def exit: Nothing = throw Exit
-  lazy val load0: Load0 = new Load0Impl(???, ???, ???, ???)
+
   val load: Load = new Load(intp, startJars, startIvys, jarMap, startResolvers)
   def interpreter: ammonite.api.Interpreter = intp
 

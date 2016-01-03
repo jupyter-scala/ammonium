@@ -4,7 +4,7 @@ import ammonite.interpreter.Classes
 import ammonite.interpreter.Imports
 import ammonite.interpreter.Interpreter
 import ammonite.interpreter._
-import ammonite.api.{ ClassLoaderType, IvyConstructor, Import, CodeItem, ParsedCode }
+import ammonite.api.{ ClassLoaderType, ModuleConstructor, Import, CodeItem, ParsedCode }
 import ammonite.shell.util._
 
 import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
@@ -260,8 +260,8 @@ object Ammonite extends AppOf[Ammonite] {
         NamesFor[Bridge].map { case (name, isImpl) =>
           Import(name, name, "", "BridgeHolder.shell", isImpl)
         }.toSeq ++
-        NamesFor[IvyConstructor.type].map { case (name, isImpl) =>
-          Import(name, name, "", "ammonite.api.IvyConstructor", isImpl)
+        NamesFor[ModuleConstructor.type].map { case (name, isImpl) =>
+          Import(name, name, "", "ammonite.api.ModuleConstructor", isImpl)
         }.toSeq
 
       def print(v: AnyRef) = v.asInstanceOf[Iterator[String]].foreach(print)

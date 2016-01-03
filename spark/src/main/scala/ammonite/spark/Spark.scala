@@ -7,7 +7,7 @@ import java.nio.file.Files
 import javax.servlet.http.{ HttpServletResponse, HttpServletRequest }
 
 import ammonite.api.ClassLoaderType
-import ammonite.api.IvyConstructor._
+import ammonite.api.ModuleConstructor._
 import ammonite.spark.Compat.sparkVersion
 
 import org.apache.spark.{ SparkContext, SparkConf }
