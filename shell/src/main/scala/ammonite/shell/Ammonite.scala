@@ -125,7 +125,10 @@ object Ammonite extends AppOf[Ammonite] {
 
   val repositories =
     Seq(coursier.Repository.ivy2Local, coursier.Repository.mavenCentral) ++ {
-      if (BuildInfo.version endsWith "-SNAPSHOT") Seq(MavenRepository("https://oss.sonatype.org/content/repositories/snapshots")) else Seq()
+      if (BuildInfo.version endsWith "-SNAPSHOT")
+        Seq(MavenRepository("https://oss.sonatype.org/content/repositories/snapshots"))
+      else
+        Seq()
     }
 
   lazy val pathMap = Classes.jarMap(getClass.getClassLoader)

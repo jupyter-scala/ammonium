@@ -1,7 +1,7 @@
 package ammonite.shell
 package classwrapper
 
-import ammonite.shell.util.Colors
+import ammonite.interpreter.Colors
 
 class AmmoniteClassWrapperChecker(sharedLoader: Boolean = false) extends AmmoniteChecker {
   override def newInterpreter(): ammonite.api.Interpreter =

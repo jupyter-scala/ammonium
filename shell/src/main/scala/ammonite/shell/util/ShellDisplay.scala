@@ -1,6 +1,7 @@
 package ammonite.shell.util
 
 import ammonite.api.CodeItem, CodeItem._
+import ammonite.interpreter.Colors
 
 
 object ShellDisplay {

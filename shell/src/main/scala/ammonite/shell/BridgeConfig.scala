@@ -4,7 +4,7 @@ import java.io.File
 
 import ammonite.api.{ClassLoaderType, ModuleConstructor, Import}
 import ammonite.interpreter.{Ref, Interpreter, NamesFor}
-import ammonite.shell.util.Colors
+import ammonite.interpreter.Colors
 import coursier.core.Repository
 
 class BridgeConfig(

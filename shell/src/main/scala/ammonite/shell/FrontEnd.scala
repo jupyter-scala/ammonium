@@ -3,7 +3,7 @@ package ammonite.shell
 import java.io.{OutputStreamWriter, OutputStream, InputStream}
 
 import ammonite.interpreter._
-import ammonite.shell.util.{Highlighter, Colors}
+import ammonite.shell.util.Highlighter
 import fastparse.core.Result
 import jline.console.{completer, ConsoleReader}
 
