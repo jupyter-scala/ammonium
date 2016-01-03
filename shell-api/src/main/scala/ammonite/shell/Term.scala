@@ -1,0 +1,50 @@
+package ammonite.shell
+
+import pprint.{Config, PPrint}
+import ammonite.tprint.TPrint
+import scala.reflect.runtime.universe.WeakTypeTag
+
+trait Term {
+  /**
+   * History of commands that have been entered into the shell
+   */
+  def history: Seq[String]
+
+  /**
+   * Reset the terminal
+   */
+  def reset(): Unit
+
+  /**
+   * Read/writable prompt for the shell. Use this to change the
+   * REPL prompt at any time!
+   */
+  var shellPrompt: String
+
+  /**
+   * Controls how things are pretty-printed in the REPL. Feel free
+   * to shadow this with your own definition to change how things look
+   */
+  implicit var pprintConfig: pprint.Config
+
+  def show[T: PPrint](
+    t: T,
+    width: Integer = 0,
+    height: Integer = null,
+    indent: Integer = null,
+    colors: pprint.Colors = null
+  )(implicit
+    cfg: Config = Config.Defaults.PPrintConfig
+  ): Unit
+
+  def display[T](
+    value: => T,
+    ident: String,
+    custom: Option[String]
+  )(implicit
+    cfg: Config,
+    tprint: TPrint[T],
+    pprint: PPrint[T],
+    tpe: WeakTypeTag[T]
+  ): Iterator[String]
+}

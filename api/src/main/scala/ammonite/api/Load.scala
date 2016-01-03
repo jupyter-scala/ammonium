@@ -12,35 +12,13 @@ trait Load0 {
 }
 
 trait AddDependency {
-  /**
-   * Load a `.jar` file
-   */
-  def jar(jar: File, jars: File*): Unit
-  /**
-   * Load a `.jar` from a URL
-   */
-  def jar(url: URL, urls: URL*): Unit
-  /**
-   * Load a `.jar` from a path or URL
-   */
-  def jar(path: String, paths: String*): Unit
+  def path(paths: String*): Unit
 
-  /**
-   * Load a module from its maven/ivy coordinates
-   */
-  def ivy(coordinates: (String, String, String)*): Unit
+  /** Load a module from its Maven coordinates */
+  def module(coordinates: (String, String, String)*): Unit
 }
 
 trait Load extends AddDependency {
-  def verbose: Boolean
-  def verbose_=(v: Boolean): Unit
-  /**
-   * Load one or several sbt project(s). Requires the sbt-detailed-settings
-   * SBT plugin, and the sbt-extra launcher.
-   */
-  def sbt(path: File, projects: String*): Unit
-  def sbt(path: String, projects: String*): Unit =
-    sbt(new File(path), projects: _*)
   /**
    * Just resolves some modules, does not load them
    */
@@ -49,7 +27,7 @@ trait Load extends AddDependency {
   /**
    * Add a resolver to Ivy module resolution
    */
-  def resolver(resolver: Resolver*): Unit
+  def repository(repository: Repository*): Unit
 
   /**
    * Compiler dependencies (accessible through macros) can be added through this
@@ -68,11 +46,11 @@ trait Load extends AddDependency {
   def apply(line: String): Unit
 }
 
-trait Resolver
+trait Repository
 
-object Resolver {
-  case object Local extends Resolver
-  case class Maven(name: String, base: String) extends Resolver
+object Repository {
+  case object Local extends Repository
+  case class Maven(name: String, base: String) extends Repository
 
   val central = Maven("public", "https://repo1.maven.org/maven2/")
   def sonatypeRepo(status: String) = Maven(s"sonatype-$status", s"https://oss.sonatype.org/content/repositories/$status")
@@ -92,5 +70,5 @@ object IvyConstructor {
   implicit class ResolverNameExt(name: String) {
     def at(location: String) = Resolver.Maven(name, location)
   }
-  val Resolver = ammonite.api.Resolver
+  val Resolver = ammonite.api.Repository
 }

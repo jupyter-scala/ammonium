@@ -269,7 +269,7 @@ object Ammonite extends AppOf[Ammonite] {
 
       def print(v: AnyRef) = v.asInstanceOf[Iterator[String]].foreach(print)
 
-      var replApi: ReplAPI with FullReplAPI = null
+      var replApi: ReplAPI = null
       def reset0() = reset
 
       def initClass(intp: Interpreter, cls: Class[_]) = {
