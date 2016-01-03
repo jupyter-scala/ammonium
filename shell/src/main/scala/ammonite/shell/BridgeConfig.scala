@@ -26,9 +26,9 @@ class BridgeConfig(
     NamesFor[Bridge].map { case (name, isImpl) =>
       Import(name, name, "", "BridgeHolder.shell", isImpl)
     }.toSeq ++
-      NamesFor[ModuleConstructor.type].map { case (name, isImpl) =>
-        Import(name, name, "", "ammonite.api.ModuleConstructor", isImpl)
-      }.toSeq
+    NamesFor[ModuleConstructor.type].map { case (name, isImpl) =>
+      Import(name, name, "", "ammonite.api.ModuleConstructor", isImpl)
+    }
 
   def print(v: AnyRef) = v.asInstanceOf[Iterator[String]].foreach(print)
 
