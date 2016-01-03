@@ -44,9 +44,6 @@ trait Interpreter {
   def getCurrentLine: String
   def sources: Map[String, String]
 
-  /**
-   * Provide these to `init` above to keep the current compiler options
-   */
   def compilerOptions: Seq[String]
 
   def filterImports: Boolean

@@ -45,12 +45,6 @@ trait ReplAPI {
    */
   implicit var pprintConfig: pprint.Config
 
-  /**
-   * Lets you configure the pretty-printing of a value. By default, it simply
-   * disables truncation and prints the entire thing, but you can set other
-   * parameters as well if you want.
-   */
-  def show[T: PPrint](implicit cfg: Config): T => Unit
   def show[T: PPrint](t: T,
                       width: Integer = 0,
                       height: Integer = null,
@@ -58,7 +52,16 @@ trait ReplAPI {
                       colors: pprint.Colors = null)
                      (implicit cfg: Config = Config.Defaults.PPrintConfig): Unit
 
-  def display[T: TPrint: WeakTypeTag, V: PPrint](value: => T, value2: => V, ident: String, custom: Option[String])(implicit cfg: Config): Iterator[String]
+  def display[T](
+    value: => T,
+    ident: String,
+    custom: Option[String]
+  )(implicit
+    cfg: Config,
+    tprint: TPrint[T],
+    pprint: PPrint[T],
+    tpe: WeakTypeTag[T]
+  ): Iterator[String]
 }
 
 /**

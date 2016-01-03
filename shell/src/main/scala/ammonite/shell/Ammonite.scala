@@ -403,15 +403,7 @@ object Ammonite extends AppOf[Ammonite] {
     )
 
     // FIXME Check result
-    init(intp) match {
-      case Left(err) =>
-        err match {
-          case UnexpectedError(e) =>
-            println(s"$e:\n${e.getStackTrace.map("  " + _).mkString("\n")}")
-          case _ =>
-        }
-      case Right(_) =>
-    }
+    init(intp)
 
     intp
   }

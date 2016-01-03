@@ -99,42 +99,38 @@ abstract class ReplAPIImpl(
     found
   }
 
-  def display[T: TPrint: WeakTypeTag, V: PPrint](
+  def display[T](
     value: => T,
-    value2: => V,
     ident: String,
     custom: Option[String]
   )(implicit
-    cfg: Config
+    cfg: Config,
+    tprint: TPrint[T],
+    pprint: PPrint[T],
+    tpe: WeakTypeTag[T]
   ) =
     if (weakTypeOf[T] =:= weakTypeOf[Unit])
       Iterator()
     else {
       val rhs = custom match {
-        case None => implicitly[PPrint[V]].render(value2, cfg)
+        case None => implicitly[PPrint[T]].render(value, cfg)
         case Some(s) => Iterator(colors.literal() + s + colors.reset())
       }
 
       Iterator(
-        colors.ident(), ident, colors.reset(), ": ",
-        implicitly[TPrint[T]].render(cfg), " = "
+        colors.ident() + ident + colors.reset(), ": " +
+        implicitly[TPrint[T]].render(cfg) + " = "
       ) ++ rhs
     }
 
-  def show[T: PPrint](implicit cfg: Config): T => Unit = {
-    t =>
-      pprint.tokenize(t, height = 0)(implicitly[PPrint[T]], cfg).foreach(scala.Predef.print)
-      println()
-  }
-
   def show[T: PPrint](
     t: T,
-    width: Integer = null,
-    height: Integer = 0,
-    indent: Integer = null,
-    colors: pprint.Colors = null
+    width: Integer,
+    height: Integer,
+    indent: Integer,
+    colors: pprint.Colors
   )(implicit
-    cfg: Config = Config.Defaults.PPrintConfig
+    cfg: Config
   ): Unit = {
     pprint.tokenize(t, width, height, indent, colors)(implicitly[PPrint[T]], cfg).foreach(scala.Predef.print)
     println()
