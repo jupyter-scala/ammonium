@@ -203,7 +203,7 @@ class AdvancedTests(check0: => Checker,
     }
     'scalazstream{
       check.session("""
-        @ load.repository("Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases")
+        @ load.repository(Repository.Maven("https://dl.bintray.com/scalaz/releases"))
 
         @ load.module("org.scalaz.stream" %% "scalaz-stream" % "0.7a")
 
