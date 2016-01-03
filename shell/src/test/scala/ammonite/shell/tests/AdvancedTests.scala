@@ -13,7 +13,7 @@ class AdvancedTests(check0: => Checker,
   val tests = TestSuite{
     val check = check0
     'load{
-      'ivy{
+      'modules{
         'standalone{
           val tq = "\"\"\""
           check.session(s"""

@@ -7,8 +7,6 @@ import pprint.{ PPrint, Config }
 import ammonite.tprint.TPrint
 import ammonite.shell.util._
 
-import org.apache.ivy.plugins.resolver.DependencyResolver
-
 import java.io.File
 
 import scala.reflect.runtime.universe.{ WeakTypeTag, weakTypeOf }

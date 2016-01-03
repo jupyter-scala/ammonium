@@ -6,7 +6,6 @@ import ammonite.api.{ClassLoaderType, ModuleConstructor, Import}
 import ammonite.interpreter.{Ref, Interpreter, NamesFor}
 import ammonite.shell.util.Colors
 import coursier.core.Repository
-import org.apache.ivy.plugins.resolver.DependencyResolver
 
 class BridgeConfig(
   paths: Map[ClassLoaderType, Seq[File]],

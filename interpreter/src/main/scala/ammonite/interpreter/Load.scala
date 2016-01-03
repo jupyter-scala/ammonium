@@ -6,9 +6,6 @@ import ammonite.api.{ Repository => ApiRepository, ClassLoaderType }
 import coursier._
 import coursier.core.MavenRepository
 
-import org.apache.ivy.plugins.resolver.DependencyResolver
-import com.github.alexarchambault.ivylight.Resolver
-
 import java.net.URL
 import java.nio.file.Files
 import java.io.{ FileNotFoundException, File }

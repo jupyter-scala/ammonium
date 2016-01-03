@@ -74,26 +74,8 @@ lazy val api = project.in(file("api"))
     name := "ammonite-api"
   )
 
-lazy val ivyLight = project.in(file("ivy-light"))
-  .settings(sharedSettings ++ testSettings: _*)
-  .settings(
-    name := "ivy-light",
-    libraryDependencies ++= Seq(
-      "org.apache.ivy" % "ivy" % "2.4.0"
-    ),
-    libraryDependencies ++= {
-      if (scalaVersion.value startsWith "2.10.")
-        Seq()
-      else
-        Seq(
-          "org.scala-lang.modules" %% "scala-xml" % "1.0.3",
-          "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
-        )
-    }
-  )
-
 lazy val interpreter = project.in(file("interpreter"))
-  .dependsOn(api, ivyLight)
+  .dependsOn(api)
   .settings(sharedSettings: _*)
   .settings(
     name := "ammonite-interpreter",
@@ -238,8 +220,8 @@ lazy val shell = Project(id = "shell", base = file("shell"))
 
 lazy val root = project.in(file("."))
   .settings(sharedSettings: _*)
-  .aggregate(api, ivyLight, interpreter, shellApi, spark15, spark14, spark13, spark12, shell, tprint)
-  .dependsOn(api, ivyLight, interpreter, shellApi, spark15, spark14, spark13, spark12, shell, tprint)
+  .aggregate(api, interpreter, shellApi, spark15, spark14, spark13, spark12, shell, tprint)
+  .dependsOn(api, interpreter, shellApi, spark15, spark14, spark13, spark12, shell, tprint)
   .settings(
     publish := {},
     publishLocal := {},
