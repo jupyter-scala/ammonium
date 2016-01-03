@@ -1,9 +1,13 @@
 package ammonite.api
 
-trait EvalError
+case class Evaluated[T](
+  wrapper: String,
+  imports: Seq[Import],
+  value: T
+)
 
 trait Eval {
-  def apply(code: String): Either[EvalError, Unit]
+  def apply(code: String): Either[InterpreterError, Evaluated[Unit]]
 
   // def compile(code: String): Either[EvalError, Seq[(String, Array[Byte])]]
   // more... ?

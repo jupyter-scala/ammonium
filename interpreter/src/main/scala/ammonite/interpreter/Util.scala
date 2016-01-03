@@ -78,10 +78,6 @@ case class Catching(handler: PartialFunction[Throwable, Res.Failing]) {
     try Res.Success(t(())) catch handler
 }
 
-case class Evaluated[T](wrapper: String,
-                        imports: Seq[Import],
-                        value: T)
-
 /**
  * Encapsulates a read-write cell that can be passed around
  */

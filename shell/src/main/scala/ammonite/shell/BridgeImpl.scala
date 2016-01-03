@@ -1,7 +1,8 @@
 package ammonite.shell
 
+import ammonite.api.Eval
 import ammonite.interpreter._
-import pprint.{PPrint, Config}
+import pprint.{ PPrint, Config }
 import ammonite.tprint.TPrint
 import ammonite.shell.util._
 
@@ -24,7 +25,7 @@ object Setup {
 }
 
 class BridgeImpl(
-  intp: ammonite.api.Interpreter,
+  intp: Interpreter,
   startJars: Seq[File],
   startIvys: Seq[(String, String, String)],
   jarMap: File => File,
@@ -37,6 +38,21 @@ class BridgeImpl(
 ) extends Bridge {
 
   def exit: Nothing = throw Exit
+
+  val eval: Eval = new Eval {
+    def apply(code: String) =
+      InterpreterAction.run(code, (), None, None, _ => ())(intp)
+
+    def options = ???
+    def options_=(opts: Seq[String]) = ???
+
+    def complete(code: String, idx: Int) = ???
+
+    def sources = ???
+
+    def onStop(f: => Unit) = ???
+    def stop() = ???
+  }
 
   val load: Load = new Load(intp, startJars, startIvys, jarMap, startResolvers)
   def interpreter: ammonite.api.Interpreter = intp

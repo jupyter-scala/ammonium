@@ -3,6 +3,7 @@ package ammonite.shell
 import ammonite.api._
 
 trait Bridge {
+  implicit def eval: Eval
   implicit def load: Load
   implicit def interpreter: Interpreter
   implicit def setup: Setup

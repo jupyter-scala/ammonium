@@ -1,6 +1,6 @@
 package ammonite.shell
 
-import ammonite.api.InterpreterError
+import ammonite.api.{ Evaluated, InterpreterError }
 import ammonite.interpreter._
 import ammonite.shell.util.Colors
 import fastparse.core.Result.Success
