@@ -205,14 +205,7 @@ lazy val spark11 = sparkProject("1.1.1", "2.4.0", "-1.1")
 lazy val shell = Project(id = "shell", base = file("shell"))
   .dependsOn(`shell-api`, interpreter)
   .settings(sharedSettings ++ testSettings: _*)
-  .settings(packAutoSettings ++ publishPackTxzArchive ++ publishPackZipArchive: _*)
-  .settings(
-    // overriding these three settings so that the directory name in the published packages matches the package file names.
-    // e.g. directory ammonite-shell_2.11.6-0.3.1 in package ammonite-shell_2.11.6-0.3.1.tar.xz
-    packArchivePrefix := s"ammonite-shell_${scalaVersion.value}",
-    packArchiveTxzArtifact := Artifact("ammonite-shell", "arch", "tar.xz"),
-    packArchiveZipArtifact := Artifact("ammonite-shell", "arch", "zip")
-  )
+  .settings(packAutoSettings: _*)
   .settings(
     name := "ammonite-shell",
     libraryDependencies ++= Seq(
