@@ -219,6 +219,64 @@ object Classes {
 
 }
 
+trait ClassesAction[T] { self =>
+  def apply(classes: Classes): T
+  def map[U](f: T => U): ClassesAction[U] =
+    flatMap(t => ClassesAction.point(f(t)))
+  def flatMap[U](f: T => ClassesAction[U]): ClassesAction[U] =
+    ClassesAction.instance { classes =>
+      f(self(classes))(classes)
+    }
+}
+
+object ClassesAction {
+  def point[T](t: T): ClassesAction[T] =
+    instance(_ => t)
+  def instance[T](t: Classes => T): ClassesAction[T] =
+    new ClassesAction[T] {
+      def apply(classes: Classes) = t(classes)
+    }
+
+  def addPath(tpe: ClassLoaderType)(paths0: File*): ClassesAction[Unit] =
+    instance { classes =>
+      tpe match {
+        case ClassLoaderType.Main =>
+          val newPaths = paths0.filterNot(classes.path(ClassLoaderType.Main).toSet).distinct
+
+          if (newPaths.nonEmpty) {
+            classes.extraPaths += ClassLoaderType.Main -> (classes.extraPaths(ClassLoaderType.Main) ++ newPaths)
+            val cl0 = classes.newClassLoader(classes.classLoaders0(ClassLoaderType.Main))
+            cl0.add(newPaths: _*)
+            classes.classLoaders0(ClassLoaderType.Main) = cl0
+            classes.onPathsAddedHooks.foreach(_ (newPaths))
+          }
+
+          addPath(ClassLoaderType.Macro)(paths0: _*)(classes)
+
+        case ClassLoaderType.Macro =>
+          val newPaths = paths0.filterNot(classes.path(ClassLoaderType.Macro).toSet).distinct
+
+          if (newPaths.nonEmpty) {
+            classes.extraPaths += ClassLoaderType.Macro -> (classes.extraPaths(ClassLoaderType.Macro) ++ newPaths)
+            val cl0 = classes.newClassLoader(classes.classLoaders0(ClassLoaderType.Macro))
+            cl0.add(newPaths: _*)
+            classes.classLoaders0(ClassLoaderType.Macro) = cl0
+          }
+
+        case ClassLoaderType.Plugin =>
+          val newPaths = paths0.filterNot(classes.path(ClassLoaderType.Plugin).toSet).distinct
+
+          if (newPaths.nonEmpty) {
+            classes.extraPaths += ClassLoaderType.Plugin -> (classes.extraPaths(ClassLoaderType.Plugin) ++ newPaths)
+            val cl0 = classes.newClassLoader(classes.classLoaders0(ClassLoaderType.Plugin))
+            cl0.add(newPaths: _*)
+            classes.classLoaders0(ClassLoaderType.Plugin) = cl0
+          }
+      }
+    }
+
+}
+
 class Classes(
   classLoader0: ClassLoader = Thread.currentThread().getContextClassLoader,
   macroClassLoader0: ClassLoader = null,
@@ -226,13 +284,13 @@ class Classes(
   startPaths: Map[ClassLoaderType, Seq[File]] = Classes.defaultPaths()
 ) extends ammonite.api.Classes {
 
-  private def cl(parent: ClassLoader): AddURLClassLoader =
+  def newClassLoader(parent: ClassLoader): AddURLClassLoader =
     new AddURLClassLoader(parent, tmpClassDir)
 
   var classLoaders0 = mutable.Map[ClassLoaderType, AddURLClassLoader](
-    ClassLoaderType.Main -> cl(classLoader0),
-    ClassLoaderType.Macro -> cl(Option(macroClassLoader0).getOrElse(classLoader0)),
-    ClassLoaderType.Plugin -> cl(pluginClassLoader0)
+    ClassLoaderType.Main -> newClassLoader(classLoader0),
+    ClassLoaderType.Macro -> newClassLoader(Option(macroClassLoader0).getOrElse(classLoader0)),
+    ClassLoaderType.Plugin -> newClassLoader(pluginClassLoader0)
   )
 
   val map = new mutable.HashMap[String, Array[Byte]]
@@ -251,7 +309,7 @@ class Classes(
 
   var classMaps = Seq.empty[String => Option[Array[Byte]]]
 
-  def paths(tpe: ClassLoaderType): Seq[File] =
+  def path(tpe: ClassLoaderType): Seq[File] =
     tpe match {
       case ClassLoaderType.Main =>
         startPaths(ClassLoaderType.Main) ++ extraPaths(ClassLoaderType.Main)
@@ -259,42 +317,6 @@ class Classes(
         startPaths(ClassLoaderType.Macro) ++ extraPaths(ClassLoaderType.Macro)
       case ClassLoaderType.Plugin =>
         startPaths(ClassLoaderType.Plugin) ++ extraPaths(ClassLoaderType.Plugin)
-    }
-
-  def addPath(tpe: ClassLoaderType)(paths0: File*): Unit =
-    tpe match {
-      case ClassLoaderType.Main =>
-        val newPaths = paths0.filterNot(paths(ClassLoaderType.Main).toSet).distinct
-
-        if (newPaths.nonEmpty) {
-          extraPaths += ClassLoaderType.Main -> (extraPaths(ClassLoaderType.Main) ++ newPaths)
-          val cl0 = cl(classLoaders0(ClassLoaderType.Main))
-          cl0.add(newPaths: _*)
-          classLoaders0(ClassLoaderType.Main) = cl0
-          onPathsAddedHooks.foreach(_(newPaths))
-        }
-
-        addPath(ClassLoaderType.Macro)(paths0: _*)
-
-      case ClassLoaderType.Macro =>
-        val newPaths = paths0.filterNot(paths(ClassLoaderType.Macro).toSet).distinct
-
-        if (newPaths.nonEmpty) {
-          extraPaths += ClassLoaderType.Macro -> (extraPaths(ClassLoaderType.Macro) ++ newPaths)
-          val cl0 = cl(classLoaders0(ClassLoaderType.Macro))
-          cl0.add(newPaths: _*)
-          classLoaders0(ClassLoaderType.Macro) = cl0
-        }
-
-      case ClassLoaderType.Plugin =>
-        val newPaths = paths0.filterNot(paths(ClassLoaderType.Plugin).toSet).distinct
-
-        if (newPaths.nonEmpty) {
-          extraPaths += ClassLoaderType.Plugin -> (extraPaths(ClassLoaderType.Plugin) ++ newPaths)
-          val cl0 = cl(classLoaders0(ClassLoaderType.Plugin))
-          cl0.add(newPaths: _*)
-          classLoaders0(ClassLoaderType.Plugin) = cl0
-        }
     }
 
   def addClass(name: String, b: Array[Byte]): Unit = {
@@ -308,20 +330,6 @@ class Classes(
 
   def classLoader(tpe: ClassLoaderType): ClassLoader = 
     classLoaders0(tpe)
-
-  def path(tpe: ClassLoaderType): Seq[File] =
-    tpe match {
-      case ClassLoaderType.Main =>
-        startPaths(ClassLoaderType.Main) ++
-          extraPaths(ClassLoaderType.Main)
-      case ClassLoaderType.Plugin =>
-        startPaths(ClassLoaderType.Plugin) ++
-          extraPaths(ClassLoaderType.Plugin)
-      case ClassLoaderType.Macro =>
-        path(ClassLoaderType.Main) ++
-          startPaths(ClassLoaderType.Macro) ++
-          extraPaths(ClassLoaderType.Macro)
-    }
 
   var onPathsAddedHooks = Seq.empty[Seq[File] => Unit]
   def onPathsAdded(action: Seq[File] => Unit) = {

@@ -15,8 +15,6 @@ trait Classes {
   
   def path(tpe: ClassLoaderType = ClassLoaderType.Main): Seq[File]
 
-  def addPath(tpe: ClassLoaderType = ClassLoaderType.Main)(paths: File*): Unit
-
   /** Add the class described by the bytecode `b` */
   def addClass(name: String, b: Array[Byte]): Unit
 

@@ -33,7 +33,7 @@ trait Compiler {
   /**
    * Compiles a blob of bytes and spits of a list of classfiles
    */
-  def compile(src: Array[Byte], runLogger: String => Unit): Compiler.Output
+  def compile(src: Array[Byte], runLogger: String => Unit): Option[(Traversable[(String, Array[Byte])], Seq[Import])]
   /**
    * Either the statements that were parsed or the error message
    */
@@ -42,18 +42,10 @@ trait Compiler {
   /**
    * Writes files to dynamicClasspath. Needed for loading cached classes.
    */
-  def addToClasspath(classFiles: Compiler.ClassFiles): Unit
+  def addToClasspath(classFiles: Traversable[(String, Array[Byte])]): Unit
 }
 
 object Compiler {
-
-  type ClassFiles = Traversable[(String, Array[Byte])]
-
-  /**
-   * If the Option is None, it means compilation failed
-   * Otherwise it's a Traversable of (filename, bytes) tuples
-   */
-  type Output = Option[(Traversable[(String, Array[Byte])], Seq[Import])]
 
   /**
    * Converts a bunch of bytes into Scalac's weird VirtualFile class
@@ -243,7 +235,7 @@ object Compiler {
         scalac.reporter.reset()
         logger = runLogger
 
-        val singleFile = makeFile( src)
+        val singleFile = makeFile(src)
 
         val run = new scalac.Run()
         vd.clear()

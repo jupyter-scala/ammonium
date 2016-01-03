@@ -29,7 +29,7 @@ class Load(
 
   lazy val compiler: AddDependency = new AddDependency {
     def jar(jar: File, jars: File*) = {
-      intp.classes.addPath(ClassLoaderType.Macro)(jar +: jars: _*)
+      ClassesAction.addPath(ClassLoaderType.Macro)(jar +: jars: _*)(intp.classes.asInstanceOf[Classes])
       Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
     }
     def jar(url: URL, urls: URL*) =
@@ -56,7 +56,7 @@ class Load(
 
   lazy val plugin: AddDependency = new AddDependency {
     def jar(jar: File, jars: File*) = {
-      intp.classes.addPath(ClassLoaderType.Plugin)(jar +: jars: _*)
+      ClassesAction.addPath(ClassLoaderType.Plugin)(jar +: jars: _*)(intp.classes.asInstanceOf[Classes])
       Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
     }
     def jar(url: URL, urls: URL*) =
@@ -92,7 +92,7 @@ class Load(
   def jar(jar: File, jars: File*): Unit = {
     val jars0 = jar +: jars
     userJars = userJars ++ jars0
-    intp.classes.addPath()(jars0: _*)
+    ClassesAction.addPath(ClassLoaderType.Main)(jars0: _*)(intp.classes.asInstanceOf[Classes])
     Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
   }
 
@@ -153,7 +153,7 @@ class Load(
     }
     warnedJars = removedJars
 
-    intp.classes.addPath()(newJars ++ extra: _*)
+    ClassesAction.addPath(ClassLoaderType.Main)(newJars ++ extra: _*)(intp.classes.asInstanceOf[Classes])
     Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
   }
 
