@@ -1,11 +1,13 @@
 package ammonite.shell
 
+import ammonite.api.InterpreterError.UnexpectedError
 import ammonite.interpreter.Classes
 import ammonite.interpreter.Imports
 import ammonite.interpreter.Bridge
 import ammonite.interpreter.Interpreter
 import ammonite.interpreter._
 import ammonite.api.{ ClassLoaderType, IvyConstructor, Import, CodeItem, ParsedCode }
+import ammonite.shell.ShellError.InterpreterError
 import ammonite.shell.util._
 
 import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
@@ -290,8 +292,8 @@ object Ammonite extends AppOf[Ammonite] {
       }
     }
 
-  def print0(items: Seq[CodeItem]): String =
-    s"ReplBridge.shell.Internal.combinePrints(${items.map(ShellDisplay(_)).mkString(", ")})" + " ++ Iterator(\"\\n\")"
+  def print0(items: Seq[CodeItem], colors: Colors): String =
+    s""" Iterator(${items.map(ShellDisplay(_, colors)).mkString(", ")}).filter(_.nonEmpty).flatMap(_ ++ Iterator("\\n")) """
 
   val scalaVersion = scala.util.Properties.versionNumberString
   val startIvys = Seq(
@@ -378,9 +380,9 @@ object Ammonite extends AppOf[Ammonite] {
             (classWrap, decls)
 
         if (doClassWrap)
-          Interpreter.classWrap(print0, decls0, imports, unfilteredImports, wrapper)
+          Interpreter.classWrap(print0(_, colors), decls0, imports, unfilteredImports, wrapper)
         else
-          Interpreter.wrap(print0, decls0, imports, unfilteredImports, wrapper)
+          Interpreter.wrap(print0(_, colors), decls0, imports, unfilteredImports, wrapper)
       }
     }
 
@@ -400,7 +402,16 @@ object Ammonite extends AppOf[Ammonite] {
       None
     )
 
-    init(intp) // FIXME Check result
+    // FIXME Check result
+    init(intp) match {
+      case Left(err) =>
+        err match {
+          case UnexpectedError(e) =>
+            println(s"$e:\n${e.getStackTrace.map("  " + _).mkString("\n")}")
+          case _ =>
+        }
+      case Right(_) =>
+    }
 
     intp
   }

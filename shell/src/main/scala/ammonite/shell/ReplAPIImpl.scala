@@ -1,5 +1,6 @@
 package ammonite.shell
 
+import ammonite.api.{Load0, Setup}
 import ammonite.interpreter._
 import pprint.{PPrint, Config}
 import ammonite.tprint.TPrint
@@ -13,6 +14,17 @@ import scala.reflect.runtime.universe.{ Name, newTermName, runtimeMirror, Symbol
 
 import scala.util.Try
 
+case class Setup(requires: Seq[String], init: Seq[String])
+
+object Setup {
+
+  val setups = Seq(
+    Setup(Nil, Seq(
+      ""
+    ))
+  )
+
+}
 
 abstract class ReplAPIImpl(
   intp: ammonite.api.Interpreter,
@@ -27,9 +39,18 @@ abstract class ReplAPIImpl(
 ) extends FullReplAPI {
 
   def exit: Nothing = throw Exit
+  lazy val load0: Load0 = new Load0Impl(???, ???, ???, ???)
   val load: Load = new Load(intp, startJars, startIvys, jarMap, startResolvers)
   def interpreter: ammonite.api.Interpreter = intp
   def history: Seq[String] = history0
+
+  val setup: ammonite.api.Setup =
+    new ammonite.api.Setup {
+      def apply(modules: String*) = {
+
+        ???
+      }
+    }
 
 
   def shellPrompt: String = shellPromptRef()
@@ -78,46 +99,31 @@ abstract class ReplAPIImpl(
     found
   }
 
-  object Internal extends Internal{
-    def combinePrints(iters: Iterator[String]*) =
-      iters.toIterator
-        .filter(_.nonEmpty)
-        .flatMap(Iterator("\n") ++ _)
-        .drop(1)
-
-    def print[T: TPrint: WeakTypeTag, V: PPrint](
-      value: => T,
-      value2: => V,
-      ident: String,
-      custom: Option[String]
-    )(implicit
-      cfg: Config
-    ) =
-      if (weakTypeOf[T] =:= weakTypeOf[Unit])
-        Iterator()
-      else {
-        val pprint = implicitly[PPrint[V]]
-        val rhs = custom match {
-          case None => pprint.render(value2, cfg)
-          case Some(s) => Iterator(cfg.colors.literalColor + s + cfg.colors.endColor)
-        }
-
-        Iterator(
-          colors.ident(), ident, colors.reset(), ": ",
-          implicitly[TPrint[T]].render(cfg), " = "
-        ) ++ rhs
+  def display[T: TPrint: WeakTypeTag, V: PPrint](
+    value: => T,
+    value2: => V,
+    ident: String,
+    custom: Option[String]
+  )(implicit
+    cfg: Config
+  ) =
+    if (weakTypeOf[T] =:= weakTypeOf[Unit])
+      Iterator()
+    else {
+      val rhs = custom match {
+        case None => implicitly[PPrint[V]].render(value2, cfg)
+        case Some(s) => Iterator(colors.literal() + s + colors.reset())
       }
 
-    def printDef(definitionLabel: String, ident: String) =
-      Iterator("defined ", colors.`type`(), definitionLabel, " ", colors.ident(), ident, colors.reset())
-
-    def printImport(imported: String) =
-      Iterator(colors.`type`(), "import ", colors.ident(), imported, colors.reset())
-  }
+      Iterator(
+        colors.ident(), ident, colors.reset(), ": ",
+        implicitly[TPrint[T]].render(cfg), " = "
+      ) ++ rhs
+    }
 
   def show[T: PPrint](implicit cfg: Config): T => Unit = {
     t =>
-      pprint.tokenize(t, height = 0)(implicitly[PPrint[T]], cfg).foreach(print)
+      pprint.tokenize(t, height = 0)(implicitly[PPrint[T]], cfg).foreach(scala.Predef.print)
       println()
   }
 
@@ -130,7 +136,7 @@ abstract class ReplAPIImpl(
   )(implicit
     cfg: Config = Config.Defaults.PPrintConfig
   ): Unit = {
-    pprint.tokenize(t, width, height, indent, colors)(implicitly[PPrint[T]], cfg).foreach(print)
+    pprint.tokenize(t, width, height, indent, colors)(implicitly[PPrint[T]], cfg).foreach(scala.Predef.print)
     println()
   }
 }

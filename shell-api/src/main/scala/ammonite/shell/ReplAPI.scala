@@ -25,6 +25,8 @@ trait ReplAPI {
    */
   implicit def interpreter: ammonite.api.Interpreter
 
+  implicit def setup: ammonite.api.Setup
+
 
   /**
    * Reset the terminal
@@ -55,13 +57,8 @@ trait ReplAPI {
                       indent: Integer = null,
                       colors: pprint.Colors = null)
                      (implicit cfg: Config = Config.Defaults.PPrintConfig): Unit
-}
 
-trait Internal{
-  def combinePrints(iters: Iterator[String]*): Iterator[String]
-  def print[T: TPrint: WeakTypeTag, V: PPrint](value: => T, value2: => V, ident: String, custom: Option[String])(implicit cfg: Config): Iterator[String]
-  def printDef(definitionLabel: String, ident: String): Iterator[String]
-  def printImport(imported: String): Iterator[String]
+  def display[T: TPrint: WeakTypeTag, V: PPrint](value: => T, value2: => V, ident: String, custom: Option[String])(implicit cfg: Config): Iterator[String]
 }
 
 /**
@@ -69,7 +66,6 @@ trait Internal{
  */
 trait FullReplAPI extends ReplAPI {
   def search(target: scala.reflect.runtime.universe.Type): Option[String]
-  def Internal: Internal
 }
 
 class ReplAPIHolder {

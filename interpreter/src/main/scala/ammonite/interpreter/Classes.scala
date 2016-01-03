@@ -248,7 +248,7 @@ object ClassesAction {
             val cl0 = classes.newClassLoader(classes.classLoaders0(ClassLoaderType.Main))
             cl0.add(newPaths: _*)
             classes.classLoaders0(ClassLoaderType.Main) = cl0
-            classes.onPathsAddedHooks.foreach(_ (newPaths))
+            classes.onPathsAddedHooks.foreach(_(newPaths, ClassLoaderType.Main))
           }
 
           addPath(ClassLoaderType.Macro)(paths0: _*)(classes)
@@ -261,6 +261,7 @@ object ClassesAction {
             val cl0 = classes.newClassLoader(classes.classLoaders0(ClassLoaderType.Macro))
             cl0.add(newPaths: _*)
             classes.classLoaders0(ClassLoaderType.Macro) = cl0
+            classes.onPathsAddedHooks.foreach(_(newPaths, ClassLoaderType.Macro))
           }
 
         case ClassLoaderType.Plugin =>
@@ -271,6 +272,7 @@ object ClassesAction {
             val cl0 = classes.newClassLoader(classes.classLoaders0(ClassLoaderType.Plugin))
             cl0.add(newPaths: _*)
             classes.classLoaders0(ClassLoaderType.Plugin) = cl0
+            classes.onPathsAddedHooks.foreach(_(newPaths, ClassLoaderType.Plugin))
           }
       }
     }
@@ -331,8 +333,8 @@ class Classes(
   def classLoader(tpe: ClassLoaderType): ClassLoader = 
     classLoaders0(tpe)
 
-  var onPathsAddedHooks = Seq.empty[Seq[File] => Unit]
-  def onPathsAdded(action: Seq[File] => Unit) = {
+  var onPathsAddedHooks = Seq.empty[(Seq[File], ClassLoaderType) => Unit]
+  def onPathsAdded(action: (Seq[File], ClassLoaderType) => Unit) = {
     onPathsAddedHooks = onPathsAddedHooks :+ action
   }
 

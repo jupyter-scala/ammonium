@@ -22,7 +22,7 @@ trait Classes {
   def fromAddedClasses(name: String): Option[Array[Byte]]
 
   /** Add a hook to be called when JARs (or directories) are added */
-  def onPathsAdded(action: Seq[File] => Unit): Unit
+  def onPathsAdded(action: (Seq[File], ClassLoaderType) => Unit): Unit
 
   /**
    * For testing purposes

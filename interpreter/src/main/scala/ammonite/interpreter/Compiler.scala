@@ -156,7 +156,7 @@ object Compiler {
     dirDeps: Seq[java.io.File],
     dynamicClasspath: VirtualDirectory,
     options: List[String],
-    evalClassLoader: => ClassLoader,
+    classLoader: => ClassLoader,
     pluginClassLoader: => ClassLoader,
     shutdownPressy: () => Unit
   ): Compiler = {
@@ -195,7 +195,7 @@ object Compiler {
           }
 
         override lazy val analyzer =
-          CompilerCompatibility.analyzer(g, evalClassLoader)
+          CompilerCompatibility.analyzer(g, classLoader)
         override lazy val plugins =
           plugins0(g)
       }

@@ -3,6 +3,14 @@ package ammonite.api
 import java.io.File
 import java.net.URL
 
+trait Load0 {
+  def path(path: String*)(implicit tpe: ClassLoaderType): Unit
+  def module(module: (String, String, String)*)(implicit tpe: ClassLoaderType): Unit
+  def resolver(resolver: (String, String)*): Unit
+
+  def onPathAdded(f: (Seq[String], ClassLoaderType) => Unit): Unit
+}
+
 trait AddDependency {
   /**
    * Load a `.jar` file

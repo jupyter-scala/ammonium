@@ -6,6 +6,7 @@ import java.io.File
 import java.nio.file.Files
 import javax.servlet.http.{ HttpServletResponse, HttpServletRequest }
 
+import ammonite.api.ClassLoaderType
 import ammonite.api.IvyConstructor._
 import ammonite.spark.Compat.sparkVersion
 
@@ -160,8 +161,8 @@ class Spark(implicit
   def withConf(f: SparkConf => SparkConf): Unit =
     _sparkConf = f(sparkConf)
 
-  interpreter.classes.onPathsAdded { newJars =>
-    if (_sc != null)
+  interpreter.classes.onPathsAdded { (newJars, tpe) =>
+    if (_sc != null && (tpe == ClassLoaderType.Main || tpe == ClassLoaderType.Macro))
       newJars.filterNot(sparkJars).foreach(_sc addJar _.toURI.toString)
   }
 
