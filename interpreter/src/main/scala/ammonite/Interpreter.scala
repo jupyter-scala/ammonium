@@ -2,7 +2,7 @@ package ammonite
 
 import java.lang.reflect.InvocationTargetException
 
-import fastparse.core.Result.Success
+import fastparse.core.Parsed.Success
 
 import scala.collection.mutable
 import scala.reflect.io.VirtualDirectory

@@ -4,7 +4,7 @@ import ammonite.{ Ammonite, Interpreter }
 import ammonite.api.{ Evaluated, InterpreterError }
 import ammonite.interpreter._
 
-import fastparse.core.Result.Success
+import fastparse.core.Parsed.Success
 
 import utest._
 

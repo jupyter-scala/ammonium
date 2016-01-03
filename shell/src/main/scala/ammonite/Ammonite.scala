@@ -11,7 +11,7 @@ import caseapp._
 import java.io.{ Console => _, _ }
 import coursier.maven.MavenRepository
 import coursier.util.ClasspathFilter
-import fastparse.core.Result.Success
+import fastparse.core.Parsed.Success
 
 import scala.annotation.tailrec
 

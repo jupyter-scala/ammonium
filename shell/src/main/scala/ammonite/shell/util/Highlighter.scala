@@ -1,6 +1,7 @@
 package ammonite.shell.util
 import ammonite.interpreter.Parsers
 import fastparse.all._
+import fastparse.core.Parsed
 import fastparse.parsers.Combinators.Rule
 import scalaparse.Scala._
 import scalaparse.syntax.Identifiers._
@@ -54,7 +55,7 @@ object Highlighter {
           indices += ((idx, color, true))
 
           res() match {
-            case s: Result.Success[_] =>
+            case s: Parsed.Success[_] =>
               val prev = indices(startIndex - 1)._1
 
               if (idx < prev && s.index <= prev){
@@ -66,9 +67,9 @@ object Highlighter {
               }
               indices += ((s.index, closeColor, false))
               if (s.index == buffer.length) done = true
-            case f: Result.Failure
+            case f: Parsed.Failure
               if f.index == buffer.length
-              && (WL ~ End).parse(input, idx).isInstanceOf[Result.Failure] =>
+              && (WL ~ End).parse(input, idx).isInstanceOf[Parsed.Failure] =>
               // EOF, stop all further parsing
               done = true
             case _ =>  // hard failure, or parsed nothing. Discard all progress

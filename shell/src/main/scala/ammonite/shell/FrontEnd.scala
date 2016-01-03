@@ -4,7 +4,7 @@ import java.io.{ OutputStream, InputStream }
 
 import ammonite.interpreter._
 import ammonite.shell.util.Highlighter
-import fastparse.core.Result
+import fastparse.core.Parsed
 import jline.console.{completer, ConsoleReader}
 
 import scala.annotation.tailrec
@@ -98,12 +98,12 @@ object FrontEnd{
           case Some(newCode) =>
             val code = buffered + newCode
             Parsers.split(code) match{
-              case Some(Result.Success(value, idx)) =>
+              case Some(Parsed.Success(value, idx)) =>
                 addHistory(code)
                 Res.Success(code -> value)
-              case Some(f: Result.Failure) =>
+              case Some(f: Parsed.Failure) =>
                 addHistory(code)
-                Res.Failure(fastparse.core.SyntaxError.msg(f.input, f.traced.expected, f.index))
+                Res.Failure(fastparse.core.ParseError.msg(f.extra.input, f.extra.traced.expected, f.index))
               case None => readCode(code + "\n")
             }
         }

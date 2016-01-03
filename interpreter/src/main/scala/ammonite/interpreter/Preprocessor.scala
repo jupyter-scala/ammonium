@@ -1,6 +1,6 @@
 package ammonite.interpreter
 
-import fastparse.core.Result.Success
+import fastparse.core.Parsed.Success
 
 import scala.reflect.internal.Flags
 import scala.tools.nsc.{Global => G}

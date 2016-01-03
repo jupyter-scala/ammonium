@@ -9,21 +9,21 @@ object Parsers {
 
   val PatVarSplitter = {
     val Prefixes = P(Prelude ~ (`var` | `val`))
-    val Lhs = P( Prefixes ~! BindPattern.rep(1, "," ~! Pass) ~ (`:` ~! Type).? )
-    P( Lhs.! ~ (`=` ~! WL ~ StatCtx.Expr.!) ~ End )
+    val Lhs = P( Prefixes ~/ BindPattern.rep(1, "," ~/ Pass) ~ (`:` ~/ Type).? )
+    P( Lhs.! ~ (`=` ~/ WL ~ StatCtx.Expr.!) ~ End )
   }
   def patVarSplit(code: String) = {
-    val Result.Success((lhs, rhs), _) = PatVarSplitter.parse(code)
+    val Parsed.Success((lhs, rhs), _) = PatVarSplitter.parse(code)
     (lhs, rhs)
   }
   val Id2 = P( Id ~ End )
   def backtickWrap(s: String) = {
     Id2.parse(s) match{
-      case _: Result.Success[_] => s
+      case _: Parsed.Success[_] => s
       case _ => "`" + escape(s) + "`"
     }
   }
-  val Prelude = P( (Annot ~ OneNLMax).rep ~ (Mod ~! Pass).rep )
+  val Prelude = P( (Annot ~ OneNLMax).rep ~ (Mod ~/ Pass).rep )
   val Statement = P ( scalaparse.Scala.TopPkgSeq | scalaparse.Scala.Import | Prelude ~ BlockDef | StatCtx.Expr )
   def StatementBlock(blockSep: P0) = P ( Semis.? ~ (!blockSep ~ Statement).!.repX(sep=Semis) ~ Semis.? )
   val Splitter = P( StatementBlock(Fail) ~ WL ~ End)
@@ -32,8 +32,8 @@ object Parsers {
    * Attempts to break a code blob into multiple statements. Returns `None` if
    * it thinks the code blob is "incomplete" and requires more input
    */
-  def split(code: String): Option[fastparse.core.Result[Seq[String]]] = Splitter.parse(code) match{
-    case Result.Failure(_, index) if code.drop(index).trim() == "" => None
+  def split(code: String): Option[fastparse.core.Parsed[Seq[String]]] = Splitter.parse(code) match{
+    case Parsed.Failure(_, index, _) if code.drop(index).trim() == "" => None
     case x => Some(x)
   }
 
@@ -45,7 +45,7 @@ object Parsers {
   val BlockUnwrapper = P( "{" ~ Block.! ~ "}" ~ End)
   def unwrapBlock(code: String) = {
     BlockUnwrapper.parse(code) match{
-      case Result.Success(contents, _) => Some(contents)
+      case Parsed.Success(contents, _) => Some(contents)
       case _ => None
     }
   }
