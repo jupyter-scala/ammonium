@@ -7,7 +7,8 @@ import ammonite.shell.util._
 import caseapp._
 
 import java.io.{ Console => _, _ }
-import coursier.core.MavenRepository
+import coursier.maven.MavenRepository
+import coursier.util.ClasspathFilter
 import fastparse.core.Result.Success
 
 import scala.annotation.tailrec
@@ -124,7 +125,10 @@ object Ammonite extends AppOf[Ammonite] {
   )
 
   val repositories =
-    Seq(coursier.Repository.ivy2Local, coursier.Repository.mavenCentral) ++ {
+    Seq(
+      coursier.Cache.ivy2Local,
+      MavenRepository("https://repo1.maven.org/maven2")
+    ) ++ {
       if (BuildInfo.version endsWith "-SNAPSHOT")
         Seq(MavenRepository("https://oss.sonatype.org/content/repositories/snapshots"))
       else
@@ -142,7 +146,11 @@ object Ammonite extends AppOf[Ammonite] {
   }
 
   lazy val classLoaders0 = paths0.map { case (tpe, paths) =>
-    tpe -> new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ paths).toSet)
+    tpe -> new ClasspathFilter(
+      getClass.getClassLoader,
+      (Classes.bootClasspath ++ paths).toSet,
+      exclude = false
+    )
   }
 
   def classes0 =

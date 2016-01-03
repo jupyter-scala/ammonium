@@ -19,11 +19,11 @@ trait Repository
 
 object Repository {
   case object Local extends Repository
-  case class Maven(name: String, base: String) extends Repository
+  case class Maven(base: String) extends Repository
 
-  val central = Maven("public", "https://repo1.maven.org/maven2/")
+  val central = Maven("https://repo1.maven.org/maven2/")
   def sonatype(status: String) =
-    Maven(s"sonatype-$status", s"https://oss.sonatype.org/content/repositories/$status")
+    Maven(s"https://oss.sonatype.org/content/repositories/$status")
 }
 
 object ModuleConstructor {
@@ -37,8 +37,5 @@ object ModuleConstructor {
     def %(version: String) = (orgName._1, orgName._2, version)
   }
 
-  implicit class RepositoryNameExt(name: String) {
-    def at(location: String) = Repository.Maven(name, location)
-  }
   val Repository = ammonite.api.Repository
 }

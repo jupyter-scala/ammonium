@@ -1,51 +1,25 @@
 package ammonite.interpreter
 
-import java.util.UUID
-
 import ammonite.api.{ Repository => ApiRepository, ClassLoaderType }
 import coursier._
-import coursier.core.MavenRepository
 
 import java.net.URL
 import java.nio.file.Files
 import java.io.{ FileNotFoundException, File }
 
 import scala.collection.mutable
-import scalaz.{-\/, \/-}
+import scalaz.{ -\/, \/- }
 import scalaz.concurrent.Task
 
 object Load {
 
-  val cache = Cache.default
-  cache.init()
-
-  val maxIterations = 100
-  val parallelDownloads = 6
-
-  implicit val cachePolicy = CachePolicy.Default
-
-  println(s"Repositories:\n${cache.repositories().map("  " + _).mkString("\n")}")
-
-  val logger: MavenRepository.Logger with coursier.Files.Logger =
-    new MavenRepository.Logger with coursier.Files.Logger {
-      def downloading(url: String) =
-        println(s"Downloading $url")
-      def downloaded(url: String, success: Boolean) =
-        println(
-          if (success) s"Downloaded $url"
-          else s"Failed: $url"
-        )
-      def readingFromCache(f: File) = {
-        println(s"Reading $f from cache")
-      }
-      def puttingInCache(f: File) =
-        println(s"Writing $f in cache")
-
-      def foundLocally(f: File) =
+  val logger: coursier.Cache.Logger =
+    new coursier.Cache.Logger {
+      override def foundLocally(url: String, f: File) =
         println(s"Found locally $f")
-      def downloadingArtifact(url: String) =
+      override def downloadingArtifact(url: String, file: File) =
         println(s"Downloading $url")
-      def downloadedArtifact(url: String, success: Boolean) =
+      override def downloadedArtifact(url: String, success: Boolean) =
         println(
           if (success) s"Downloaded $url"
           else s"Failed: $url"
@@ -78,16 +52,35 @@ object Load {
     ).mkString(":") + extra
   }
 
+  val cacheDir: File = new File(sys.props("user.home") + "/.ammonium/cache/artifacts")
+
+  val caches = Seq(
+    "http://" -> new File(cacheDir, "http"),
+    "https://" -> new File(cacheDir, "https")
+  )
+
+  val maxIterations = 50
+
+  val checksums = Seq(Some("SHA-1"), None)
+
   def resolve(modules: Seq[(String, String, String)], repositories: Seq[Repository]): Seq[File] = {
     val res0 = Resolution(
       modules.map { case (org, name, ver) =>
-        Dependency(Module(org, name), ver, scope = Scope.Runtime)
+        Dependency(Module(org, name), ver, configuration = "runtime")
       }.toSet
+    )
+
+    val cachePolicy: CachePolicy = CachePolicy.FetchMissing
+
+    val fetch = coursier.Fetch(
+      repositories,
+      Cache.fetch(caches, CachePolicy.LocalOnly, checksums = checksums, logger = Some(logger)),
+      Cache.fetch(caches, cachePolicy, checksums = checksums, logger = Some(logger))
     )
 
     val res = res0
       .process
-      .run(fetch(repositories), maxIterations)
+      .run(fetch, maxIterations)
       .run
 
     if (!res.isDone) {
@@ -109,15 +102,7 @@ object Load {
 
       val artifacts = res.artifacts
 
-      val files = {
-        var files0 = cache
-          .files()
-          .copy(logger = Some(logger))
-        files0 = files0.copy(concurrentDownloadCount = parallelDownloads)
-        files0
-      }
-
-      val tasks = artifacts.map(artifact => files.file(artifact).run.map(artifact.->))
+      val tasks = artifacts.map(artifact => Cache.file(artifact, caches, cachePolicy).run.map(artifact.->))
       def printTask = Task {
         println(s"Found ${artifacts.length} artifacts")
       }
@@ -230,15 +215,9 @@ class Load(
 
   def repository(repository: ApiRepository*): Unit = {
     repositories0 = repositories0 ++ repository.map {
-      case ApiRepository.Local => Repository.ivy2Local
-      case ApiRepository.Maven(name, base0) =>
-        val base = if (base0.endsWith("/")) base0 else base0 + "/"
-        cache.list().find { case (_, repo, _) => repo.root == base } match {
-          case None =>
-            cache.add(UUID.randomUUID().toString, base, ivyLike = false)
-          case _ =>
-        }
-
+      case ApiRepository.Local =>
+        Cache.ivy2Local
+      case ApiRepository.Maven(base) =>
         MavenRepository(base)
     }
   }
