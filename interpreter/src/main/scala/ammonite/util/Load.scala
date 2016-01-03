@@ -1,11 +1,12 @@
-package ammonite.interpreter
+package ammonite.util
 
 import ammonite.api.{ Repository => ApiRepository, ClassLoaderType }
+import ammonite.interpreter.{ InterpreterAction, Interpreter, ClassesAction }
 import coursier._
 
 import java.net.URL
 import java.nio.file.Files
-import java.io.{ FileNotFoundException, File }
+import java.io.{ByteArrayOutputStream, InputStream, FileNotFoundException, File}
 
 import scala.collection.mutable
 import scalaz.{ -\/, \/- }
@@ -13,18 +14,17 @@ import scalaz.concurrent.Task
 
 object Load {
 
-  val logger: coursier.Cache.Logger =
-    new coursier.Cache.Logger {
-      override def foundLocally(url: String, f: File) =
-        println(s"Found locally $f")
-      override def downloadingArtifact(url: String, file: File) =
-        println(s"Downloading $url")
-      override def downloadedArtifact(url: String, success: Boolean) =
-        println(
-          if (success) s"Downloaded $url"
-          else s"Failed: $url"
-        )
-    }
+  val logger: Cache.Logger = new Cache.Logger {
+    override def foundLocally(url: String, f: File) =
+      println(s"Found locally $f")
+    override def downloadingArtifact(url: String, file: File) =
+      println(s"Downloading $url")
+    override def downloadedArtifact(url: String, success: Boolean) =
+      println(
+        if (success) s"Downloaded $url"
+        else s"Failed: $url"
+      )
+  }
 
   def repr(resolution: Resolution, dep: Dependency) = {
     // dep.version can be an interval, whereas the one from project can't
@@ -158,6 +158,21 @@ class Load(
     }
   }
 
+
+  private def readFully(is: InputStream) = {
+    val buffer = new ByteArrayOutputStream()
+    val data = Array.ofDim[Byte](16384)
+
+    var nRead = is.read(data, 0, data.length)
+    while (nRead != -1) {
+      buffer.write(data, 0, nRead)
+      nRead = is.read(data, 0, data.length)
+    }
+
+    buffer.flush()
+    buffer.toByteArray
+  }
+
   private var warnedJars = Set.empty[File]
   private var repositories0 = repositories
 
@@ -169,7 +184,7 @@ class Load(
   val urlCache = new mutable.HashMap[URL, File]
   def fromCache(url: URL): File =
     urlCache.getOrElseUpdate(url, {
-      val bytes = Util.readFully(url.openStream())
+      val bytes = readFully(url.openStream())
       val f = Files.createTempFile(urlCacheDir, url.getPath.split('/').last.stripSuffix(".jar"), ".jar")
       Files.write(f, bytes)
       f.toFile.deleteOnExit()

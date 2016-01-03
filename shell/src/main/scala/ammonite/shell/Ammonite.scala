@@ -3,6 +3,7 @@ package ammonite.shell
 import ammonite.interpreter._
 import ammonite.api.{ ClassLoaderType, CodeItem, ParsedCode }
 import ammonite.shell.util._
+import ammonite.util.Load
 
 import caseapp._
 

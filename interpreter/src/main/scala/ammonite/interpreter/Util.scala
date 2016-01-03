@@ -146,20 +146,6 @@ object Util {
     case Nil    =>  Nil
     case ys: List[List[A]] => ys.map{ _.head }::transpose(ys.map{ _.tail })
   }
-
-  def readFully(is: InputStream) = {
-    val buffer = new ByteArrayOutputStream()
-    val data = Array.ofDim[Byte](16384)
-
-    var nRead = is.read(data, 0, data.length)
-    while (nRead != -1) {
-      buffer.write(data, 0, nRead)
-      nRead = is.read(data, 0, data.length)
-    }
-
-    buffer.flush()
-    buffer.toByteArray
-  }
 }
 
 object NamesFor {

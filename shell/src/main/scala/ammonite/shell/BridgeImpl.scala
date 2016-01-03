@@ -2,6 +2,7 @@ package ammonite.shell
 
 import ammonite.api.{ClassLoaderType, Eval}
 import ammonite.interpreter._
+import ammonite.util.Load
 import coursier.Repository
 import pprint.{ PPrint, Config }
 import ammonite.tprint.TPrint
