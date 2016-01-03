@@ -42,18 +42,6 @@ class BridgeImpl(
   val eval: Eval = new Eval {
     def apply(code: String) =
       InterpreterAction.run(code, (), None, None, _ => ())(intp)
-
-    def options = intp.compilerOptions
-    def options_=(opts: Seq[String]) =
-      intp.compilerOptions = opts.toList
-
-    def complete(code: String, idx: Int) =
-      intp.complete(idx, code)
-
-    def sources = intp.sources
-
-    def onStop(f: => Unit) = intp.onStop(f)
-    def stop() = intp.stop()
   }
 
   val load: Load = new Load(intp, startJars, startIvys, jarMap, startResolvers)

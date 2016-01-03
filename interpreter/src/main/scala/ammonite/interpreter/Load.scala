@@ -50,12 +50,6 @@ class Load(
     }
   }
 
-  def apply(line: String) =
-    InterpreterAction.run(line, (), None, None, _ => ())(intp.asInstanceOf[Interpreter]) match {
-      case Left(err) => println(Console.RED + err.toString + Console.RESET)
-      case Right(_) =>
-    }
-
   private var warnedJars = Set.empty[File]
   private var userResolvers = startResolvers
 

@@ -13,9 +13,6 @@ trait Load {
 
   /** Add a resolver to Ivy module resolution */
   def repository(repository: Repository*): Unit
-
-  /** Loads a command into the REPL and evaluates them one after another */
-  def apply(line: String): Unit
 }
 
 trait Repository
@@ -25,7 +22,8 @@ object Repository {
   case class Maven(name: String, base: String) extends Repository
 
   val central = Maven("public", "https://repo1.maven.org/maven2/")
-  def sonatype(status: String) = Maven(s"sonatype-$status", s"https://oss.sonatype.org/content/repositories/$status")
+  def sonatype(status: String) =
+    Maven(s"sonatype-$status", s"https://oss.sonatype.org/content/repositories/$status")
 }
 
 object ModuleConstructor {
@@ -39,7 +37,7 @@ object ModuleConstructor {
     def %(version: String) = (orgName._1, orgName._2, version)
   }
 
-  implicit class ResolverNameExt(name: String) {
+  implicit class RepositoryNameExt(name: String) {
     def at(location: String) = Repository.Maven(name, location)
   }
   val Repository = ammonite.api.Repository
