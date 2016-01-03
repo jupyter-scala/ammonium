@@ -283,7 +283,7 @@ class Classes(
   classLoader0: ClassLoader = Thread.currentThread().getContextClassLoader,
   macroClassLoader0: ClassLoader = null,
   pluginClassLoader0: ClassLoader = Thread.currentThread().getContextClassLoader,
-  startPaths: Map[ClassLoaderType, Seq[File]] = Classes.defaultPaths()
+  val startPaths: Map[ClassLoaderType, Seq[File]] = Classes.defaultPaths()
 ) extends ammonite.api.Classes {
 
   def newClassLoader(parent: ClassLoader): AddURLClassLoader =
