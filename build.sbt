@@ -2,8 +2,8 @@
 lazy val sharedSettings = Seq[Setting[_]](
   organization := "com.github.alexarchambault",
   resolvers ++= Seq(
-    "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",
-    "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
+    "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/",
+    "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases",
     Resolver.sonatypeRepo("releases"),
     Resolver.sonatypeRepo("snapshots")
   ),
@@ -33,22 +33,17 @@ lazy val sharedSettings = Seq[Setting[_]](
   licenses := Seq("MIT license" -> url("http://www.opensource.org/licenses/mit-license.php")),
   pomExtra := {
     <url>https://github.com/alexarchambault/ammonite-shell</url>
-      <scm>
-        <url>git://github.com/alexarchambault/ammonite-shell.git</url>
-        <connection>scm:git://github.com/alexarchambault/ammonite-shell.git</connection>
-      </scm>
-      <developers>
-        <developer>
-          <id>alexarchambault</id>
-          <name>Alexandre Archambault</name>
-          <url>https://github.com/alexarchambault</url>
-        </developer>
-        <developer>
-          <id>lihaoyi</id>
-          <name>Li Haoyi</name>
-          <url>https://github.com/lihaoyi</url>
-        </developer>
-      </developers>
+    <scm>
+      <url>git://github.com/alexarchambault/ammonite-shell.git</url>
+      <connection>scm:git://github.com/alexarchambault/ammonite-shell.git</connection>
+    </scm>
+    <developers>
+      <developer>
+        <id>alexarchambault</id>
+        <name>Alexandre Archambault</name>
+        <url>https://github.com/alexarchambault</url>
+      </developer>
+    </developers>
   },
   publishMavenStyle := true,
   ReleaseKeys.versionBump := sbtrelease.Version.Bump.Bugfix,
@@ -68,13 +63,13 @@ lazy val testSettings = Seq(
 )
 
 
-lazy val api = project.in(file("api"))
+lazy val api = project
   .settings(sharedSettings: _*)
   .settings(
     name := "ammonite-api"
   )
 
-lazy val interpreter = project.in(file("interpreter"))
+lazy val interpreter = project
   .dependsOn(api)
   .settings(sharedSettings: _*)
   .settings(
@@ -88,7 +83,7 @@ lazy val interpreter = project.in(file("interpreter"))
     )
   )
 
-lazy val shellApi = project.in(file("shell-api"))
+lazy val `shell-api` = project
   .dependsOn(api, tprint)
   .settings(sharedSettings: _*)
   .settings(
@@ -179,7 +174,7 @@ def sparkProject(sparkVersion: String, hadoopVersion: String, extraDirSuffix: St
   val shortBinaryVersion = binaryVersion.filter('.'.!=)
 
   Project(id = s"spark-$shortBinaryVersion", base = file("spark"))
-    .dependsOn(shellApi, shell % "test->test")
+    .dependsOn(`shell-api`, shell % "test->test")
     .settings(sharedSettings ++ testSettings ++ packAutoSettings: _*)
     .settings(
       name := s"ammonite-spark-$shortBinaryVersion",
@@ -208,7 +203,7 @@ lazy val spark11 = sparkProject("1.1.1", "2.4.0", "-1.1")
 */
 
 lazy val shell = Project(id = "shell", base = file("shell"))
-  .dependsOn(shellApi, interpreter)
+  .dependsOn(`shell-api`, interpreter)
   .settings(sharedSettings ++ testSettings: _*)
   .settings(packAutoSettings ++ publishPackTxzArchive ++ publishPackZipArchive: _*)
   .settings(
@@ -236,8 +231,8 @@ lazy val shell = Project(id = "shell", base = file("shell"))
 
 lazy val root = project.in(file("."))
   .settings(sharedSettings: _*)
-  .aggregate(api, interpreter, shellApi, spark15, spark14, spark13, spark12, shell, tprint)
-  .dependsOn(api, interpreter, shellApi, spark15, spark14, spark13, spark12, shell, tprint)
+  .aggregate(api, interpreter, `shell-api`, spark15, spark14, spark13, spark12, shell, tprint)
+  .dependsOn(api, interpreter, `shell-api`, spark15, spark14, spark13, spark12, shell, tprint)
   .settings(
     publish := {},
     publishLocal := {},
