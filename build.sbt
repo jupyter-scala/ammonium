@@ -90,7 +90,7 @@ lazy val `shell-api` = project
     name := "ammonite-shell-api",
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "com.lihaoyi" %% "pprint" % "0.3.4"
+      "com.lihaoyi" %% "pprint" % "0.3.6"
     )
   )
   .settings(buildInfoSettings: _*)
@@ -110,7 +110,7 @@ lazy val tprint = project
     libraryDependencies ++= {
       Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-        "com.lihaoyi" %% "pprint" % "0.3.4"
+        "com.lihaoyi" %% "pprint" % "0.3.6"
       ) ++ {
         if (scalaVersion.value.startsWith("2.11"))
           Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value
