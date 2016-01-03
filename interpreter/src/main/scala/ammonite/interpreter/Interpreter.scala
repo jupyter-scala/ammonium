@@ -327,7 +327,7 @@ object InterpreterAction {
       Right(())
     }
 
-  def initBridgeCls(bridge: Bridge, cls: Class[_]): InterpreterAction[Unit] =
+  def initBridgeCls(bridge: BridgeConfig, cls: Class[_]): InterpreterAction[Unit] =
     instance { interpreter =>
       Right(
         bridge.initClass(
@@ -372,7 +372,7 @@ object InterpreterAction {
     }
 
   def init[T](
-    bridge: Bridge,
+    bridge: BridgeConfig,
     stdout: Option[String => Unit],
     stderr: Option[String => Unit],
     compilerOptions: Seq[String] = null

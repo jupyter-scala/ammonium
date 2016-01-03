@@ -4,7 +4,7 @@ import ammonite.api.Import
 
 
 /** Handles the shared class between user and interpreter class loaders (so called "bridge") */
-trait Bridge {
+trait BridgeConfig {
   def init: String
   def name: String
   def imports: Seq[Import]
@@ -12,8 +12,8 @@ trait Bridge {
   def initClass(intp: Interpreter, cls: Class[_]): Unit
 }
 
-object Bridge {
-  val empty: Bridge = new Bridge {
+object BridgeConfig {
+  val empty: BridgeConfig = new BridgeConfig {
     def init = "object Bridge"
     def name = "Bridge"
     def imports = Nil
