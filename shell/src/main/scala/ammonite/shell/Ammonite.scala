@@ -111,11 +111,21 @@ object Ammonite extends AppOf[Ammonite] {
     s""" Iterator[Iterator[String]](${items.map(ShellDisplay(_, colors)).mkString(", ")}).filter(_.nonEmpty).flatMap(_ ++ Iterator("\\n")) """
 
   val scalaVersion = scala.util.Properties.versionNumberString
-  val modules = Seq(
-    ("org.scala-lang", "scala-library", scalaVersion),
-    ("com.github.alexarchambault", s"ammonite-shell-api_$scalaVersion", BuildInfo.version)
+
+  import ammonite.api.ModuleConstructor._
+
+  val modules0 = Map[ClassLoaderType, Seq[(String, String, String)]](
+    ClassLoaderType.Main -> Seq(
+      "org.scala-lang" % "scala-library" % scalaVersion,
+      "com.github.alexarchambault" % s"ammonite-shell-api_$scalaVersion" % BuildInfo.version
+    ),
+    ClassLoaderType.Macro -> Seq(
+      "org.scala-lang" % "scala-library" % scalaVersion,
+      "com.github.alexarchambault" % s"ammonite-shell-api_$scalaVersion" % BuildInfo.version,
+      "org.scala-lang" % "scala-compiler" % scalaVersion
+    ),
+    ClassLoaderType.Plugin -> Seq.empty
   )
-  val macroModules = modules ++ Seq(("org.scala-lang", "scala-compiler", scalaVersion))
 
   val repositories =
     Seq(Resolver.localRepo, Resolver.defaultMaven) ++ {
@@ -124,22 +134,28 @@ object Ammonite extends AppOf[Ammonite] {
 
   lazy val pathMap = Classes.jarMap(getClass.getClassLoader)
 
-  lazy val paths =
-    Ivy.resolve(modules, repositories).toSeq
+  lazy val paths0 = modules0.map { case (tpe, modules) =>
+    tpe -> Ivy.resolve(modules, repositories).toSeq
       .map(pathMap)
       .filter(_.exists())
+  }
 
-  lazy val macroPaths =
-    Ivy.resolve(macroModules, repositories).toSeq
-      .map(pathMap)
-      .filter(_.exists())
+  lazy val classLoaders0 = paths0.map { case (tpe, paths) =>
+    tpe -> new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ paths).toSet)
+  }
 
+  def classes0 =
+    new Classes(
+      classLoaders0(ClassLoaderType.Main),
+      macroClassLoader0 = classLoaders0(ClassLoaderType.Macro),
+      startPaths = paths0
+    )
 
-  lazy val classLoader =
-    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ paths).toSet)
-
-  lazy val macroClassLoader =
-    new ClasspathFilter(getClass.getClassLoader, (Classes.bootClasspath ++ macroPaths).toSet)
+  def sharedClasses =
+    new Classes(
+      Thread.currentThread().getContextClassLoader,
+      startPaths = Classes.defaultPaths()
+    )
 
 
   def hasObjWrapSpecialImport(d: ParsedCode): Boolean =
@@ -159,26 +175,9 @@ object Ammonite extends AppOf[Ammonite] {
     initialHistory: Seq[String] = Nil,
     history: => Seq[String]
   ): Interpreter = {
-    val startPaths = Classes.defaultPaths()
-
     val intp = new Interpreter(
       imports = new Imports(useClassWrapper = classWrap),
-      classes =
-        if (sharedLoader)
-          new Classes(
-            Thread.currentThread().getContextClassLoader,
-            startPaths = startPaths
-          )
-        else
-          new Classes(
-            classLoader,
-            macroClassLoader0 = macroClassLoader,
-            startPaths = Map(
-              ClassLoaderType.Main -> paths,
-              ClassLoaderType.Macro -> macroPaths,
-              ClassLoaderType.Plugin -> paths
-            )
-          ),
+      classes = if (sharedLoader) sharedClasses else classes0,
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory
     ) {
@@ -203,8 +202,8 @@ object Ammonite extends AppOf[Ammonite] {
 
     val init = InterpreterAction.init(
       new BridgeConfig(
-        paths0 = if (sharedLoader) startPaths(ClassLoaderType.Main) else paths,
-        modules0 = modules,
+        paths = intp.classes.startPaths,
+        modules = modules0, // wrong if sharedModules is true
         repositories0 = repositories,
         pathMap = pathMap,
         shellPrompt = shellPromptRef,

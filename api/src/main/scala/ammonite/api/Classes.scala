@@ -2,7 +2,7 @@ package ammonite.api
 
 import java.io.File
 
-sealed trait ClassLoaderType
+sealed trait ClassLoaderType extends Product with Serializable
 object ClassLoaderType {
   case object Main extends ClassLoaderType
   case object Plugin extends ClassLoaderType

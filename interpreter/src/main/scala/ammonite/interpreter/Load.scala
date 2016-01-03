@@ -14,22 +14,14 @@ import scala.collection.mutable
 
 class Load(
   intp: Interpreter,
-  startJars: Seq[File],
-  startIvys: Seq[(String, String, String)],
-  jarMap: File => File,
-  startResolvers: Seq[DependencyResolver]
+  paths: Map[ClassLoaderType, Seq[File]],
+  modules: Map[ClassLoaderType, Seq[(String, String, String)]],
+  pathMap: File => File,
+  repositories: Seq[DependencyResolver]
 ) extends ammonite.api.Load {
 
-  var paths0 = Map[ClassLoaderType, Seq[File]](
-    ClassLoaderType.Main -> startJars,
-    ClassLoaderType.Macro -> Seq.empty,
-    ClassLoaderType.Plugin -> Seq.empty
-  )
-  var modules0 = Map[ClassLoaderType, Seq[(String, String, String)]](
-    ClassLoaderType.Main -> startIvys,
-    ClassLoaderType.Macro -> Seq.empty,
-    ClassLoaderType.Plugin -> Seq.empty
-  )
+  var paths0 = paths
+  var modules0 = modules
 
   var repositories0 = Seq.empty[DependencyResolver]
 
@@ -51,7 +43,7 @@ class Load(
   }
 
   private var warnedJars = Set.empty[File]
-  private var userResolvers = startResolvers
+  private var userResolvers = repositories
 
   lazy val urlCacheDir = {
     val d = Files.createTempDirectory("ammonite-url-cache")
@@ -78,14 +70,14 @@ class Load(
     }
 
   def updateIvy(extra: Seq[File] = Nil)(implicit tpe: ClassLoaderType): Unit = {
-    val ivyJars = Ivy.resolve(modules0(tpe), userResolvers).map(jarMap)
+    val ivyJars = Ivy.resolve(modules0(tpe), userResolvers).map(pathMap)
     val newJars = ivyJars ++ paths0(tpe)
 
     val removedJars = intp.classes.path().filter(f => f.isFile && f.getName.endsWith(".jar")).toSet -- newJars
     // Second condition: if startIvys is empty, it is likely the startJars were *not* computed
     // from ivy modules, so we do not warn users about the startJars not being found
     // later by ivy
-    if ((removedJars -- warnedJars).nonEmpty && !(warnedJars.isEmpty && startIvys.isEmpty)) {
+    if ((removedJars -- warnedJars).nonEmpty && !(warnedJars.isEmpty && modules.isEmpty)) {
       println(
         s"Warning: the following JARs were previously added and are no more required:" +
           (removedJars -- warnedJars).toList.sorted.map("  ".+).mkString("\n", "\n", "\n") +
@@ -98,7 +90,7 @@ class Load(
   }
 
   def resolve(coordinates: (String, String, String)*): Seq[File] =
-    Ivy.resolve(coordinates, userResolvers).map(jarMap)
+    Ivy.resolve(coordinates, userResolvers).map(pathMap)
 
   def repository(resolver: ApiResolver*): Unit = {
     userResolvers = userResolvers ++ resolver.map {

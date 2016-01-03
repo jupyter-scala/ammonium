@@ -2,14 +2,14 @@ package ammonite.shell
 
 import java.io.File
 
-import ammonite.api.{ModuleConstructor, Import}
+import ammonite.api.{ClassLoaderType, ModuleConstructor, Import}
 import ammonite.interpreter.{Ref, Interpreter, NamesFor}
 import ammonite.shell.util.Colors
 import org.apache.ivy.plugins.resolver.DependencyResolver
 
 class BridgeConfig(
-  paths0: Seq[File],
-  modules0: Seq[(String, String, String)],
+  paths: Map[ClassLoaderType, Seq[File]],
+  modules: Map[ClassLoaderType, Seq[(String, String, String)]],
   pathMap: File => File,
   repositories0: Seq[DependencyResolver],
   shellPrompt: => Ref[String],
@@ -39,8 +39,8 @@ class BridgeConfig(
     if (bridge == null)
       bridge = new BridgeImpl(
         intp,
-        paths0,
-        modules0,
+        paths,
+        modules,
         pathMap,
         repositories0,
         colors,
