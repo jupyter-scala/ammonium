@@ -16,8 +16,6 @@ import scalaz.concurrent.Task
 object Load {
 
   val logger: Cache.Logger = new Cache.Logger {
-    override def foundLocally(url: String, f: File) =
-      println(s"Found locally $f")
     override def downloadingArtifact(url: String, file: File) =
       println(s"Downloading $url")
     override def downloadedArtifact(url: String, success: Boolean) =
@@ -104,10 +102,7 @@ object Load {
       val artifacts = res.artifacts
 
       val tasks = artifacts.map(artifact => Cache.file(artifact, caches, cachePolicy).run.map(artifact.->))
-      def printTask = Task {
-        println(s"Found ${artifacts.length} artifacts")
-      }
-      val task = printTask.flatMap(_ => Task.gatherUnordered(tasks))
+      val task = Task.gatherUnordered(tasks)
 
       val results = task.run
       val errors = results.collect { case (artifact, -\/(err)) => artifact -> err }
