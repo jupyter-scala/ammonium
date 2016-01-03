@@ -90,14 +90,15 @@ class BridgeImpl(
         ) ++ rhs
       }
 
-    def show[T: PPrint](
+    def show[T](
       t: T,
       width: Integer,
       height: Integer,
       indent: Integer,
       colors: pprint.Colors
     )(implicit
-      cfg: Config
+      cfg: Config,
+      pprint0: PPrint[T]
     ): Unit = {
       pprint.tokenize(t, width, height, indent, colors)(implicitly[PPrint[T]], cfg).foreach(scala.Predef.print)
       println()

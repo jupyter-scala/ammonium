@@ -20,7 +20,7 @@ class AdvancedTests(check0: => Checker,
             @ import scalatags.Text.all._
             error: not found: value scalatags
 
-            @ load.ivy("com.lihaoyi" %% "scalatags" % "0.4.5")
+            @ load.module("com.lihaoyi" %% "scalatags" % "0.4.5")
 
             @ import scalatags.Text.all._
             import scalatags.Text.all._
@@ -34,7 +34,7 @@ class AdvancedTests(check0: => Checker,
         'dependent{
           // Make sure it automatically picks up jawn-parser since upickle depends on it,
           check.session("""
-            @ load.ivy("com.lihaoyi" %% "upickle" % "0.2.6")
+            @ load.module("com.lihaoyi" %% "upickle" % "0.2.6")
 
             @ import upickle._
             import upickle._
@@ -116,7 +116,7 @@ class AdvancedTests(check0: => Checker,
       }
       'code{
         check.session("""
-          @ load("val x = 1")
+          @ eval("val x = 1")
 
           @ x
           res2: Int = 1
@@ -172,7 +172,7 @@ class AdvancedTests(check0: => Checker,
 
     'shapeless{
       check.session("""
-        @ load.module("com.chuusai" %% "shapeless" % "2.2.5"); if (scala.util.Properties.versionNumberString.startsWith("2.10.")) load.plugin.ivy("org.scalamacros" % "paradise_2.10.6" % "2.0.1")
+        @ load.module("com.chuusai" %% "shapeless" % "2.2.5"); if (scala.util.Properties.versionNumberString.startsWith("2.10.")) load.module("org.scalamacros" % "paradise_2.10.6" % "2.0.1")(ammonite.api.ClassLoaderType.Plugin)
 
         @ import shapeless._
 
@@ -220,7 +220,7 @@ class AdvancedTests(check0: => Checker,
         pch: Process[Nothing, Int => Task[Unit]] = Append(Halt(End), Vector(<function1>))
 
         @ Process.constant(1).toSource.to(pch).runLog.run.size == 3
-        res6: Boolean = true
+        res5: Boolean = true
       """)
     }
 
@@ -464,7 +464,7 @@ class AdvancedTests(check0: => Checker,
 
         @ // This one must be loaded
 
-        @ load.plugin.ivy("org.spire-math" %% "kind-projector" % "0.6.3")
+        @ load.module("org.spire-math" %% "kind-projector" % "0.6.3")(ammonite.api.ClassLoaderType.Plugin)
 
         @ trait TC[F[_]]
         defined trait TC
@@ -474,7 +474,7 @@ class AdvancedTests(check0: => Checker,
 
         @ // Useless - does not add plugins, and ignored by eval class loader
         
-        @ load.plugin.ivy("eu.timepit" %% "refined" % "0.2.1")
+        @ load.module("eu.timepit" %% "refined" % "0.2.1")(ammonite.api.ClassLoaderType.Plugin)
 
         @ import eu.timepit.refined._
         error: not found: value eu

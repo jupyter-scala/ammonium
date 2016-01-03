@@ -27,14 +27,15 @@ trait Term {
    */
   implicit var pprintConfig: pprint.Config
 
-  def show[T: PPrint](
+  def show[T](
     t: T,
     width: Integer = null,
     height: Integer = 0,
     indent: Integer = null,
-    colors: pprint.Colors = null
+    colors: _root_.pprint.Colors = null
   )(implicit
-    cfg: Config = Config.Defaults.PPrintConfig
+    cfg: Config = Config.Defaults.PPrintConfig,
+    pprint: PPrint[T]
   ): Unit
 
   def display[T](

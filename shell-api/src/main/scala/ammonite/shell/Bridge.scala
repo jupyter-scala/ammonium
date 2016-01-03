@@ -1,5 +1,6 @@
 package ammonite.shell
 
+import pprint.{Config, PPrint}
 import ammonite.api._
 
 trait Bridge {
@@ -9,7 +10,20 @@ trait Bridge {
   implicit def setup: Setup
   implicit def term: Term
 
-  implicit def pprintConfig = term.pprintConfig
+  implicit def pprintConfig: pprint.Config = term.pprintConfig
+  def pprintConfig_=(cfg: pprint.Config): Unit =
+    term.pprintConfig = cfg
+
+  def show[T](
+    t: T,
+    width: Integer = null,
+    height: Integer = 0,
+    indent: Integer = null,
+    colors: _root_.pprint.Colors = null
+  )(implicit
+    cfg: Config = Config.Defaults.PPrintConfig,
+    pprint: PPrint[T]
+  ): Unit = term.show(t, width, height, indent, colors)(cfg, pprint)
 
   def exit: Nothing
 }
