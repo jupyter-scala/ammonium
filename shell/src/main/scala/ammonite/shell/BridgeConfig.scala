@@ -5,13 +5,14 @@ import java.io.File
 import ammonite.api.{ClassLoaderType, ModuleConstructor, Import}
 import ammonite.interpreter.{Ref, Interpreter, NamesFor}
 import ammonite.shell.util.Colors
+import coursier.core.Repository
 import org.apache.ivy.plugins.resolver.DependencyResolver
 
 class BridgeConfig(
   paths: Map[ClassLoaderType, Seq[File]],
   modules: Map[ClassLoaderType, Seq[(String, String, String)]],
   pathMap: File => File,
-  repositories0: Seq[DependencyResolver],
+  repositories0: Seq[Repository],
   shellPrompt: => Ref[String],
   reset: => Unit,
   pprintConfig: pprint.Config,

@@ -7,11 +7,12 @@ import ammonite.interpreter._
 import ammonite.api.{ ClassLoaderType, CodeItem, ParsedCode }
 import ammonite.shell.util._
 
-import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
+import com.github.alexarchambault.ivylight.ClasspathFilter
 
 import caseapp._
 
 import java.io.{ Console => _, _ }
+import coursier.core.MavenRepository
 import fastparse.core.Result.Success
 
 import scala.annotation.tailrec
@@ -128,16 +129,18 @@ object Ammonite extends AppOf[Ammonite] {
   )
 
   val repositories =
-    Seq(Resolver.localRepo, Resolver.defaultMaven) ++ {
-      if (BuildInfo.version endsWith "-SNAPSHOT") Seq(Resolver.sonatypeRepo("snapshots")) else Seq()
+    Seq(coursier.Repository.ivy2Local, coursier.Repository.mavenCentral) ++ {
+      if (BuildInfo.version endsWith "-SNAPSHOT") Seq(MavenRepository("https://oss.sonatype.org/content/repositories/snapshots")) else Seq()
     }
 
   lazy val pathMap = Classes.jarMap(getClass.getClassLoader)
 
-  lazy val paths0 = modules0.map { case (tpe, modules) =>
-    tpe -> Ivy.resolve(modules, repositories).toSeq
-      .map(pathMap)
-      .filter(_.exists())
+  lazy val paths0 = {
+    modules0.map { case (tpe, modules) =>
+      tpe -> Load.resolve(modules, repositories)
+        .map(pathMap)
+        .filter(_.exists())
+    }
   }
 
   lazy val classLoaders0 = paths0.map { case (tpe, paths) =>

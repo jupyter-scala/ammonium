@@ -100,7 +100,9 @@ lazy val interpreter = project.in(file("interpreter"))
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full,
-      "com.lihaoyi" %% "scalaparse" % "0.2.1"
+      "com.lihaoyi" %% "scalaparse" % "0.2.1",
+      "com.github.alexarchambault" %% "coursier" % "0.1.0-SNAPSHOT",
+      "com.github.alexarchambault" %% "coursier-files" % "0.1.0-SNAPSHOT"
     )
   )
 

@@ -2,6 +2,7 @@ package ammonite.shell
 
 import ammonite.api.{ClassLoaderType, Eval}
 import ammonite.interpreter._
+import coursier.Repository
 import pprint.{ PPrint, Config }
 import ammonite.tprint.TPrint
 import ammonite.shell.util._
@@ -29,7 +30,7 @@ class BridgeImpl(
   paths: Map[ClassLoaderType, Seq[File]],
   modules: Map[ClassLoaderType, Seq[(String, String, String)]],
   pathMap: File => File,
-  repositories: Seq[DependencyResolver],
+  repositories: Seq[Repository],
   colors: Colors,
   shellPromptRef: Ref[String],
   pprintConfig0: pprint.Config,
