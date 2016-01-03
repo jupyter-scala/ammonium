@@ -1,6 +1,6 @@
 package ammonite.interpreter
 
-import ammonite.api.{Repository => ApiResolver, ClassLoaderType, AddDependency}
+import ammonite.api.{ Repository => ApiResolver, ClassLoaderType }
 
 import org.apache.ivy.plugins.resolver.DependencyResolver
 import com.github.alexarchambault.ivylight.{ Resolver, Ivy }
@@ -20,54 +20,42 @@ class Load(
   startResolvers: Seq[DependencyResolver]
 ) extends ammonite.api.Load {
 
+  var paths0 = Map[ClassLoaderType, Seq[File]](
+    ClassLoaderType.Main -> startJars,
+    ClassLoaderType.Macro -> Seq.empty,
+    ClassLoaderType.Plugin -> Seq.empty
+  )
+  var modules0 = Map[ClassLoaderType, Seq[(String, String, String)]](
+    ClassLoaderType.Main -> startIvys,
+    ClassLoaderType.Macro -> Seq.empty,
+    ClassLoaderType.Plugin -> Seq.empty
+  )
+
+  var repositories0 = Seq.empty[DependencyResolver]
+
+  def path(paths: String*)(implicit tpe: ClassLoaderType) = {
+    val newPaths = paths.map(fileFor).filterNot(paths0(tpe).toSet)
+    if (newPaths.nonEmpty) {
+      paths0 += tpe -> (paths0(tpe) ++ newPaths)
+      ClassesAction.addPath(tpe)(newPaths: _*)(intp.classes.asInstanceOf[Classes])
+      InterpreterAction.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
+    }
+  }
+
+  def module(coordinates: (String, String, String)*)(implicit tpe: ClassLoaderType) = {
+    val newModules = coordinates.filterNot(modules0(tpe).toSet)
+    if (newModules.nonEmpty) {
+      modules0 += tpe -> (modules0(tpe) ++ newModules)
+      updateIvy()
+    }
+  }
+
   def apply(line: String) =
-    Interpret.run(line, (), None, None, _ => ())(intp.asInstanceOf[Interpreter]) match {
+    InterpreterAction.run(line, (), None, None, _ => ())(intp.asInstanceOf[Interpreter]) match {
       case Left(err) => println(Console.RED + err.toString + Console.RESET)
       case Right(_) =>
     }
 
-  lazy val compiler: AddDependency = new AddDependency {
-    def path(paths: String*) =
-      paths.map(fileFor).toList match {
-        case l if l.nonEmpty =>
-          ClassesAction.addPath(ClassLoaderType.Macro)(l: _*)(intp.classes.asInstanceOf[Classes])
-          Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
-        case Nil =>
-      }
-
-    var compilerIvys = Seq.empty[(String, String, String)]
-    def module(coordinates: (String, String, String)*) = {
-      compilerIvys = compilerIvys ++ coordinates
-      val ivyJars = Ivy.resolve(compilerIvys ++ userIvys, userResolvers)
-        .map(jarMap)
-        .filterNot(intp.classes.path(ClassLoaderType.Macro).filter(f => f.isFile && f.getName.endsWith(".jar")).toSet)
-      if (ivyJars.nonEmpty)
-        path(ivyJars.map(_.toString): _*)
-    }
-  }
-
-  lazy val plugin: AddDependency = new AddDependency {
-    def path(paths: String*) =
-      paths.map(fileFor).toList match {
-        case l if l.nonEmpty =>
-          ClassesAction.addPath(ClassLoaderType.Plugin)(l: _*)(intp.classes.asInstanceOf[Classes])
-          Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
-        case Nil =>
-      }
-
-    var pluginIvys = Seq.empty[(String, String, String)]
-    def module(coordinates: (String, String, String)*) = {
-      pluginIvys = pluginIvys ++ coordinates
-      val ivyJars = Ivy.resolve(pluginIvys, userResolvers)
-        .map(jarMap)
-        .filterNot(intp.classes.path(ClassLoaderType.Plugin).filter(f => f.isFile && f.getName.endsWith(".jar")).toSet)
-      if (ivyJars.nonEmpty)
-        path(ivyJars.map(_.toString):_ *)
-    }
-  }
-
-  private var userJars = startJars
-  private var userIvys = startIvys
   private var warnedJars = Set.empty[File]
   private var userResolvers = startResolvers
 
@@ -95,23 +83,9 @@ class Load(
       f
     }
 
-  def path(paths: String*): Unit =
-    paths.map(fileFor).toList match {
-      case l if l.nonEmpty =>
-        userJars = userJars ++ l
-        ClassesAction.addPath(ClassLoaderType.Main)(l: _*)(intp.classes.asInstanceOf[Classes])
-        Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
-      case Nil =>
-    }
-
-  def module(coordinates: (String, String, String)*): Unit = {
-    userIvys = userIvys ++ coordinates
-    updateIvy()
-  }
-
-  def updateIvy(extra: Seq[File] = Nil): Unit = {
-    val ivyJars = Ivy.resolve(userIvys, userResolvers).map(jarMap)
-    val newJars = ivyJars ++ userJars
+  def updateIvy(extra: Seq[File] = Nil)(implicit tpe: ClassLoaderType): Unit = {
+    val ivyJars = Ivy.resolve(modules0(tpe), userResolvers).map(jarMap)
+    val newJars = ivyJars ++ paths0(tpe)
 
     val removedJars = intp.classes.path().filter(f => f.isFile && f.getName.endsWith(".jar")).toSet -- newJars
     // Second condition: if startIvys is empty, it is likely the startJars were *not* computed
@@ -125,8 +99,8 @@ class Load(
     }
     warnedJars = removedJars
 
-    ClassesAction.addPath(ClassLoaderType.Main)(newJars ++ extra: _*)(intp.classes.asInstanceOf[Classes])
-    Interpret.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
+    ClassesAction.addPath(tpe)(newJars ++ extra: _*)(intp.classes.asInstanceOf[Classes])
+    InterpreterAction.initCompiler()(intp.asInstanceOf[ammonite.interpreter.Interpreter])
   }
 
   def resolve(coordinates: (String, String, String)*): Seq[File] =

@@ -29,8 +29,8 @@ trait Term {
 
   def show[T: PPrint](
     t: T,
-    width: Integer = 0,
-    height: Integer = null,
+    width: Integer = null,
+    height: Integer = 0,
     indent: Integer = null,
     colors: pprint.Colors = null
   )(implicit

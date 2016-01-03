@@ -55,7 +55,7 @@ class AmmoniteChecker extends Checker {
   if (predef.nonEmpty) {
     Parsers.split(predef) match {
       case Some(Success(stmts, _)) =>
-        Interpret(
+        InterpreterAction(
           stmts,
           (),
           if (captureOut) Some(allOutput += _) else None,
@@ -106,7 +106,7 @@ class AmmoniteChecker extends Checker {
     val msgOut = collection.mutable.Buffer.empty[String]
     val processed = Parsers.split(input) match {
       case Some(Success(stmts, _)) =>
-        Interpret(
+        InterpreterAction(
           stmts,
           (),
           if (captureOut) Some(msgOut.append(_)) else None,

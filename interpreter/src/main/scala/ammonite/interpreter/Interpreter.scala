@@ -109,11 +109,11 @@ object Interpreter {
   }
 }
 
-sealed trait Interpret[T] { self =>
+sealed trait InterpreterAction[T] { self =>
   def apply(interpreter: Interpreter): Either[InterpreterError, T]
 
-  def filter(p: T => Boolean): Interpret[T] =
-    Interpret.instance { interpreter =>
+  def filter(p: T => Boolean): InterpreterAction[T] =
+    InterpreterAction.instance { interpreter =>
       self(interpreter).right.flatMap { t =>
         if (p(t))
           Right(t)
@@ -122,27 +122,27 @@ sealed trait Interpret[T] { self =>
       }
     }
 
-  def map[U](f: T => U): Interpret[U] =
-    flatMap(t => Interpret.point(f(t)))
+  def map[U](f: T => U): InterpreterAction[U] =
+    flatMap(t => InterpreterAction.point(f(t)))
 
-  def flatMap[U](f: T => Interpret[U]): Interpret[U] =
-    Interpret.instance { interpreter =>
+  def flatMap[U](f: T => InterpreterAction[U]): InterpreterAction[U] =
+    InterpreterAction.instance { interpreter =>
       self(interpreter).right.flatMap(f(_)(interpreter))
     }
 }
 
-object Interpret {
-  def point[T](t: T): Interpret[T] =
+object InterpreterAction {
+  def point[T](t: T): InterpreterAction[T] =
     instance { interpreter =>
       Right(t)
     }
 
-  def instance[T](f: Interpreter => Either[InterpreterError, T]): Interpret[T] =
-    new Interpret[T] {
+  def instance[T](f: Interpreter => Either[InterpreterError, T]): InterpreterAction[T] =
+    new InterpreterAction[T] {
       def apply(interpreter: Interpreter) = f(interpreter)
     }
 
-  def addImports(imports: Seq[Import]): Interpret[Unit] =
+  def addImports(imports: Seq[Import]): InterpreterAction[Unit] =
     instance { interpreter =>
       interpreter.imports.add(imports)
 
@@ -164,19 +164,19 @@ object Interpret {
       Right(())
     }
 
-  def loadByteCode(byteCode: Seq[(String, Array[Byte])]): Interpret[Unit] =
+  def loadByteCode(byteCode: Seq[(String, Array[Byte])]): InterpreterAction[Unit] =
     instance { interpreter =>
       for ((name, bytes) <- byteCode)
         interpreter.classes.addClass(name, bytes)
 
       Right(())
     }
-  def loadClass(name: String): Interpret[Class[_]] =
+  def loadClass(name: String): InterpreterAction[Class[_]] =
     instance[Class[_]] { interpreter =>
       Right(Class.forName(name, true, interpreter.classes.classLoader()))
     }
 
-  def splitCode(code: String): Interpret[Seq[String]] =
+  def splitCode(code: String): InterpreterAction[Seq[String]] =
     instance { interpreter =>
       Parsers.split(code) match {
         case Some(Success(stmts, _)) =>
@@ -186,10 +186,10 @@ object Interpret {
       }
     }
 
-  val catchUnexpectedException: Interpret[Unit] =
-    new Interpret[Unit] {
+  val catchUnexpectedException: InterpreterAction[Unit] =
+    new InterpreterAction[Unit] {
       def apply(interpreter: Interpreter) = Right(())
-      override def flatMap[U](f: Unit => Interpret[U]) =
+      override def flatMap[U](f: Unit => InterpreterAction[U]) =
         instance { interpreter =>
           try f(())(interpreter)
           catch {
@@ -199,7 +199,7 @@ object Interpret {
         }
     }
 
-  def preprocessor(statements: Seq[String]): Interpret[Seq[ParsedCode]] =
+  def preprocessor(statements: Seq[String]): InterpreterAction[Seq[ParsedCode]] =
     instance { interpreter =>
       Preprocessor(interpreter.compiler.parse, statements, interpreter.getCurrentLine) match {
         case Res.Success(l) =>
@@ -213,19 +213,19 @@ object Interpret {
       }
     }
 
-  def capturing(stdout: Option[String => Unit], stderr: Option[String => Unit]): Interpret[Unit] =
-    new Interpret[Unit] {
+  def capturing(stdout: Option[String => Unit], stderr: Option[String => Unit]): InterpreterAction[Unit] =
+    new InterpreterAction[Unit] {
       def apply(interpreter: Interpreter) = Right(())
-      override def flatMap[U](f: Unit => Interpret[U]) =
+      override def flatMap[U](f: Unit => InterpreterAction[U]) =
         instance { interpreter =>
           Capture(stdout, stderr)(f(())(interpreter))
         }
     }
 
-  val withInterpreterClassLoader: Interpret[Unit] =
-    new Interpret[Unit] {
+  val withInterpreterClassLoader: InterpreterAction[Unit] =
+    new InterpreterAction[Unit] {
       def apply(interpreter: Interpreter) = Right(())
-      override def flatMap[U](f: Unit => Interpret[U]) =
+      override def flatMap[U](f: Unit => InterpreterAction[U]) =
         instance { interpreter =>
           val thread = Thread.currentThread()
           val oldClassLoader = thread.getContextClassLoader
@@ -239,12 +239,12 @@ object Interpret {
         }
     }
 
-  val newWrapper: Interpret[String] =
+  val newWrapper: InterpreterAction[String] =
     instance { interpreter =>
       Right("cmd" + interpreter.getCurrentLine)
     }
 
-  def wrap(wrapper0: String, decls: Seq[ParsedCode]): Interpret[(String, String)] =
+  def wrap(wrapper0: String, decls: Seq[ParsedCode]): InterpreterAction[(String, String)] =
     instance { interpreter =>
       Right(
         interpreter.wrap(
@@ -258,7 +258,7 @@ object Interpret {
       )
     }
 
-  def compile(code: String): Interpret[(Seq[(String, Array[Byte])], Seq[Import])] =
+  def compile(code: String): InterpreterAction[(Seq[(String, Array[Byte])], Seq[Import])] =
     instance { interpreter =>
       val output = mutable.Buffer.empty[String]
       val result = interpreter.compiler.compile(code.getBytes("UTF-8"), output.append(_))
@@ -271,7 +271,7 @@ object Interpret {
       }
     }
 
-  val increaseLineCounter: Interpret[Unit] =
+  val increaseLineCounter: InterpreterAction[Unit] =
     instance { interpreter =>
       interpreter.currentLine += 1
       Right(())
@@ -279,10 +279,10 @@ object Interpret {
 
   def evaluating[T](f: => T): T = f
 
-  val catchingUserError: Interpret[Unit] =
-    new Interpret[Unit] {
+  val catchingUserError: InterpreterAction[Unit] =
+    new InterpreterAction[Unit] {
       def apply(interpreter: Interpreter) = Right(())
-      override def flatMap[U](f: Unit => Interpret[U]) = {
+      override def flatMap[U](f: Unit => InterpreterAction[U]) = {
         def interrupted() = {
           Thread.interrupted()
           Left(InterpreterError.Interrupted)
@@ -309,24 +309,24 @@ object Interpret {
       }
     }
 
-  def evaluate[T](cls: Class[_], process: AnyRef => T): Interpret[T] =
+  def evaluate[T](cls: Class[_], process: AnyRef => T): InterpreterAction[T] =
     instance { interpreter =>
       Right(evaluating(process(cls.getDeclaredMethod("$main").invoke(null))))
     }
 
-  def saveSource(wrapper: String, wrappedCode: String): Interpret[Unit] =
+  def saveSource(wrapper: String, wrappedCode: String): InterpreterAction[Unit] =
     instance { interpreter =>
       interpreter.sourcesMap(wrapper) = wrappedCode
       Right(())
     }
 
-  def callback(f: => Unit): Interpret[Unit] =
+  def callback(f: => Unit): InterpreterAction[Unit] =
     instance { interpreter =>
       f
       Right(())
     }
 
-  def initBridgeCls(bridge: Bridge, cls: Class[_]): Interpret[Unit] =
+  def initBridgeCls(bridge: Bridge, cls: Class[_]): InterpreterAction[Unit] =
     instance { interpreter =>
       Right(
         bridge.initClass(
@@ -336,7 +336,7 @@ object Interpret {
       )
     }
 
-  def initCompiler(options: Seq[String] = null): Interpret[Unit] =
+  def initCompiler(options: Seq[String] = null): InterpreterAction[Unit] =
     instance { interpreter =>
 
       for (opts <- Option(options))
@@ -375,7 +375,7 @@ object Interpret {
     stdout: Option[String => Unit],
     stderr: Option[String => Unit],
     compilerOptions: Seq[String] = null
-  ): Interpret[Unit] =
+  ): InterpreterAction[Unit] =
     for {
                   _ <- initCompiler(compilerOptions)
                   _ <- catchUnexpectedException
@@ -394,7 +394,7 @@ object Interpret {
         stdout: Option[String => Unit],
         stderr: Option[String => Unit],
        process: AnyRef => T
-  ): Interpret[Evaluated[T]] =
+  ): InterpreterAction[Evaluated[T]] =
     for {
                            _ <- catchUnexpectedException
                        decls <- preprocessor(statements)
@@ -423,7 +423,7 @@ object Interpret {
     stdout: Option[String => Unit],
     stderr: Option[String => Unit],
     process: AnyRef => T
-  ): Interpret[Evaluated[T]] =
+  ): InterpreterAction[Evaluated[T]] =
     for {
       statements <- splitCode(code)
               ev <- apply(statements, compiled, stdout, stderr, process)

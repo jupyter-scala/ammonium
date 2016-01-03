@@ -11,14 +11,12 @@ trait Load0 {
   def onPathAdded(f: (Seq[String], ClassLoaderType) => Unit): Unit
 }
 
-trait AddDependency {
-  def path(paths: String*): Unit
+trait Load {
+  def path(paths: String*)(implicit tpe: ClassLoaderType = ClassLoaderType.Main): Unit
 
   /** Load a module from its Maven coordinates */
-  def module(coordinates: (String, String, String)*): Unit
-}
+  def module(coordinates: (String, String, String)*)(implicit tpe: ClassLoaderType = ClassLoaderType.Main): Unit
 
-trait Load extends AddDependency {
   /**
    * Just resolves some modules, does not load them
    */
@@ -28,16 +26,6 @@ trait Load extends AddDependency {
    * Add a resolver to Ivy module resolution
    */
   def repository(repository: Repository*): Unit
-
-  /**
-   * Compiler dependencies (accessible through macros) can be added through this
-   */
-  def compiler: AddDependency
-
-  /**
-   * Compiler plugin dependencies can be added through this
-   */
-  def plugin: AddDependency
 
   /**
    * Loads a command into the REPL and

@@ -110,7 +110,7 @@ object ShellAction {
 
   def interpret(statements: Seq[String], compiled: => Unit): ShellAction[Evaluated[Unit]] =
     instance { shell =>
-      Interpret(
+      InterpreterAction(
         statements,
         compiled,
         None,
@@ -195,7 +195,7 @@ case class Ammonite(
   if (predef.nonEmpty)
     Parsers.split(predef) match {
       case Some(Success(stmts, _)) =>
-        Interpret(
+        InterpreterAction(
           stmts,
           (),
           None,
@@ -293,7 +293,7 @@ object Ammonite extends AppOf[Ammonite] {
     }
 
   def print0(items: Seq[CodeItem], colors: Colors): String =
-    s""" Iterator(${items.map(ShellDisplay(_, colors)).mkString(", ")}).filter(_.nonEmpty).flatMap(_ ++ Iterator("\\n")) """
+    s""" Iterator[Iterator[String]](${items.map(ShellDisplay(_, colors)).mkString(", ")}).filter(_.nonEmpty).flatMap(_ ++ Iterator("\\n")) """
 
   val scalaVersion = scala.util.Properties.versionNumberString
   val startIvys = Seq(
@@ -386,7 +386,7 @@ object Ammonite extends AppOf[Ammonite] {
       }
     }
 
-    val init = Interpret.init(
+    val init = InterpreterAction.init(
       bridge(
         startJars = if (sharedLoader) startPaths(ClassLoaderType.Main) else mainStartPaths,
         startIvys = startIvys,
@@ -403,7 +403,7 @@ object Ammonite extends AppOf[Ammonite] {
     )
 
     // FIXME Check result
-    println(init(intp))
+    init(intp)
 
     intp
   }
