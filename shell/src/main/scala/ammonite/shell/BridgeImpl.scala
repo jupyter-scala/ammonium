@@ -24,7 +24,7 @@ object Setup {
 
 }
 
-abstract class ReplAPIImpl(
+abstract class BridgeImpl(
   intp: ammonite.api.Interpreter,
   startJars: Seq[File],
   startIvys: Seq[(String, String, String)],
@@ -34,7 +34,7 @@ abstract class ReplAPIImpl(
   shellPromptRef: Ref[String],
   pprintConfig0: pprint.Config,
   history0: => Seq[String]
-) extends ReplAPI {
+) extends Bridge {
 
   def exit: Nothing = throw Exit
   lazy val load0: Load0 = new Load0Impl(???, ???, ???, ???)

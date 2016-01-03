@@ -1,13 +1,10 @@
 package ammonite.shell
 
-import ammonite.api.InterpreterError.UnexpectedError
 import ammonite.interpreter.Classes
 import ammonite.interpreter.Imports
-import ammonite.interpreter.Bridge
 import ammonite.interpreter.Interpreter
 import ammonite.interpreter._
 import ammonite.api.{ ClassLoaderType, IvyConstructor, Import, CodeItem, ParsedCode }
-import ammonite.shell.ShellError.InterpreterError
 import ammonite.shell.util._
 
 import com.github.alexarchambault.ivylight.{Resolver, Ivy, ClasspathFilter}
@@ -254,13 +251,13 @@ object Ammonite extends AppOf[Ammonite] {
     pprintConfig: pprint.Config,
     colors: Colors,
     history: => Seq[String]
-  ): Bridge =
-    new Bridge {
+  ): ammonite.interpreter.Bridge =
+    new ammonite.interpreter.Bridge {
       def init = "object ReplBridge extends ammonite.shell.ReplAPIHolder"
       def name = "ReplBridge"
       
       def imports =
-        NamesFor[ReplAPI].map { case (name, isImpl) =>
+        NamesFor[Bridge].map { case (name, isImpl) =>
           Import(name, name, "", "ReplBridge.shell", isImpl)
         }.toSeq ++
         NamesFor[IvyConstructor.type].map { case (name, isImpl) =>
@@ -269,12 +266,12 @@ object Ammonite extends AppOf[Ammonite] {
 
       def print(v: AnyRef) = v.asInstanceOf[Iterator[String]].foreach(print)
 
-      var replApi: ReplAPI = null
+      var replApi: Bridge = null
       def reset0() = reset
 
       def initClass(intp: Interpreter, cls: Class[_]) = {
         if (replApi == null)
-          replApi = new ReplAPIImpl(
+          replApi = new BridgeImpl(
             intp,
             startJars,
             startIvys,

@@ -2,7 +2,7 @@ package ammonite.shell
 
 import ammonite.api._
 
-trait ReplAPI {
+trait Bridge {
   implicit def load: Load
   implicit def interpreter: Interpreter
   implicit def setup: Setup
@@ -12,12 +12,12 @@ trait ReplAPI {
 }
 
 class ReplAPIHolder {
-  @transient var shell0: ReplAPI = null
+  @transient var shell0: Bridge = null
   @transient lazy val shell = shell0
 }
 
 object ReplAPIHolder {
-  def initReplBridge(holder: Class[ReplAPIHolder], api: ReplAPI) =
+  def initReplBridge(holder: Class[ReplAPIHolder], api: Bridge) =
     holder
       .getDeclaredMethods
       .find(_.getName == "shell0_$eq")
