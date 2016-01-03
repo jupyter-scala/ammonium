@@ -193,7 +193,7 @@ object Interpret {
         instance { interpreter =>
           try f(())(interpreter)
           catch {
-            case ex: Exception =>
+            case ex: Throwable =>
               Left(InterpreterError.UnexpectedError(ex))
           }
         }

@@ -3,7 +3,7 @@ package tests
 
 import utest._
 
-class FailureTests(check0: => Checker, lightException: Boolean = false) extends TestSuite{
+class FailureTests(check0: => Checker) extends TestSuite{
   val tests = TestSuite{
     val check = check0
     'compileFailure {
@@ -15,14 +15,12 @@ class FailureTests(check0: => Checker, lightException: Boolean = false) extends 
         error: package java is not a value
 
         @ 1 + vale
-        error: Compilation Failed
-        Main.scala:*: not found: value vale
+        error: Main.scala:*: not found: value vale
         1 + vale
             ^
 
         @ val x = 1 + vale
-        error: Compilation Failed
-        Main.scala:*: not found: value vale
+        error: Main.scala:*: not found: value vale
         1 + vale
             ^
       """)
@@ -47,7 +45,7 @@ class FailureTests(check0: => Checker, lightException: Boolean = false) extends 
         x.contains("java.lang.Exception: lol") &&
         x.contains("java.lang.Exception: hoho") &&
         // and none of the stuff we don't want
-        x.lines.length == (if (lightException) 6 else 10) &&
+        x.lines.length == 6 &&
         !x.contains("Something unexpected went wrong =(")
       )
     }

@@ -138,7 +138,11 @@ class AmmoniteChecker extends Checker {
           exception.toString + "\n" +
             exception
               .getStackTrace
-              .takeWhile(x => x.getMethodName != "evaluating" && !x.getClassName.endsWith("$$user"))
+              .takeWhile(x =>
+                x.getMethodName != "evaluating" &&
+                !x.getClassName.endsWith("$$user") &&
+                !x.getClassName.endsWith("$$user$")
+              )
               .map("\t" + _)
               .mkString("\n")
         )

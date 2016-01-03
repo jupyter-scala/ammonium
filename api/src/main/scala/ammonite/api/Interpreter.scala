@@ -19,8 +19,8 @@ object InterpreterError {
   case class ParseError(msg0: Option[String]) extends InterpreterError {
     def msg = msg0.mkString
   }
-  case class UnexpectedError(ex: Exception) extends InterpreterError {
-    def msg = s"Unexpected error: ${ex.getMessage}\n${ex.getStackTrace.map("  " + _).mkString("\n")}"
+  case class UnexpectedError(ex: Throwable) extends InterpreterError {
+    def msg = s"Unexpected error: $ex\n${ex.getStackTrace.map("  " + _).mkString("\n")}"
   }
   case class PreprocessingError(msg: String) extends InterpreterError
   case class CompilationError(msg: String) extends InterpreterError
