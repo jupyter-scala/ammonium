@@ -1,4 +1,4 @@
-package ammonite.interpreter
+package ammonite.util
 
 // Extracted from IScala, and refactored a bit
 

@@ -8,6 +8,7 @@ import scala.collection.mutable
 import scala.reflect.io.VirtualDirectory
 import scala.util.control.ControlThrowable
 
+import ammonite.util.Capture
 import ammonite.api._
 
 /**
