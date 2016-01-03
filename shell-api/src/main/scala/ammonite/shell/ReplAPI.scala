@@ -1,12 +1,11 @@
 package ammonite.shell
 
+import ammonite.api._
+
 trait ReplAPI {
-  implicit def load: ammonite.api.Load
-
-  implicit def interpreter: ammonite.api.Interpreter
-
-  implicit def setup: ammonite.api.Setup
-
+  implicit def load: Load
+  implicit def interpreter: Interpreter
+  implicit def setup: Setup
   implicit def term: Term
 
   def exit: Nothing
