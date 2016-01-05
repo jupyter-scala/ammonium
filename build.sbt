@@ -192,7 +192,7 @@ def sparkProject(sparkVersion: String, hadoopVersion: String, extraDirSuffix: St
 
 /* Forcing the hadoop version, so that it does not default to a value
  * that lacks some artifacts. (e.g. 1.0.4 and hadoop-yarn-client). */
-lazy val spark15 = sparkProject("1.5.0", "2.4.0")
+lazy val spark15 = sparkProject("1.5.2", "2.4.0")
 lazy val spark14 = sparkProject("1.4.1", "2.4.0")
 lazy val spark13 = sparkProject("1.3.1", "2.4.0")
 lazy val spark12 = sparkProject("1.2.2", "2.4.0")
