@@ -63,6 +63,7 @@ object ShellAction {
           shell.history = shell.history :+ code
         }
       ) match {
+        case Res.Success((_, statements)) if statements.isEmpty => Left(ShellError.Skip)
         case Res.Success((code, statements)) => Right((code, statements))
         case Res.Exit => Left(ShellError.Exit)
         case Res.Skip => Left(ShellError.Skip)

@@ -93,6 +93,8 @@ case class Ammonite(
       case Left(ShellError.Exit) =>
         println("Bye!")
         interp.stop()
+      case Left(ShellError.Skip) =>
+        loop()
       case Left(err) =>
         println(Console.RED + err.msg + Console.RESET)
         loop()
