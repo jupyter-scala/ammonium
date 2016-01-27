@@ -12,6 +12,7 @@ import java.io.{ Console => _, _ }
 import coursier._
 import fastparse.core.Parsed.Success
 
+import scala.language.reflectiveCalls
 import scala.annotation.tailrec
 
 
@@ -129,14 +130,36 @@ object Ammonite extends AppOf[Ammonite] {
   }
 
 
-  val loader = Thread.currentThread().getContextClassLoader
+  def isolatedLoader(from: ClassLoader, id: String): Option[ClassLoader] =
+    if (from == null) {
+      println(s"Cannot find isolated loader $id")
+      None
+    } else {
+      val result = try {
+        val from0 = from.asInstanceOf[Object { def getIsolationTargets: Array[String] }]
+        from0.getIsolationTargets.contains(id)
+      } catch {
+        case e: Exception =>
+          false
+      }
 
-  // TODO Get isolated classloaders if available
+      if (result) {
+        println(s"Found isolated loader $id")
+        Some(from)
+      } else
+        isolatedLoader(from.getParent, id)
+    }
+
+  val defaultLoader = Thread.currentThread().getContextClassLoader
+
+  val compileLoader = isolatedLoader(defaultLoader, "ammonium-compile").getOrElse(defaultLoader)
+  val macroLoader = isolatedLoader(defaultLoader, "ammonium-macro").getOrElse(compileLoader)
 
   lazy val classLoaders0 = Map(
-    "compile" -> loader,
-    "macro" -> loader,
-    "plugin" -> loader
+    "runtime" -> compileLoader,
+    "compile" -> compileLoader,
+    "macro" -> macroLoader,
+    "plugin" -> defaultLoader
   )
 
   val configs = Map(

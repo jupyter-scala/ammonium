@@ -1,13 +1,13 @@
 package ammonite.util
 
-import coursier._
-
 import java.io.File
+import java.net.URLClassLoader
 
+import coursier._
 import coursier.core.Orders
 import coursier.ivy.IvyRepository
 
-import scalaz.{-\/, \/-}
+import scalaz.{ -\/, \/- }
 import scalaz.concurrent.Task
 
 object Load {
@@ -199,6 +199,27 @@ class Load(
     }
   }
 
+  private def loaderPaths(loader: ClassLoader, acc: Seq[File]): Seq[File] =
+    Option(loader) match {
+      case Some(l: URLClassLoader) =>
+        // Fine on Windows?
+        val extra = l.getURLs
+          .filter(_.getProtocol == "file")
+          .map(_.getPath)
+          .map(new File(_))
+
+        loaderPaths(l.getParent, acc ++ extra)
+      case _ =>
+        acc
+    }
+
+  private def addPathsFromLoaders(): Unit =
+    for ((cfg, loader) <- initialClassLoaders) {
+      val files = loaderPaths(loader, Vector.empty)
+      updateConfigPath(cfg, files, addToClassLoader = false)
+    }
+
+  addPathsFromLoaders()
 
   updateFetch()
   update(initialDependencies, addToClasses = false)
