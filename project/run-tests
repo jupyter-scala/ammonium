@@ -15,12 +15,20 @@ done
 
 # Not running the spark tests on Travis for lack of memory
 if [ "$TRAVIS_SCALA_VERSION" = "" ]; then
+  SHORT=$(echo $SCALA_VERSION | sed 's/^\([0-9]*\.[0-9]*\)\..*/\1/')
+
+  [ $SHORT != 2.10 ] || $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark11Tests"
+  $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark12Tests"
   $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark12Tests"
   $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark13Tests"
   $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark14Tests"
   $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark15Tests"
+  $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark16Tests"
+
+  [ $SHORT != 2.10 ] || $SBT "spark-11/test-only ammonite.spark.LocalTests"
   $SBT "spark-12/test-only ammonite.spark.LocalTests"
   $SBT "spark-13/test-only ammonite.spark.LocalTests"
   $SBT "spark-14/test-only ammonite.spark.LocalTests"
   $SBT "spark-15/test-only ammonite.spark.LocalTests"
+  $SBT "spark-16/test-only ammonite.spark.LocalTests"
 fi

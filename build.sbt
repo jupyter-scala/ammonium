@@ -110,7 +110,7 @@ val sparkExclusions = Seq(
   ExclusionRule("junit", "junit")
 )
 
-def sparkProject(sparkVersion: String, extraDirSuffix: String = "") = {
+def sparkProject(sparkVersion: String, extraDirSuffix: String = "", onlyIn210: Boolean = false) = {
   val binaryVersion = sparkVersion.split('.').take(2).mkString(".")
   val shortBinaryVersion = binaryVersion.filter('.'.!=)
 
@@ -118,23 +118,28 @@ def sparkProject(sparkVersion: String, extraDirSuffix: String = "") = {
     .dependsOn(`shell-api`, shell % "test->test")
     .settings(commonSettings)
     .settings(testSettings)
+    .settings(if (onlyIn210) onlyPublish210Settings else Nil)
     .settings(
       moduleName := s"spark_$binaryVersion",
       target := target.value / s"spark-$binaryVersion",
-      libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core" % sparkVersion excludeAll(sparkExclusions: _*),
-        "org.apache.spark" %% "spark-sql" % sparkVersion excludeAll(sparkExclusions: _*),
-        "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
-      ),
+      libraryDependencies ++= {
+        if (!onlyIn210 || scalaBinaryVersion.value == "2.10") Seq(
+          "org.apache.spark" %% "spark-core" % sparkVersion excludeAll(sparkExclusions: _*),
+          "org.apache.spark" %% "spark-sql" % sparkVersion excludeAll(sparkExclusions: _*),
+          "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
+        ) else Nil
+      },
+      sourceDirectory in Compile := {
+        if (onlyIn210 && scalaBinaryVersion.value != "2.10")
+          (sourceDirectory in Compile).value / "dummy"
+        else
+          (sourceDirectory in Compile).value
+      },
       unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"extra$extraDirSuffix"
     )
 }
 
-// only built on a specific scala 2.10 only branch
-/*
-lazy val spark11 = sparkProject("1.1.1", "2.4.0", "-1.1")
-*/
-
+lazy val spark11 = sparkProject("1.1.1", "-1.1", onlyIn210 = true)
 lazy val spark12 = sparkProject("1.2.2")
 lazy val spark13 = sparkProject("1.3.1")
 lazy val spark14 = sparkProject("1.4.1")
@@ -142,8 +147,8 @@ lazy val spark15 = sparkProject("1.5.2")
 lazy val spark16 = sparkProject("1.6.0")
 
 lazy val root = project.in(file("."))
-  .aggregate(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark15, spark14, spark13, spark12, shell, tprint)
-  .dependsOn(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark15, spark14, spark13, spark12, shell, tprint)
+  .aggregate(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark16, spark15, spark14, spark13, spark12, spark11, shell, tprint)
+  .dependsOn(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark16, spark15, spark14, spark13, spark12, spark11, shell, tprint)
   .settings(commonSettings)
   .settings(noPublishSettings)
   .settings(
@@ -213,4 +218,25 @@ lazy val noPublishSettings = Seq(
   publish := {},
   publishLocal := {},
   publishArtifact := false
+)
+
+lazy val onlyPublish210Settings = Seq(
+  publish := {
+    if (scalaVersion.value startsWith "2.10.")
+      publish.value
+    else
+      ()
+  },
+  publishLocal := {
+    if (scalaVersion.value startsWith "2.10.")
+      publishLocal.value
+    else
+      ()
+  },
+  publishArtifact := {
+    if (scalaVersion.value startsWith "2.10.")
+      publishArtifact.value
+    else
+      false
+  }
 )

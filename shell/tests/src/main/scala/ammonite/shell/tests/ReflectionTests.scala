@@ -3,7 +3,11 @@ package tests
 
 import utest._
 
-class ReflectionTests(check0: => Checker) extends TestSuite {
+class ReflectionTests(
+  check0: => Checker,
+  wrapper: (Int, Int) => String = defaultWrapper,
+  classWrap: Boolean = false
+) extends TestSuite {
 
   val tests = TestSuite {
     val check = check0
@@ -16,33 +20,46 @@ class ReflectionTests(check0: => Checker) extends TestSuite {
     )
 
     'reflection - {
+      val w0 = wrapper(1, 2)
+      val w = if (classWrap) "special" + w0 else w0
+
+      val isWrapped = w.nonEmpty
+
+      def withSuffixIfNonEmpty(s: String, suffix: String) =
+        if (s.isEmpty)
+          ""
+        else
+          s + suffix
+
+      val try0 = if (isWrapped) "util.Try" else "Try"
+
       check.session(s"""
         @ import scala.util.Try
 
         @ ${definitions.mkString("; ")}
 
         @ val testA1 = new TestClassA
-        testA1: TestClassA = TestClassA
+        testA1: ${w}TestClassA = TestClassA
 
         @ val testB1 = new TestObjA.TestClassB
-        testB1: TestObjA.TestClassB = TestClassB
+        testB1: ${w}TestObjA.TestClassB = TestClassB
 
         @ import TestObjB._
 
         @ val testC1 = new TestClassC
-        testC1: TestClassC = TestClassC
+        testC1: ${withSuffixIfNonEmpty(w, "TestObjB.")}TestClassC = TestClassC
 
         @ val testBasic = Try{classOf[java.io.ByteArrayOutputStream].newInstance()}
-        testBasic: Try[java.io.ByteArrayOutputStream] = Success()
+        testBasic: $try0[java.io.ByteArrayOutputStream] = Success()
 
         @ val testA2 = Try{classOf[TestClassA].newInstance()}
-        testA2: Try[TestClassA] = Success(TestClassA)
+        testA2: $try0[${w}TestClassA] = Success(TestClassA)
 
         @ val testB2 = Try{classOf[TestObjA.TestClassB].newInstance()}
-        testB2: Try[TestObjA.TestClassB] = Success(TestClassB)
+        testB2: $try0[${w}TestObjA.TestClassB] = Success(TestClassB)
 
         @ val testC2 = Try{classOf[TestClassC].newInstance()}
-        testC2: Try[TestClassC] = Success(TestClassC)
+        testC2: $try0[${withSuffixIfNonEmpty(w, "TestObjB.")}TestClassC] = Success(TestClassC)
       """)
     }
   }

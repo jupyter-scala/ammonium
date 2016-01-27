@@ -3,17 +3,22 @@ package tests
 
 import utest._
 
-class SparkTests(checker: => Checker,
-                 master: String,
-                 sparkVersion: (Int, Int),
-                 loadAmmoniteSpark: Boolean = false) extends TestSuite {
+class SparkTests(
+  checker: => Checker,
+  master: String,
+  sparkVersion: (Int, Int),
+  wrapper: (Int, Int) => String,
+  loadAmmoniteSpark: Boolean = false
+) extends TestSuite {
 
   val atLeastSpark13 = implicitly[Ordering[(Int, Int)]].compare(sparkVersion, (1, 3)) >= 0
+  val atLeastSpark14 = implicitly[Ordering[(Int, Int)]].compare(sparkVersion, (1, 4)) >= 0
 
   def hasSpark5281 = loadAmmoniteSpark // https://issues.apache.org/jira/browse/SPARK-5281
   def hasSpark6299 = !atLeastSpark13 // https://issues.apache.org/jira/browse/SPARK-6299
   def importSparkContextContent = !atLeastSpark13
   def hasDataFrames = atLeastSpark13
+  def fullRowType = is210 && !loadAmmoniteSpark && atLeastSpark14
   def broadcastOk = true
 
   val margin = "          "
@@ -27,8 +32,8 @@ class SparkTests(checker: => Checker,
   val preamble = s"""
           @ $requisite
 
-          @ import ammonite.spark.Spark ${if (importSparkContextContent) "; import org.apache.spark.SparkContext._" else ""}
-          import ammonite.spark.Spark${if (importSparkContextContent) s"\n${margin}import org.apache.spark.SparkContext._" else ""}
+          @ import ammonite.spark._ ${if (importSparkContextContent) "; import org.apache.spark.SparkContext._" else ""}
+          import ammonite.spark._${if (importSparkContextContent) s"\n${margin}import org.apache.spark.SparkContext._" else ""}
 
           @ @transient val Spark = new Spark
 
@@ -151,7 +156,7 @@ class SparkTests(checker: => Checker,
           defined class Sum
 
           @ val a = Sum("A", "B")
-          a: Sum = Sum("A", "B")
+          a: ${wrapper(0, 1)}Sum = Sum("A", "B")
 
           @ def b(a: Sum): String = a match { case Sum(_, _) => "Found Sum" }
           defined function b
@@ -192,7 +197,7 @@ class SparkTests(checker: => Checker,
           defined class TestCaseClass
 
           @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).$toFrameMethod.collect()
-          res7: Array[Row] = Array($repr)
+          res7: Array[${if (fullRowType) "org.apache.spark.sql.Row" else "Row"}] = Array($repr)
          """, postamble)
       }
     }
@@ -204,7 +209,7 @@ class SparkTests(checker: => Checker,
           defined class TestClass
 
           @ val t = new TestClass
-          t: TestClass = TestClass
+          t: ${wrapper(4, 5)}TestClass = TestClass
 
           @ import t.testMethod
           import t.testMethod
@@ -213,7 +218,7 @@ class SparkTests(checker: => Checker,
           defined class TestCaseClass
 
           @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
-          res8: Array[TestCaseClass] = Array(${(1 to 10).map(i => s"  TestCaseClass($i)").mkString("\n" + margin, ",\n" + margin, "\n" + margin)})
+          res8: Array[${wrapper(7, 8)}TestCaseClass] = Array(${(1 to 10).map(i => s"  TestCaseClass($i)").mkString("\n" + margin, ",\n" + margin, "\n" + margin)})
         """, postamble)
     }
 
@@ -224,7 +229,7 @@ class SparkTests(checker: => Checker,
           defined class Foo
 
           @ sc.parallelize((1 to 100).map(Foo), 10).collect()
-          res5: Array[Foo] = Array(${(1 to 19).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...
+          res5: Array[${wrapper(4, 5)}Foo] = Array(${(1 to 19).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...
         """, postamble)
     }
 
@@ -235,19 +240,27 @@ class SparkTests(checker: => Checker,
           defined class Foo
 
           @ val list = List((1, Foo(1)), (1, Foo(2)))
-          list: List[(Int, Foo)] = List((1, Foo(1)), (1, Foo(2)))
+          list: List[(Int, ${wrapper(4, 5)}Foo)] = List((1, Foo(1)), (1, Foo(2)))
         """ + (if (!hasSpark6299) s"""
 
           @ sc.parallelize(list).groupByKey().collect()
-          res6: Array[(Int, Iterable[Foo])] = Array((1, CompactBuffer(Foo(1), Foo(2))))
+          res6: Array[(Int, Iterable[${wrapper(4, 5)}Foo])] = Array((1, CompactBuffer(Foo(1), Foo(2))))
         """ else ""), postamble)
     }
   }
 
 }
 
-class LocalSparkTests(checker: => Checker, sparkVersion: (Int, Int)) extends tests.SparkTests(
-  checker, "local", sparkVersion, loadAmmoniteSpark = true
+class LocalSparkTests(
+  checker: => Checker,
+  sparkVersion: (Int, Int),
+  wrapper: (Int, Int) => String
+) extends tests.SparkTests(
+    checker,
+    "local",
+    sparkVersion,
+    loadAmmoniteSpark = true,
+    wrapper = wrapper
 ) {
   override def hasSpark6299 = false // no issue in local mode
   override def broadcastOk = false // doesn't work in local mode (spark issue)

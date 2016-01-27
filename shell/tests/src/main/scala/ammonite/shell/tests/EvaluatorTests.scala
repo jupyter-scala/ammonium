@@ -3,7 +3,10 @@ package tests
 
 import utest._
 
-class EvaluatorTests(check0: => Checker) extends TestSuite{
+class EvaluatorTests(
+  check0: => Checker,
+  wrapper: (Int, Int) => String = defaultWrapper
+) extends TestSuite {
 
 
   val tests = TestSuite{
@@ -104,13 +107,13 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
         defined type Funky
 
         @ val arr: Funky = Array(Array("Hello!"))
-        arr: Funky = Array(Array("Hello!"))
+        arr: ${wrapper(0, 1)}Funky = Array(Array("Hello!"))
 
         @ type Funky2[T] = Array[Array[T]]
         defined type Funky2
 
         @ val arr: Funky2[Int] = Array(Array(123))
-        arr: Funky2[Int] = Array(Array(123))
+        arr: ${wrapper(2, 3)}Funky2[Int] = Array(Array(123))
       """)
     }
     'library{
@@ -239,31 +242,31 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
         defined class C
 
         @ new C
-        res1: C = Ceee
+        res1: ${wrapper(0, 1)}C = Ceee
 
         @ case object CO
         defined object CO
 
         @ CO
-        res3: CO.type = CO
+        res3: ${wrapper(2, 3)}CO.type = CO
 
         @ case class CC()
         defined class CC
 
         @ CC()
-        res5: CC = CC()
+        res5: ${wrapper(4, 5)}CC = CC()
 
         @ CO
-        res6: CO.type = CO
+        res6: ${wrapper(2, 6)}CO.type = CO
 
         @ case class CO()
         defined class CO
 
         @ CO
-        res8: CO.type = CO
+        res8: ${wrapper(7, 8)}CO.type = CO
 
         @ CO()
-        res9: CO = CO()
+        res9: ${wrapper(7, 9)}CO = CO()
       """)
     }
 
@@ -317,7 +320,7 @@ class EvaluatorTests(check0: => Checker) extends TestSuite{
         res3_2: Int = 3
 
         @ C()
-        res4: C = C(0)
+        res4: ${wrapper(3, 4)}C = C(0)
       """)
     }
 

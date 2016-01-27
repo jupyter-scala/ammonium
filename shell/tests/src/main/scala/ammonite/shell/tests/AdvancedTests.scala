@@ -2,13 +2,15 @@ package ammonite.shell
 package tests
 
 import ammonite.api.InterpreterError
+
 import utest._
 
-class AdvancedTests(check0: => Checker,
-                    isAmmonite: Boolean = true,
-                    hasMacros: Boolean = !scala.util.Properties.versionNumberString.startsWith("2.10.")) extends TestSuite{
-
-  val scala2_10 = scala.util.Properties.versionNumberString.startsWith("2.10.")
+class AdvancedTests(
+  check0: => Checker,
+  isAmmonite: Boolean = true,
+  hasMacros: Boolean = !is210,
+  wrapper: (Int, Int) => String = defaultWrapper
+) extends TestSuite{
 
   val tests = TestSuite{
     val check = check0
@@ -57,13 +59,13 @@ class AdvancedTests(check0: => Checker,
         //     @ classpath.add("com.scalatags" %% "scalatags" % "0.2.5")
         //
         //     @ scalatags.all.div("omg").toString
-        //     res2: String = "<div>omg</div>"
+        //     res2: ${if (is210) "java.lang.String" else "String"} = "<div>omg</div>"
         //
         //     @ classpath.add("com.lihaoyi" %% "scalatags" % "0.4.5")
         //
         //     @ import scalatags.Text.all._; scalatags.Text.all.div("omg").toString
         //     import scalatags.Text.all._
-        //     res4_1: String = "<div>omg</div>"
+        //     res4_1: ${if (is210) "java.lang.String" else "String"} = "<div>omg</div>"
         //
         //     @ res2 // BOOM
         //
@@ -143,10 +145,10 @@ class AdvancedTests(check0: => Checker,
         defined class Foo
 
         @ Foo(1, "", Nil)
-        res2: Foo = Foo(1, "", List())
+        res2: ${wrapper(1, 2)}Foo = Foo(1, "", List())
 
         @ Foo(1234567, "I am a cow, hear me moo", Seq("I weigh twice as much as you", "and I look good on the barbecue"))
-        res3: Foo = Foo(
+        res3: ${wrapper(1, 3)}Foo = Foo(
           1234567,
           "I am a cow, hear me moo",
           List("I weigh twice as much as you", "and I look good on the barbecue")
@@ -166,13 +168,13 @@ class AdvancedTests(check0: => Checker,
         defined function pprint
 
         @ new C
-        res2: C = INSTANCE OF CLASS C
+        res2: ${wrapper(0, 2)}C = INSTANCE OF CLASS C
       """)
     }
 
     'shapeless{
-      check.session("""
-        @ classpath.add("com.chuusai" %% "shapeless" % "2.2.5"); if (scala.util.Properties.versionNumberString.startsWith("2.10.")) classpath.add("org.scalamacros" % "paradise_2.10.6" % "2.0.1")
+      check.session(s"""
+        @ classpath.add("com.chuusai" %% "shapeless" % "2.2.5"); if (scala.util.Properties.versionNumberString.startsWith("2.10.")) classpath.addInConfig("plugin")("org.scalamacros" % "paradise_2.10.6" % "2.0.1")
 
         @ import shapeless._
 
@@ -183,7 +185,12 @@ class AdvancedTests(check0: => Checker,
         defined class Foo
 
         @ Generic[Foo].to(Foo(2, "a", true))
-        res4: Int :: String :: Boolean :: HNil = ::(2, ::("a", ::(true, HNil)))
+        res4: ${
+          if (is210)
+            "shapeless.::[Int,shapeless.::[String,shapeless.::[Boolean,shapeless.HNil]]]"
+          else
+            "Int :: String :: Boolean :: HNil"
+        } = ::(2, ::("a", ::(true, HNil)))
       """)
     }
 
@@ -202,7 +209,7 @@ class AdvancedTests(check0: => Checker,
       """)
     }
     'scalazstream{
-      check.session("""
+      check.session(s"""
         @ classpath.addRepository("https://dl.bintray.com/scalaz/releases")
 
         @ classpath.add("org.scalaz.stream" %% "scalaz-stream" % "0.7a")
@@ -217,7 +224,12 @@ class AdvancedTests(check0: => Checker,
         @ // p1: scalaz.stream.Process[scalaz.concurrent.Task,Int] = Append(Emit(Vector(1)), Vector(<function1>))
 
         @ val pch = Process.constant((i:Int) => Task.now(())).take(3)
-        pch: Process[Nothing, Int => Task[Unit]] = Append(Halt(End), Vector(<function1>))
+        pch: ${
+          if (is210)
+            "scalaz.stream.Process[Nothing,Int => scalaz.concurrent.Task[Unit]]"
+          else
+            "Process[Nothing, Int => Task[Unit]]"
+        } = Append(Halt(End), Vector(<function1>))
 
         @ Process.constant(1).toSource.to(pch).runLog.run.size == 3
         res6: Boolean = true
@@ -229,7 +241,7 @@ class AdvancedTests(check0: => Checker,
 //      // Make sure these various "special" data structures get pretty-printed
 //      // correctly, i.e. not as their underlying type but as something more
 //      // pleasantly human-readable
-//      if (!scala2_10)
+//      if (!is210)
 //        check.session("""
 //          @ import ammonite.ops._
 //
@@ -260,10 +272,26 @@ class AdvancedTests(check0: => Checker,
 //          target
 //        """)
 //    }
+    'scalaparse{
+      // Prevent regressions when wildcard-importing things called `macro` or `_`
+      check.session("""
+        @ classpath.add("com.lihaoyi" %% "scalaparse" % "0.3.4")
 
+        @ import scalaparse.Scala._
+
+        @ 1
+        res2: Int = 1
+
+        @ ExprCtx.Parened.parse("1 + 1")
+        res3: fastparse.core.Parsed[Unit] = Failure("(":1:1 ..."1 + 1")
+
+        @ ExprCtx.Parened.parse("(1 + 1)")
+        res4: fastparse.core.Parsed[Unit] = Success((),7)
+      """)
+    }
     'macros{
       if (hasMacros)
-        check.session("""
+        check.session(s"""
           @ import language.experimental.macros
 
           @ import reflect.macros.Context
@@ -278,12 +306,12 @@ class AdvancedTests(check0: => Checker,
           defined function m
 
           @ m
-          res4: String = "Hello!"
+          res4: ${if (is210) "java.lang.String" else "String"} = "Hello!"
         """)
     }
     'typeScope{
       // Fancy type-printing isn't implemented at all in 2.10.x
-      if (!scala2_10) check.session("""
+      if (!is210) check.session("""
         @ collection.mutable.Buffer(1)
         res0: collection.mutable.Buffer[Int] = ArrayBuffer(1)
 
@@ -315,6 +343,7 @@ class AdvancedTests(check0: => Checker,
         @   "Array" +
         @   c.colors.endColor
         @ )
+        defined function ArrayTPrint
 
         @ Array(1)
         res3: Int Array = Array(1)
@@ -449,7 +478,7 @@ class AdvancedTests(check0: => Checker,
 
         @ // Useless - does not add plugins, and ignored by eval class loader
         
-        @ classpath.addInConfig("plugin")("eu.timepit" %% "refined" % "0.2.1")
+        @ classpath.addInConfig("plugin")("eu.timepit" %% "refined" % "0.3.3")
 
         @ import eu.timepit.refined._
         error: not found: value eu
