@@ -307,7 +307,7 @@ object Interpreter {
 
               def printEx(ex: Throwable): Unit =
                 if (ex != null) {
-                  println(ex.getMessage)
+                  println(s"$ex${Option(ex.getMessage).fold("")(" (" + _ + ")")}")
                   for (l <- ex.getStackTrace)
                     println(s"  $l")
 
