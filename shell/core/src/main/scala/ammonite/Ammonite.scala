@@ -197,8 +197,14 @@ object Ammonite extends AppOf[Ammonite] {
 
         if (doClassWrap)
           Interpreter.classWrap(print0(_, colors), decls0, imports, unfilteredImports, wrapper)
-        else
-          Interpreter.wrap(print0(_, colors), decls0, imports, unfilteredImports, wrapper)
+        else {
+          val wrapper0 =
+            if (classWrap)
+              "special" + wrapper
+            else
+              wrapper
+          Interpreter.wrap(print0(_, colors), decls0, imports, unfilteredImports, wrapper0)
+        }
       }
     }
 
