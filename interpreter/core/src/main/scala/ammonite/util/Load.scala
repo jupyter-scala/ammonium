@@ -318,6 +318,9 @@ class Load(
   def classLoader(config: String): ClassLoader =
     currentClassLoaders(config)
 
+  def classLoaderClone(config: String = "compile"): ClassLoader =
+    currentClassLoaders(config).cloneLoader()
+
   def addClass(config: String, name: String, bytes: Array[Byte]): Unit = {
     val dependeeConfigs = allDependendeeConfigs(config) + config
     for (cfg <- dependeeConfigs)

@@ -20,6 +20,7 @@ trait Load {
   def resolve(modules: (String, String, String)*): Seq[File]
 
   def classLoader(config: String = "compile"): ClassLoader
+  def classLoaderClone(config: String = "compile"): ClassLoader
   def addClass(config: String, name: String, bytes: Array[Byte]): Unit
 
   /** Look up for a class in the added classes */
