@@ -137,7 +137,7 @@ object Ammonite extends AppOf[Ammonite] {
         Seq()
     }
 
-  lazy val pathMap = Classes.jarMap(getClass.getClassLoader)
+  lazy val pathMap = Classes.jarMap()
 
   lazy val paths0 = {
     modules0.map { case (tpe, modules) =>
@@ -149,7 +149,7 @@ object Ammonite extends AppOf[Ammonite] {
 
   lazy val classLoaders0 = paths0.map { case (tpe, paths) =>
     tpe -> new ClasspathFilter(
-      getClass.getClassLoader,
+      Thread.currentThread().getContextClassLoader,
       (Classes.bootClasspath ++ paths).toSet,
       exclude = false
     )

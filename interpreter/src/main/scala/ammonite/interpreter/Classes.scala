@@ -137,7 +137,10 @@ object Classes {
   lazy val (bootStartJars, bootStartDirs) = bootClasspath.partition(_.getName.endsWith(".jar"))
 
 
-  def defaultPaths(classLoader: ClassLoader = Thread.currentThread().getContextClassLoader): Map[ClassLoaderType, Seq[File]] = {
+  def defaultPaths(
+    classLoader: ClassLoader = Thread.currentThread().getContextClassLoader,
+    recurse: Boolean = false
+  ): Map[ClassLoaderType, Seq[File]] = {
     val files = collection.mutable.Buffer.empty[java.io.File]
 
     files.appendAll(
@@ -154,7 +157,8 @@ object Classes {
           case _ =>
         }
 
-        helper(classLoader.getParent)
+        if (recurse)
+          helper(classLoader.getParent)
       }
 
     helper(classLoader)
@@ -192,7 +196,9 @@ object Classes {
         } else
           f.getName
 
-      map.getOrElse(name, f)
+      val res = map.getOrElse(name, f)
+      println(s"jarMap: $f:\n  $name\n  $res\n")
+      res
   }
 
   def fromClasspath(deps: String, loader: ClassLoader): Either[Seq[(String, String, String)], Seq[File]] = {
