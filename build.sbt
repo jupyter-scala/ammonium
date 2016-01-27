@@ -135,6 +135,12 @@ def sparkProject(sparkVersion: String, extraDirSuffix: String = "", onlyIn210: B
         else
           (sourceDirectory in Compile).value
       },
+      sourceDirectory in Test := {
+        if (onlyIn210 && scalaBinaryVersion.value != "2.10")
+          (sourceDirectory in Test).value / "dummy"
+        else
+          (sourceDirectory in Test).value
+      },
       unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"extra$extraDirSuffix"
     )
 }
