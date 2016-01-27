@@ -9,8 +9,8 @@ lazy val interpreter = project.in(file("interpreter/core"))
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "com.lihaoyi" %% "scalaparse" % "0.3.4",
-      "com.github.alexarchambault" %% "coursier" % "1.0.0-M3",
-      "com.github.alexarchambault" %% "coursier-cache" % "1.0.0-M3"
+      "com.github.alexarchambault" %% "coursier" % "1.0.0-M5",
+      "com.github.alexarchambault" %% "coursier-cache" % "1.0.0-M5"
     )
   )
 
