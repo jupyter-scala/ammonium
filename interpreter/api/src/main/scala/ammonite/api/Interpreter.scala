@@ -30,8 +30,28 @@ object InterpreterError {
   case object Interrupted extends InterpreterError {
     def msg = "Interrupted"
   }
-  case class UserException(ex: Exception) extends InterpreterError {
-    def msg = s"Exception: ${ex.getMessage}\n${ex.getStackTrace.map("  " + _).mkString("\n")}"
+  case class UserException(ex: Exception, stopClass: String) extends InterpreterError {
+    def msg = {
+
+      def printEx(ex: Throwable): Stream[String] =
+        if (ex == null)
+          Stream.empty
+        else {
+          val msg =
+            ex.toString +
+              Option(ex.getMessage)
+                .fold("")(" (" + _ + ")") +
+              "\n" +
+            ex.getStackTrace.takeWhile(_.getClassName != stopClass)
+              .map("  " + _)
+              .mkString("\n")
+
+          msg #:: printEx(ex.getCause)
+        }
+
+      printEx(ex)
+        .mkString("\n")
+    }
   }
 }
 

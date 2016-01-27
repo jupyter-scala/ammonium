@@ -103,7 +103,7 @@ class AmmoniteChecker extends Checker {
 
         val exceptions = err match {
           case InterpreterError.UnexpectedError(Ex(ex @ _*)) => ex
-          case InterpreterError.UserException(Ex(ex @ _*)) => ex
+          case InterpreterError.UserException(Ex(ex @ _*), _) => ex
           case _ => Nil
         }
 

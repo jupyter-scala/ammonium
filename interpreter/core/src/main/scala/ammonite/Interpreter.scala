@@ -290,7 +290,7 @@ object Interpreter {
 
   def evaluating[T](f: => T): T = f
 
-  val catchingUserError: InterpreterAction[Unit] =
+  def catchingUserError(wrapper: String): InterpreterAction[Unit] =
     new InterpreterAction[Unit] {
       def apply(interpreter: Interpreter) = Right(())
       override def flatMap[U](f: Unit => InterpreterAction[U]) = {
@@ -302,35 +302,19 @@ object Interpreter {
         InterpreterAction { interpreter =>
           try f(())(interpreter)
           catch {
-            case t: Throwable =>
-              println(s"Caught $t")
-
-              def printEx(ex: Throwable): Unit =
-                if (ex != null) {
-                  println(s"$ex${Option(ex.getMessage).fold("")(" (" + _ + ")")}")
-                  for (l <- ex.getStackTrace)
-                    println(s"  $l")
-
-                  printEx(ex.getCause)
-                }
-
-              printEx(t)
-
-              t match {
-                case Ex(_: ExceptionInInitializerError, Exit) =>
-                  Left(InterpreterError.Exit)
-                case Ex(_: InvocationTargetException, _: ExceptionInInitializerError, Exit) =>
-                  Left(InterpreterError.Exit)
-                case Ex(_: ThreadDeath) =>
-                  interrupted()
-                case Ex(_: InvocationTargetException, _: ThreadDeath) =>
-                  interrupted()
-                case Ex(_: InvocationTargetException, _: ExceptionInInitializerError, userEx: Exception, _) =>
-                  // Res.Failure(userEx, stopMethod = "$main", stopClass = s"$wrapperName$$$$user")
-                  Left(InterpreterError.UserException(userEx))
-                case ex: Exception =>
-                  Left(InterpreterError.UserException(ex))
-              }
+            case Ex(_: ExceptionInInitializerError, Exit) =>
+              Left(InterpreterError.Exit)
+            case Ex(_: InvocationTargetException, _: ExceptionInInitializerError, Exit) =>
+              Left(InterpreterError.Exit)
+            case Ex(_: ThreadDeath) =>
+              interrupted()
+            case Ex(_: InvocationTargetException, _: ThreadDeath) =>
+              interrupted()
+            case Ex(_: InvocationTargetException, _: ExceptionInInitializerError, userEx: Exception, _*) =>
+              // Res.Failure(userEx, stopMethod = "$main")
+              Left(InterpreterError.UserException(userEx, stopClass = wrapper + "$$user"))
+            case ex: Exception =>
+              Left(InterpreterError.UserException(ex, stopClass = wrapper + "$$user"))
           }
         }
       }
@@ -440,7 +424,7 @@ object Interpreter {
                            _ <- loadByteCode(byteCode)
                          cls <- loadClass(wrapper + "$Main")
                            _ <- increaseLineCounter
-                           _ <- catchingUserError
+                           _ <- catchingUserError(wrapper)
                            t <- evaluate(cls, process)
                            _ <- saveSource(wrapper, wrappedCode)
                      imports  = imports0.map(id => id.copy(
