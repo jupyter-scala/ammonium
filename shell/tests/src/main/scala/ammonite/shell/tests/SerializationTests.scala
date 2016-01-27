@@ -45,7 +45,7 @@ class SerializationTests(check0: => Checker,
           Seq("*** func ***")
 
       check.session(s"""
-        @ classpath.add("com.github.alexarchambault" % "ammonite-spark_1.3_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")
+        @ classpath.add("com.github.alexarchambault.ammonium" % "spark_1.3_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")
 
         @ $longSingleLine
         *** decl ***

@@ -338,6 +338,9 @@ class Classpath(
   def fromAddedClasses(config: String, name: String): Option[Array[Byte]] =
     currentClassLoaders(config).map.get(name)
 
+  def addedClasses(config: String): Map[String, Array[Byte]] =
+    currentClassLoaders(config).map
+
   def onPathsAdded(config: String)(action: Seq[File] => Unit): Unit = {
     hooks += config -> (hooks.getOrElse(config, Vector.empty) :+ action)
   }

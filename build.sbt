@@ -1,80 +1,13 @@
 
-lazy val sharedSettings = Seq[Setting[_]](
-  organization := "com.github.alexarchambault",
-  resolvers ++= Seq(
-    "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/",
-    "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases",
-    Resolver.sonatypeRepo("releases")
-  ),
-  autoCompilerPlugins := true,
-  scalaVersion := "2.11.7",
-  crossScalaVersions := Seq(
-    "2.11.7", "2.11.6", "2.11.5", "2.11.4", "2.11.3", "2.11.2", "2.11.1", "2.11.0"
-  ),
-  crossVersion := CrossVersion.full,
-  ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) },
-  scalacOptions += "-target:jvm-1.7",
-  publishTo := {
-    val nexus = "https://oss.sonatype.org/"
-    if (isSnapshot.value)
-      Some("snapshots" at nexus + "content/repositories/snapshots")
-    else
-      Some("releases"  at nexus + "service/local/staging/deploy/maven2")
-  },
-  credentials += {
-    Seq("SONATYPE_USER", "SONATYPE_PASS").map(sys.env.get) match {
-      case Seq(Some(user), Some(pass)) =>
-        Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", user, pass)
-      case _ =>
-        Credentials(Path.userHome / ".ivy2" / ".credentials")
-    }
-  },
-  licenses := Seq("MIT license" -> url("http://www.opensource.org/licenses/mit-license.php")),
-  homepage := Some(url("https://github.com/alexarchambault/ammonite-shell")),
-  pomExtra := {
-    <scm>
-      <url>git://github.com/alexarchambault/ammonite-shell.git</url>
-      <connection>scm:git://github.com/alexarchambault/ammonite-shell.git</connection>
-    </scm>
-    <developers>
-      <developer>
-        <id>alexarchambault</id>
-        <name>Alexandre Archambault</name>
-        <url>https://github.com/alexarchambault</url>
-      </developer>
-    </developers>
-  },
-  publishMavenStyle := true,
-  fork in test := true,
-  fork in (Test, test) := true,
-  fork in (Test, testOnly) := true,
-  libraryDependencies ++= {
-    if (scalaBinaryVersion.value == "2.10") Seq(
-      compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full)
-    ) else Nil
-  }
-)
-
-lazy val testSettings = Seq(
-  libraryDependencies += "com.lihaoyi" %% "utest" % "0.3.0" % "test",
-  testFrameworks += new TestFramework("utest.runner.Framework")
-)
-
-
 lazy val `interpreter-api` = project.in(file("interpreter/api"))
-  .settings(sharedSettings)
-  .settings(
-    name := "ammonite-api"
-  )
+  .settings(commonSettings)
 
 lazy val interpreter = project.in(file("interpreter/core"))
   .dependsOn(`interpreter-api`)
-  .settings(sharedSettings)
+  .settings(commonSettings)
   .settings(
-    name := "ammonite-interpreter",
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-      "org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full, // ???
       "com.lihaoyi" %% "scalaparse" % "0.3.4",
       "com.github.alexarchambault" %% "coursier" % "1.0.0-M3",
       "com.github.alexarchambault" %% "coursier-cache" % "1.0.0-M3"
@@ -83,9 +16,8 @@ lazy val interpreter = project.in(file("interpreter/core"))
 
 lazy val `shell-api` = project.in(file("shell/api"))
   .dependsOn(`interpreter-api`, tprint)
-  .settings(sharedSettings)
+  .settings(commonSettings)
   .settings(
-    name := "ammonite-shell-api",
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
       "com.lihaoyi" %% "pprint" % "0.3.6"
@@ -100,21 +32,37 @@ lazy val `shell-api` = project.in(file("shell/api"))
     buildInfoPackage := "ammonite.shell"
   )
 
-lazy val tprint = project.in(file("shell/tprint"))
-  .settings(sharedSettings)
-
+lazy val `shell-tests` = project.in(file("shell/tests"))
+  .dependsOn(`shell-api`, interpreter)
+  .settings(commonSettings)
   .settings(
-    name := "ammonite-tprint",
+    libraryDependencies += "com.lihaoyi" %% "utest" % "0.3.0"
+  )
+
+lazy val shell = project.in(file("shell/core"))
+  .dependsOn(`shell-api`, `shell-tests` % "test->test", interpreter)
+  .settings(commonSettings)
+  .settings(testSettings)
+  .settings(packAutoSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "jline" % "jline" % "2.12",
+      "com.github.alexarchambault" %% "case-app" % "0.2.2",
+      "com.lihaoyi" %% "ammonite-terminal" % "0.5.2"
+    )
+  )
+
+lazy val tprint = project.in(file("shell/tprint"))
+  .settings(commonSettings)
+  .settings(
     libraryDependencies ++= {
       Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value,
         "com.lihaoyi" %% "pprint" % "0.3.6"
       ) ++ {
-        if (scalaVersion.value.startsWith("2.11"))
-          Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value
-          )
-        else
-          Nil
+        if (scalaBinaryVersion.value == "2.11") Seq(
+          "org.scala-lang" % "scala-compiler" % scalaVersion.value
+        ) else Nil
       }
     },
     sourceGenerators in Compile <+= Def.task {
@@ -150,7 +98,7 @@ lazy val tprint = project.in(file("shell/tprint"))
     }
   )
 
-val hadoopExclusions = Seq(
+val sparkExclusions = Seq(
   ExclusionRule("asm", "asm"),
   ExclusionRule("org.codehaus.jackson", "jackson-mapper-asl"),
   ExclusionRule("org.ow2.asm", "asm"),
@@ -162,77 +110,107 @@ val hadoopExclusions = Seq(
   ExclusionRule("junit", "junit")
 )
 
-val sparkExclusions = Seq(
-  ExclusionRule("org.apache.hadoop", "*"),
-  ExclusionRule("org.jboss.netty", "netty")
-)
-
-def sparkProject(sparkVersion: String, hadoopVersion: String, extraDirSuffix: String = "") = {
+def sparkProject(sparkVersion: String, extraDirSuffix: String = "") = {
   val binaryVersion = sparkVersion.split('.').take(2).mkString(".")
   val shortBinaryVersion = binaryVersion.filter('.'.!=)
 
   Project(id = s"spark-$shortBinaryVersion", base = file("spark"))
     .dependsOn(`shell-api`, shell % "test->test")
-    .settings(sharedSettings)
+    .settings(commonSettings)
     .settings(testSettings)
-    .settings(packAutoSettings)
     .settings(
-      name := s"ammonite-spark-$shortBinaryVersion",
-      moduleName := s"ammonite-spark_$binaryVersion",
+      moduleName := s"spark_$binaryVersion",
       target := target.value / s"spark-$binaryVersion",
       libraryDependencies ++= Seq(
         "org.apache.spark" %% "spark-core" % sparkVersion excludeAll(sparkExclusions: _*),
         "org.apache.spark" %% "spark-sql" % sparkVersion excludeAll(sparkExclusions: _*),
-        "org.apache.hadoop" % "hadoop-client" % hadoopVersion excludeAll(hadoopExclusions: _*),
         "org.eclipse.jetty" % "jetty-server" % "8.1.14.v20131031"
       ),
       unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"extra$extraDirSuffix"
     )
 }
 
-/* Forcing the hadoop version, so that it does not default to a value
- * that lacks some artifacts. (e.g. 1.0.4 and hadoop-yarn-client). */
-lazy val spark16 = sparkProject("1.6.0", "2.4.0")
-lazy val spark15 = sparkProject("1.5.2", "2.4.0")
-lazy val spark14 = sparkProject("1.4.1", "2.4.0")
-lazy val spark13 = sparkProject("1.3.1", "2.4.0")
-lazy val spark12 = sparkProject("1.2.2", "2.4.0")
-
 // only built on a specific scala 2.10 only branch
 /*
 lazy val spark11 = sparkProject("1.1.1", "2.4.0", "-1.1")
 */
 
-lazy val `shell-tests` = project.in(file("shell/tests"))
-  .dependsOn(`shell-api`, interpreter)
-  .settings(sharedSettings)
-  .settings(
-    name := "ammonite-shell-tests",
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.3.0"
-  )
-
-lazy val shell = project.in(file("shell/core"))
-  .dependsOn(`shell-api`, `shell-tests` % "test->test", interpreter)
-  .settings(sharedSettings)
-  .settings(testSettings)
-  .settings(packAutoSettings)
-  .settings(
-    name := "ammonite-shell",
-    libraryDependencies ++= Seq(
-      "jline" % "jline" % "2.12",
-      "com.github.alexarchambault" %% "case-app" % "0.2.2",
-      "com.lihaoyi" %% "ammonite-terminal" % "0.5.2"
-    )
-  )
+lazy val spark12 = sparkProject("1.2.2")
+lazy val spark13 = sparkProject("1.3.1")
+lazy val spark14 = sparkProject("1.4.1")
+lazy val spark15 = sparkProject("1.5.2")
+lazy val spark16 = sparkProject("1.6.0")
 
 lazy val root = project.in(file("."))
-  .settings(sharedSettings)
   .aggregate(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark15, spark14, spark13, spark12, shell, tprint)
   .dependsOn(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark15, spark14, spark13, spark12, shell, tprint)
+  .settings(commonSettings)
+  .settings(noPublishSettings)
   .settings(
-    publish := {},
-    publishLocal := {},
-    moduleName := "ammonite-shell-root",
-    (unmanagedSourceDirectories in Compile) := Nil,
-    (unmanagedSourceDirectories in Test) := Nil
+    name := "ammonium"
   )
+
+
+lazy val commonSettings = releaseSettings ++ Seq(
+  scalaVersion := "2.11.7",
+  resolvers ++= Seq(
+    "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/",
+    "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases",
+    Resolver.sonatypeRepo("releases")
+  ),
+  libraryDependencies ++= {
+    if (scalaBinaryVersion.value == "2.10") Seq(
+      compilerPlugin(
+        "org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full
+      )
+    ) else Nil
+  },
+  autoCompilerPlugins := true,
+  ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) },
+  scalacOptions += "-target:jvm-1.7"
+)
+
+lazy val releaseSettings = Seq(
+  organization := "com.github.alexarchambault.ammonium",
+  publishTo := {
+    val nexus = "https://oss.sonatype.org/"
+    if (isSnapshot.value)
+      Some("snapshots" at nexus + "content/repositories/snapshots")
+    else
+      Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+  },
+  credentials ++= {
+    for (user <- sys.env.get("SONATYPE_USER").toSeq; pass <- sys.env.get("SONATYPE_PASS").toSeq)
+      yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", user, pass)
+  },
+  licenses := Seq("MIT license" -> url("http://www.opensource.org/licenses/mit-license.php")),
+  homepage := Some(url("https://github.com/alexarchambault/ammonite-shell")),
+  pomExtra := {
+    <scm>
+      <url>git://github.com/alexarchambault/ammonite-shell.git</url>
+      <connection>scm:git://github.com/alexarchambault/ammonite-shell.git</connection>
+    </scm>
+    <developers>
+      <developer>
+        <id>alexarchambault</id>
+        <name>Alexandre Archambault</name>
+        <url>https://github.com/alexarchambault</url>
+      </developer>
+    </developers>
+  },
+  publishMavenStyle := true,
+  crossVersion := CrossVersion.full
+)
+
+lazy val testSettings = Seq(
+  testFrameworks += new TestFramework("utest.runner.Framework"),
+  fork in test := true,
+  fork in (Test, test) := true,
+  fork in (Test, testOnly) := true
+)
+
+lazy val noPublishSettings = Seq(
+  publish := {},
+  publishLocal := {},
+  publishArtifact := false
+)

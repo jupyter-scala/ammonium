@@ -115,7 +115,7 @@ object Ammonite extends AppOf[Ammonite] {
 
   val initialDependencies = Seq(
     "compile" -> Dependency(
-      Module("com.github.alexarchambault", s"ammonite-shell-api_$scalaVersion"), BuildInfo.version
+      Module("com.github.alexarchambault.ammonium", s"shell-api_$scalaVersion"), BuildInfo.version
     ),
     "macro" -> Dependency(
       Module("org.scala-lang", "scala-compiler"), scalaVersion

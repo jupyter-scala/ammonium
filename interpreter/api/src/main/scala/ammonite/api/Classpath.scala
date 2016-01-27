@@ -34,6 +34,8 @@ trait Classpath {
 
   /** Look up for a class in the added classes */
   def fromAddedClasses(config: String, name: String): Option[Array[Byte]]
+
+  def addedClasses(config: String = "compile"): Map[String, Array[Byte]]
 }
 
 object ModuleConstructor {
