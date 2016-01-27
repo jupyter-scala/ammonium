@@ -302,19 +302,35 @@ object Interpreter {
         InterpreterAction { interpreter =>
           try f(())(interpreter)
           catch {
-            case Ex(_: ExceptionInInitializerError, Exit) =>
-              Left(InterpreterError.Exit)
-            case Ex(_: InvocationTargetException, _: ExceptionInInitializerError, Exit) =>
-              Left(InterpreterError.Exit)
-            case Ex(_: ThreadDeath) =>
-              interrupted()
-            case Ex(_: InvocationTargetException, _: ThreadDeath) =>
-              interrupted()
-            case Ex(_: InvocationTargetException, _: ExceptionInInitializerError, userEx: Exception, _) =>
-              // Res.Failure(userEx, stopMethod = "$main", stopClass = s"$wrapperName$$$$user")
-              Left(InterpreterError.UserException(userEx))
-            case ex: Exception =>
-              Left(InterpreterError.UserException(ex))
+            case t: Throwable =>
+              println(s"Caught $t")
+
+              def printEx(ex: Throwable): Unit =
+                if (ex != null) {
+                  println(ex.getMessage)
+                  for (l <- ex.getStackTrace)
+                    println(s"  $l")
+
+                  printEx(ex.getCause)
+                }
+
+              printEx(t)
+
+              t match {
+                case Ex(_: ExceptionInInitializerError, Exit) =>
+                  Left(InterpreterError.Exit)
+                case Ex(_: InvocationTargetException, _: ExceptionInInitializerError, Exit) =>
+                  Left(InterpreterError.Exit)
+                case Ex(_: ThreadDeath) =>
+                  interrupted()
+                case Ex(_: InvocationTargetException, _: ThreadDeath) =>
+                  interrupted()
+                case Ex(_: InvocationTargetException, _: ExceptionInInitializerError, userEx: Exception, _) =>
+                  // Res.Failure(userEx, stopMethod = "$main", stopClass = s"$wrapperName$$$$user")
+                  Left(InterpreterError.UserException(userEx))
+                case ex: Exception =>
+                  Left(InterpreterError.UserException(ex))
+              }
           }
         }
       }
