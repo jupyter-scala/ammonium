@@ -63,14 +63,14 @@ lazy val testSettings = Seq(
 )
 
 
-lazy val api = project.in(file("interpreter/api"))
+lazy val `interpreter-api` = project.in(file("interpreter/api"))
   .settings(sharedSettings: _*)
   .settings(
     name := "ammonite-api"
   )
 
 lazy val interpreter = project.in(file("interpreter/core"))
-  .dependsOn(api)
+  .dependsOn(`interpreter-api`)
   .settings(sharedSettings: _*)
   .settings(
     name := "ammonite-interpreter",
@@ -84,7 +84,7 @@ lazy val interpreter = project.in(file("interpreter/core"))
   )
 
 lazy val `shell-api` = project.in(file("shell/api"))
-  .dependsOn(api, tprint)
+  .dependsOn(`interpreter-api`, tprint)
   .settings(sharedSettings: _*)
   .settings(
     name := "ammonite-shell-api",
@@ -225,8 +225,8 @@ lazy val shell = project.in(file("shell/core"))
 
 lazy val root = project.in(file("."))
   .settings(sharedSettings: _*)
-  .aggregate(api, interpreter, `shell-api`, spark15, spark14, spark13, spark12, shell, tprint)
-  .dependsOn(api, interpreter, `shell-api`, spark15, spark14, spark13, spark12, shell, tprint)
+  .aggregate(`interpreter-api`, interpreter, `shell-api`, spark15, spark14, spark13, spark12, shell, tprint)
+  .dependsOn(`interpreter-api`, interpreter, `shell-api`, spark15, spark14, spark13, spark12, shell, tprint)
   .settings(
     publish := {},
     publishLocal := {},
