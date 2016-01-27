@@ -15,7 +15,7 @@ object Classpath {
 
   def isolatedLoader(from: ClassLoader, id: String): Option[ClassLoader] =
     if (from == null) {
-      println(s"Cannot find isolated loader $id")
+      println(s"No class loader isolation in $id")
       None
     } else {
       val result = try {
@@ -26,10 +26,9 @@ object Classpath {
           false
       }
 
-      if (result) {
-        println(s"Found isolated loader $id")
+      if (result)
         Some(from)
-      } else
+      else
         isolatedLoader(from.getParent, id)
     }
 
