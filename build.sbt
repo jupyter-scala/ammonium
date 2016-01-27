@@ -63,13 +63,13 @@ lazy val testSettings = Seq(
 )
 
 
-lazy val api = project
+lazy val api = project.in(file("interpreter/api"))
   .settings(sharedSettings: _*)
   .settings(
     name := "ammonite-api"
   )
 
-lazy val interpreter = project
+lazy val interpreter = project.in(file("interpreter/core"))
   .dependsOn(api)
   .settings(sharedSettings: _*)
   .settings(
@@ -83,7 +83,7 @@ lazy val interpreter = project
     )
   )
 
-lazy val `shell-api` = project
+lazy val `shell-api` = project.in(file("shell/api"))
   .dependsOn(api, tprint)
   .settings(sharedSettings: _*)
   .settings(
@@ -102,7 +102,7 @@ lazy val `shell-api` = project
     buildInfoPackage := "ammonite.shell"
   )
 
-lazy val tprint = project
+lazy val tprint = project.in(file("shell/tprint"))
   .settings(sharedSettings: _*)
 
   .settings(
@@ -203,7 +203,7 @@ lazy val spark12 = sparkProject("1.2.2", "2.4.0")
 lazy val spark11 = sparkProject("1.1.1", "2.4.0", "-1.1")
 */
 
-lazy val shell = Project(id = "shell", base = file("shell"))
+lazy val shell = project.in(file("shell/core"))
   .dependsOn(`shell-api`, interpreter)
   .settings(sharedSettings ++ testSettings: _*)
   .settings(packAutoSettings: _*)
