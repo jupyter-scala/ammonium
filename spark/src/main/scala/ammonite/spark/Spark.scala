@@ -50,7 +50,7 @@ class Spark(implicit
         def fromClassMaps =
           for {
             List(item) <- Some(path)
-            b <- interpreter.classpath.fromAddedClasses("compile", item.stripSuffix(".class"))
+            b <- classpath.fromAddedClasses("compile", item.stripSuffix(".class"))
           } yield b
 
         def fromDirs =
@@ -159,7 +159,7 @@ class Spark(implicit
   def withConf(f: SparkConf => SparkConf): Unit =
     _sparkConf = f(sparkConf)
 
-  interpreter.classpath.onPathsAdded("compile") { newJars =>
+  classpath.onPathsAdded("compile") { newJars =>
     if (_sc != null)
       newJars.filterNot(sparkJars).foreach(_sc addJar _.toURI.toString)
   }
