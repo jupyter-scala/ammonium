@@ -23,6 +23,28 @@ object Load {
       )
   }
 
+
+  def isolatedLoader(from: ClassLoader, id: String): Option[ClassLoader] =
+    if (from == null) {
+      println(s"Cannot find isolated loader $id")
+      None
+    } else {
+      val result = try {
+        val from0 = from.asInstanceOf[Object { def getIsolationTargets: Array[String] }]
+        from0.getIsolationTargets.contains(id)
+      } catch {
+        case e: Exception =>
+          false
+      }
+
+      if (result) {
+        println(s"Found isolated loader $id")
+        Some(from)
+      } else
+        isolatedLoader(from.getParent, id)
+    }
+
+
 }
 
 class Load(

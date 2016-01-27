@@ -130,30 +130,10 @@ object Ammonite extends AppOf[Ammonite] {
   }
 
 
-  def isolatedLoader(from: ClassLoader, id: String): Option[ClassLoader] =
-    if (from == null) {
-      println(s"Cannot find isolated loader $id")
-      None
-    } else {
-      val result = try {
-        val from0 = from.asInstanceOf[Object { def getIsolationTargets: Array[String] }]
-        from0.getIsolationTargets.contains(id)
-      } catch {
-        case e: Exception =>
-          false
-      }
-
-      if (result) {
-        println(s"Found isolated loader $id")
-        Some(from)
-      } else
-        isolatedLoader(from.getParent, id)
-    }
-
   val defaultLoader = Thread.currentThread().getContextClassLoader
 
-  val compileLoader = isolatedLoader(defaultLoader, "ammonium-compile").getOrElse(defaultLoader)
-  val macroLoader = isolatedLoader(defaultLoader, "ammonium-macro").getOrElse(compileLoader)
+  val compileLoader = Load.isolatedLoader(defaultLoader, "ammonium-compile").getOrElse(defaultLoader)
+  val macroLoader = Load.isolatedLoader(defaultLoader, "ammonium-macro").getOrElse(compileLoader)
 
   lazy val classLoaders0 = Map(
     "runtime" -> compileLoader,
