@@ -17,6 +17,8 @@ trait Classpath {
   def addInConfig(config: String)(modules: (String, String, String)*): Unit
   def add(modules: (String, String, String)*): Unit = addInConfig("compile")(modules: _*)
 
+  def dependencies: Map[String, Set[(String, String, String)]]
+
   def repositories: Seq[String]
 
   /** Add a resolver to Ivy module resolution */

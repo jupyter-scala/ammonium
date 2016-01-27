@@ -89,6 +89,14 @@ class Classpath(
     update(dependencies)
   }
 
+  def dependencies: Map[String, Set[(String, String, String)]] =
+    currentDependencies.map {
+      case (config, deps) =>
+        config -> deps.map { dep =>
+          (dep.module.organization, dep.module.name, dep.version)
+        }
+    }
+
 
   private val allConfigs = Orders.allConfigurations(configs)
   private val allDependendeeConfigs = {
