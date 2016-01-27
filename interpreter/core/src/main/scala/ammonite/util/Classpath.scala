@@ -51,13 +51,13 @@ class Classpath(
   initialRepositories: Seq[Repository],
   initialDependencies: Seq[(String, Dependency)],
   initialClassLoaders: Map[String, ClassLoader],
-  configs: Map[String, Seq[String]],
+  val configs: Map[String, Seq[String]],
   classLoadersUpdate: => Unit
 ) extends ammonite.api.Classpath {
 
   import Classpath._
 
-  def configAddPath(config: String)(paths: String*): Unit = {
+  def addPathInConfig(config: String)(paths: String*): Unit = {
     if (!configs.contains(config))
       throw new NoSuchElementException(s"Config $config")
 
@@ -73,7 +73,7 @@ class Classpath(
       classLoadersUpdate
   }
 
-  def configAddModule(config: String)(coordinates: (String, String, String)*): Unit = {
+  def addInConfig(config: String)(coordinates: (String, String, String)*): Unit = {
     if (!configs.contains(config))
       throw new NoSuchElementException(s"Config $config")
 
@@ -314,6 +314,18 @@ class Classpath(
 
     updateFetch()
   }
+
+  def repositories: Seq[String] =
+    currentRepositories.map {
+      case ivy2local if ivy2local == Cache.ivy2Local =>
+        "ivy2Local"
+      case ivyRepo: IvyRepository =>
+        s"ivy:${ivyRepo.pattern}"
+      case repo: MavenRepository =>
+        repo.root
+      case other =>
+        other.toString
+    }
 
   def classLoader(config: String): ClassLoader =
     currentClassLoaders(config)
