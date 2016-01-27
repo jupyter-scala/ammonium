@@ -38,13 +38,14 @@ trait Term {
     pprint: PPrint[T]
   ): Unit
 
-  def display[T](
+  def display[T, U](
     value: => T,
+    dummy: => U,
     ident: String,
     custom: Option[String]
   )(implicit
     cfg: Config,
-    tprint: TPrint[T],
+    tprint: TPrint[U],
     pprint: PPrint[T],
     tpe: WeakTypeTag[T]
   ): Iterator[String]

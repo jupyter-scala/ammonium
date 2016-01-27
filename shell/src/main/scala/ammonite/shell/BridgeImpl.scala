@@ -69,13 +69,14 @@ class BridgeImpl(
     def shellPrompt: String = shellPromptRef()
     def shellPrompt_=(s: String): Unit = shellPromptRef() = s
 
-    def display[T](
+    def display[T, U](
       value: => T,
+      dummy: => U,
       ident: String,
       custom: Option[String]
     )(implicit
       cfg: Config,
-      tprint: TPrint[T],
+      tprint: TPrint[U],
       pprint: PPrint[T],
       tpe: WeakTypeTag[T]
     ) =
@@ -89,7 +90,7 @@ class BridgeImpl(
 
         Iterator(
           colors.ident() + ident + colors.reset(), ": " +
-          implicitly[TPrint[T]].render(cfg) + " = "
+          implicitly[TPrint[U]].render(cfg) + " = "
         ) ++ rhs
       }
 
