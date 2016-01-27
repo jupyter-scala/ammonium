@@ -73,6 +73,7 @@ class AddURLClassLoader(
       .map { bytes =>
         val f = new File(tmpClassDir, name)
         if (!f.exists()) {
+          f.deleteOnExit()
           val w = new FileOutputStream(f)
           w.write(bytes)
           w.close()

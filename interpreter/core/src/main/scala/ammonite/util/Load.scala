@@ -2,6 +2,7 @@ package ammonite.util
 
 import java.io.File
 import java.net.URLClassLoader
+import java.nio.file.Files
 
 import coursier._
 import coursier.core.Orders
@@ -86,10 +87,16 @@ class Load(
 
   private var hooks = Map.empty[String, Seq[Seq[File] => Unit]]
 
+  private lazy val tmpClassDir = {
+    val d = Files.createTempDirectory("ammonite-classes").toFile
+    d.deleteOnExit()
+    d
+  }
+
   private val currentClassLoaders = configs.map {
     case (cfg, _) =>
       val parent = initialClassLoaders.getOrElse(cfg, Thread.currentThread().getContextClassLoader)
-      val loader = new AddURLClassLoader(parent, ???)
+      val loader = new AddURLClassLoader(parent, tmpClassDir)
       cfg -> loader
   }
 
