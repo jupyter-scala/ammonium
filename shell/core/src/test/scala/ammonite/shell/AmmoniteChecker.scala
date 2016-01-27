@@ -6,37 +6,6 @@ import ammonite.interpreter._
 
 import fastparse.core.Parsed.Success
 
-import utest._
-
-trait Checker {
-  def session(sess: String, captureOut: Boolean = captureOut): Unit
-  def fail(input: String, failureCheck: String => Boolean = _ => true): Unit
-  def complete(cursor: Int, buf: String): (Int, Seq[String], Seq[String])
-  def run(input: String, captureOut: Boolean = captureOut): (Either[InterpreterError, Evaluated[Unit]], Either[InterpreterError, String])
-
-  def captureOut: Boolean
-  def captureOut_=(v: Boolean): Unit
-
-  def session(sess: String, finally0: String): Unit =
-    try session(sess) finally session(finally0)
-
-  def apply(input: String,
-            expected: String = null) = {
-    val (processed, printed) = run(input)
-    if (expected != null){
-      val expectedRes = Right(expected.trim)
-      failLoudly(assert(printed == expectedRes))
-    }
-  }
-
-  def result(input: String, expected: Either[InterpreterError, Evaluated[Unit]]): Unit = {
-    val (processed, printed) = run(input)
-    assert(processed == expected)
-  }
-
-  def failLoudly[T](t: => T): T
-}
-
 class AmmoniteChecker extends Checker {
   def predef = ""
   var allOutput = ""
@@ -72,8 +41,8 @@ class AmmoniteChecker extends Checker {
   }
 
   def session(sess: String, captureOut: Boolean): Unit = {
-//    println("SESSION")
-//    println(sess)
+    //    println("SESSION")
+    //    println(sess)
     val margin = sess.lines.filter(_.trim != "").map(_.takeWhile(_ == ' ').length).min
     val steps = sess.replace("\n" + margin, "\n").split("\n\n")
     for(step <- steps){
@@ -142,8 +111,8 @@ class AmmoniteChecker extends Checker {
               .getStackTrace
               .takeWhile(x =>
                 x.getMethodName != "evaluating" &&
-                !x.getClassName.endsWith("$$user") &&
-                !x.getClassName.endsWith("$$user$")
+                  !x.getClassName.endsWith("$$user") &&
+                  !x.getClassName.endsWith("$$user$")
               )
               .map("\t" + _)
               .mkString("\n")
@@ -154,7 +123,7 @@ class AmmoniteChecker extends Checker {
   }
 
   def failLoudly[T](t: => T) = try{
-      t
+    t
   } catch{ case e: utest.AssertionError =>
     println("FAILURE TRACE\n" + allOutput)
     throw e

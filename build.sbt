@@ -48,13 +48,16 @@ lazy val sharedSettings = Seq[Setting[_]](
   publishMavenStyle := true,
   fork in test := true,
   fork in (Test, test) := true,
-  fork in (Test, testOnly) := true
+  fork in (Test, testOnly) := true,
+  libraryDependencies ++= {
+    if (scalaBinaryVersion.value == "2.10") Seq(
+      compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full)
+    ) else Nil
+  }
 )
 
 lazy val testSettings = Seq(
-  libraryDependencies ++= Seq(
-    "com.lihaoyi" %% "utest" % "0.3.0" % "test"
-  ),
+  libraryDependencies += "com.lihaoyi" %% "utest" % "0.3.0" % "test",
   testFrameworks += new TestFramework("utest.runner.Framework"),
   publishArtifact in (Test, packageBin) := true,
   publishArtifact in (Test, packageSrc) := true
@@ -74,7 +77,7 @@ lazy val interpreter = project.in(file("interpreter/core"))
     name := "ammonite-interpreter",
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-      "org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full,
+      "org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full, // ???
       "com.lihaoyi" %% "scalaparse" % "0.3.4",
       "com.github.alexarchambault" %% "coursier" % "1.0.0-M3",
       "com.github.alexarchambault" %% "coursier-cache" % "1.0.0-M3"
@@ -201,30 +204,32 @@ lazy val spark12 = sparkProject("1.2.2", "2.4.0")
 lazy val spark11 = sparkProject("1.1.1", "2.4.0", "-1.1")
 */
 
-lazy val shell = project.in(file("shell/core"))
+lazy val `shell-tests` = project.in(file("shell/tests"))
   .dependsOn(`shell-api`, interpreter)
-  .settings(sharedSettings ++ testSettings: _*)
-  .settings(packAutoSettings: _*)
+  .settings(sharedSettings)
+  .settings(
+    name := "ammonite-shell-tests",
+    libraryDependencies += "com.lihaoyi" %% "utest" % "0.3.0"
+  )
+
+lazy val shell = project.in(file("shell/core"))
+  .dependsOn(`shell-api`, `shell-tests` % "test->test", interpreter)
+  .settings(sharedSettings)
+  .settings(testSettings)
+  .settings(packAutoSettings)
   .settings(
     name := "ammonite-shell",
     libraryDependencies ++= Seq(
       "jline" % "jline" % "2.12",
       "com.github.alexarchambault" %% "case-app" % "0.2.2",
       "com.lihaoyi" %% "ammonite-terminal" % "0.5.2"
-    ),
-    libraryDependencies ++= {
-      if (scalaVersion.value startsWith "2.10.")
-        Seq(compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full))
-      else
-        Seq()
-    }
+    )
   )
-
 
 lazy val root = project.in(file("."))
   .settings(sharedSettings: _*)
-  .aggregate(`interpreter-api`, interpreter, `shell-api`, spark15, spark14, spark13, spark12, shell, tprint)
-  .dependsOn(`interpreter-api`, interpreter, `shell-api`, spark15, spark14, spark13, spark12, shell, tprint)
+  .aggregate(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark15, spark14, spark13, spark12, shell, tprint)
+  .dependsOn(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark15, spark14, spark13, spark12, shell, tprint)
   .settings(
     publish := {},
     publishLocal := {},

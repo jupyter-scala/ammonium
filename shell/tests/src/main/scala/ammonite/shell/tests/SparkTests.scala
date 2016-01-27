@@ -245,3 +245,10 @@ class SparkTests(checker: => Checker,
   }
 
 }
+
+class LocalSparkTests(checker: => Checker, sparkVersion: (Int, Int)) extends tests.SparkTests(
+  checker, "local", sparkVersion, loadAmmoniteSpark = true
+) {
+  override def hasSpark6299 = false // no issue in local mode
+  override def broadcastOk = false // doesn't work in local mode (spark issue)
+}
