@@ -1,6 +1,7 @@
 package ammonite.shell
 
 import ammonite.api.{ Evaluated, InterpreterError }
+import utest.assert
 
 trait Checker {
   def session(sess: String, captureOut: Boolean = captureOut): Unit
