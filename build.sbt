@@ -46,12 +46,10 @@ lazy val sharedSettings = Seq[Setting[_]](
     </developers>
   },
   publishMavenStyle := true,
-  ReleaseKeys.versionBump := sbtrelease.Version.Bump.Bugfix,
-  ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value,
   fork in test := true,
   fork in (Test, test) := true,
   fork in (Test, testOnly) := true
-) ++ releaseSettings
+)
 
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
