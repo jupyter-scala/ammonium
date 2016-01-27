@@ -6,6 +6,8 @@ import ammonite.interpreter._
 
 import fastparse.core.Parsed.Success
 
+import utest.assert
+
 class AmmoniteChecker extends Checker {
   def predef = ""
   var allOutput = ""
