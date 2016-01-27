@@ -1,8 +1,6 @@
 package ammonite.shell
 
-import java.io.File
-
-import ammonite.api.{ ClassLoaderType, ModuleConstructor, Import }
+import ammonite.api.{ ModuleConstructor, Import }
 import ammonite.Interpreter
 import ammonite.interpreter.{ Ref, NamesFor }
 import ammonite.interpreter.Colors
@@ -10,10 +8,6 @@ import ammonite.interpreter.Colors
 import coursier.core.Repository
 
 class BridgeConfig(
-  paths: Map[ClassLoaderType, Seq[File]],
-  modules: Map[ClassLoaderType, Seq[(String, String, String)]],
-  pathMap: File => File,
-  repositories0: Seq[Repository],
   shellPrompt: => Ref[String],
   reset: => Unit,
   pprintConfig: pprint.Config,
@@ -41,10 +35,6 @@ class BridgeConfig(
     if (bridge == null)
       bridge = new BridgeImpl(
         intp,
-        paths,
-        modules,
-        pathMap,
-        repositories0,
         colors,
         shellPrompt,
         pprintConfig,

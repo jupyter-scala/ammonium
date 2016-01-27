@@ -1,5 +1,6 @@
 package ammonite
 
+import java.io.File
 import java.lang.reflect.InvocationTargetException
 
 import fastparse.core.Parsed.Success
@@ -9,7 +10,7 @@ import scala.reflect.io.VirtualDirectory
 import scala.util.control.ControlThrowable
 
 import ammonite.util.Capture
-import ammonite.api.{ Classes => _, Imports => _, _ }
+import ammonite.api.{ Imports => _, _ }
 import ammonite.interpreter._
 
 /**
@@ -17,7 +18,11 @@ import ammonite.interpreter._
  */
 case object Exit extends ControlThrowable
 
-/** Mix of IO-like and Either[InterpreterError, ?] monads, acting on an Interpreter */
+/**
+  * Mix of IO-like and Either[InterpreterError, ?] monads, acting on an Interpreter
+  *
+  * FIXME These are not stack-safe, and sometimes lead to big stack traces.
+  */
 sealed trait InterpreterAction[T] { self =>
   def apply(interpreter: Interpreter): Either[InterpreterError, T]
 
@@ -173,13 +178,13 @@ object Interpreter {
   def loadByteCode(byteCode: Seq[(String, Array[Byte])]): InterpreterAction[Unit] =
     InterpreterAction { interpreter =>
       for ((name, bytes) <- byteCode)
-        interpreter.classes.addClass(name, bytes)
+        interpreter.load.addClass("compile", name, bytes)
 
       Right(())
     }
   def loadClass(name: String): InterpreterAction[Class[_]] =
     InterpreterAction[Class[_]] { interpreter =>
-      Right(Class.forName(name, true, interpreter.classes.classLoader()))
+      Right(Class.forName(name, true, interpreter.load.classLoader()))
     }
 
   def splitCode(code: String): InterpreterAction[Seq[String]] =
@@ -237,7 +242,7 @@ object Interpreter {
           val oldClassLoader = thread.getContextClassLoader
 
           try {
-            thread.setContextClassLoader(interpreter.classes.classLoader())
+            thread.setContextClassLoader(interpreter.load.classLoader("compile"))
             f(())(interpreter)
           } finally {
             thread.setContextClassLoader(oldClassLoader)
@@ -342,6 +347,13 @@ object Interpreter {
       )
     }
 
+  lazy val bootClasspath = System.getProperty("sun.boot.class.path")
+    .split(File.pathSeparatorChar)
+    .map(new File(_))
+    .filter(_.exists())
+
+  lazy val (bootStartJars, bootStartDirs) = bootClasspath.partition(_.getName.endsWith(".jar"))
+
   def initCompiler(options: Seq[String] = null): InterpreterAction[Unit] =
     InterpreterAction { interpreter =>
 
@@ -349,8 +361,7 @@ object Interpreter {
         interpreter.compilerOptions = opts.toList
 
       val (jars, dirs) = (
-        Classes.bootStartJars ++ Classes.bootStartDirs ++
-          interpreter.classes.path(ClassLoaderType.Main)
+        bootStartJars ++ bootStartDirs ++ interpreter.load.path("compile")
       ).toSeq.partition(f => f.isFile && f.getName.endsWith(".jar"))
 
       interpreter.compiler = Compiler(
@@ -358,8 +369,8 @@ object Interpreter {
         dirs,
         interpreter.dynamicClasspath,
         interpreter.compilerOptions,
-        interpreter.classes.classLoader(ClassLoaderType.Macro),
-        interpreter.classes.classLoader(ClassLoaderType.Plugin),
+        interpreter.load.classLoader("macro"),
+        interpreter.load.classLoader("plugin"),
         () => interpreter.pressy.shutdownPressy()
       )
 
@@ -367,7 +378,7 @@ object Interpreter {
         jars,
         dirs,
         interpreter.dynamicClasspath,
-        interpreter.classes.classLoader(ClassLoaderType.Macro)
+        interpreter.load.classLoader("macro")
       )
 
       // initializing the compiler so that it does not complain having no phase
@@ -438,7 +449,7 @@ object Interpreter {
 
 class Interpreter(
   val imports: ammonite.api.Imports = new Imports(),
-  val classes: Classes = new Classes(),
+  val load: Load,
   startingLine: Int = 0,
   initialHistory: Seq[String] = Nil
 ) extends ammonite.api.Interpreter {

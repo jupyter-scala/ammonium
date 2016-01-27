@@ -1,7 +1,7 @@
 package ammonite.shell
 
 import ammonite.{ Exit, Interpreter }
-import ammonite.api.{ ClassLoaderType, Eval }
+import ammonite.api.Eval
 import ammonite.interpreter._
 import ammonite.util.Load
 import ammonite.tprint.TPrint
@@ -29,10 +29,6 @@ object Setup {
 
 class BridgeImpl(
   intp: Interpreter,
-  paths: Map[ClassLoaderType, Seq[File]],
-  modules: Map[ClassLoaderType, Seq[(String, String, String)]],
-  pathMap: File => File,
-  repositories: Seq[Repository],
   colors: Colors,
   shellPromptRef: Ref[String],
   pprintConfig0: pprint.Config,
@@ -47,7 +43,7 @@ class BridgeImpl(
       Interpreter.run(code, (), None, None, _ => ())(intp)
   }
 
-  val load: Load = new Load(intp, paths, modules, pathMap, repositories)
+  def load: ammonite.api.Load = intp.load
   def interpreter: ammonite.api.Interpreter = intp
 
   val setup: ammonite.api.Setup =

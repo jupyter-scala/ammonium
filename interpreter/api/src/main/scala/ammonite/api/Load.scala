@@ -4,27 +4,30 @@ import java.io.File
 
 /** Complement of `Classes` - manages things put in the classpath as Maven-style dependencies */
 trait Load {
-  def path(paths: String*)(implicit tpe: ClassLoaderType = ClassLoaderType.Main): Unit
+  def configAddPath(config: String)(paths: String*): Unit
+  def addPath(paths: String*): Unit = configAddPath("compile")(paths: _*)
+
+  def path(config: String = "compile"): Seq[File]
 
   /** Load a module from its Maven coordinates */
-  def module(modules: (String, String, String)*)(implicit tpe: ClassLoaderType = ClassLoaderType.Main): Unit
+  def configAddModule(config: String)(modules: (String, String, String)*): Unit
+  def addModule(modules: (String, String, String)*): Unit = configAddModule("compile")(modules: _*)
+
+  /** Add a resolver to Ivy module resolution */
+  def addRepository(repository: String*): Unit
 
   /** Just resolves some modules, does not load them */
   def resolve(modules: (String, String, String)*): Seq[File]
 
-  /** Add a resolver to Ivy module resolution */
-  def repository(repository: Repository*): Unit
-}
+  def classLoader(config: String = "compile"): ClassLoader
+  def addClass(config: String, name: String, bytes: Array[Byte]): Unit
 
-trait Repository
+  /** Look up for a class in the added classes */
+  def fromAddedClasses(config: String, name: String): Option[Array[Byte]]
 
-object Repository {
-  case object Local extends Repository
-  case class Maven(base: String) extends Repository
+  /** Add a hook to be called when JARs (or directories) are added */
+  def onPathsAdded(config: String)(action: Seq[File] => Unit): Unit
 
-  val central = Maven("https://repo1.maven.org/maven2/")
-  def sonatype(status: String) =
-    Maven(s"https://oss.sonatype.org/content/repositories/$status")
 }
 
 object ModuleConstructor {
@@ -37,6 +40,4 @@ object ModuleConstructor {
   implicit class OrgNameExt(orgName: (String, String)) {
     def %(version: String) = (orgName._1, orgName._2, version)
   }
-
-  val Repository = ammonite.api.Repository
 }

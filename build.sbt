@@ -76,8 +76,8 @@ lazy val interpreter = project.in(file("interpreter/core"))
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full,
       "com.lihaoyi" %% "scalaparse" % "0.3.4",
-      "com.github.alexarchambault" %% "coursier" % "1.0.0-M1",
-      "com.github.alexarchambault" %% "coursier-cache" % "1.0.0-M1"
+      "com.github.alexarchambault" %% "coursier" % "1.0.0-M3",
+      "com.github.alexarchambault" %% "coursier-cache" % "1.0.0-M3"
     )
   )
 

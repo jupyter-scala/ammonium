@@ -1,7 +1,7 @@
 package ammonite
 
 import ammonite.interpreter._
-import ammonite.api.{ ClassLoaderType, CodeItem, ParsedCode }
+import ammonite.api.{ CodeItem, ParsedCode }
 import ammonite.shell.BuildInfo
 import ammonite.shell.util._
 import ammonite.util.Load
@@ -9,8 +9,7 @@ import ammonite.util.Load
 import caseapp._
 
 import java.io.{ Console => _, _ }
-import coursier.maven.MavenRepository
-import coursier.util.ClasspathFilter
+import coursier._
 import fastparse.core.Parsed.Success
 
 import scala.annotation.tailrec
@@ -26,7 +25,7 @@ case class Ammonite(
   sharedLoader: Boolean = false
 ) extends App {
 
-  println("Loading Ammonite Shell...")
+  println("Loading...")
 
   val delimiter = "\n\n\n"
 
@@ -111,62 +110,41 @@ object Ammonite extends AppOf[Ammonite] {
 
   val scalaVersion = scala.util.Properties.versionNumberString
 
-  import ammonite.api.ModuleConstructor._
-
-  val modules0 = Map[ClassLoaderType, Seq[(String, String, String)]](
-    ClassLoaderType.Main -> Seq(
-      "org.scala-lang" % "scala-library" % scalaVersion,
-      "com.github.alexarchambault" % s"ammonite-shell-api_$scalaVersion" % BuildInfo.version
+  val initialDependencies = Seq(
+    "compile" -> Dependency(
+      Module("com.github.alexarchambault", s"ammonite-shell-api_$scalaVersion"), BuildInfo.version
     ),
-    ClassLoaderType.Macro -> Seq(
-      "org.scala-lang" % "scala-library" % scalaVersion,
-      "com.github.alexarchambault" % s"ammonite-shell-api_$scalaVersion" % BuildInfo.version,
-      "org.scala-lang" % "scala-compiler" % scalaVersion
-    ),
-    ClassLoaderType.Plugin -> Seq.empty
+    "macro" -> Dependency(
+      Module("org.scala-lang", "scala-compiler"), scalaVersion
+    )
   )
 
-  val repositories =
-    Seq(
-      coursier.Cache.ivy2Local,
-      MavenRepository("https://repo1.maven.org/maven2")
-    ) ++ {
-      if (BuildInfo.version endsWith "-SNAPSHOT")
-        Seq(MavenRepository("https://oss.sonatype.org/content/repositories/snapshots"))
-      else
-        Seq()
-    }
-
-  lazy val pathMap = Classes.jarMap()
-
-  lazy val paths0 = {
-    modules0.map { case (tpe, modules) =>
-      tpe -> Load.resolve(modules, repositories)
-        .map(pathMap)
-        .filter(_.exists())
-    }
+  val initialRepositories = Seq(
+    coursier.Cache.ivy2Local,
+    MavenRepository("https://repo1.maven.org/maven2")
+  ) ++ {
+    if (BuildInfo.version.endsWith("-SNAPSHOT")) Seq(
+      MavenRepository("https://oss.sonatype.org/content/repositories/snapshots")
+    ) else Nil
   }
 
-  lazy val classLoaders0 = paths0.map { case (tpe, paths) =>
-    tpe -> new ClasspathFilter(
-      Thread.currentThread().getContextClassLoader,
-      (Classes.bootClasspath ++ paths).toSet,
-      exclude = false
-    )
-  }
 
-  def classes0 =
-    new Classes(
-      classLoaders0(ClassLoaderType.Main),
-      macroClassLoader0 = classLoaders0(ClassLoaderType.Macro),
-      startPaths = paths0
-    )
+  val loader = Thread.currentThread().getContextClassLoader
 
-  def sharedClasses =
-    new Classes(
-      Thread.currentThread().getContextClassLoader,
-      startPaths = Classes.defaultPaths()
-    )
+  // TODO Get isolated classloaders if available
+
+  lazy val classLoaders0 = Map(
+    "compile" -> loader,
+    "macro" -> loader,
+    "plugin" -> loader
+  )
+
+  val configs = Map(
+    "compile" -> Nil,
+    "runtime" -> Seq("compile"),
+    "macro" -> Seq("compile"),
+    "plugin" -> Nil
+  )
 
 
   def hasObjWrapSpecialImport(d: ParsedCode): Boolean =
@@ -186,9 +164,17 @@ object Ammonite extends AppOf[Ammonite] {
     initialHistory: Seq[String] = Nil,
     history: => Seq[String]
   ): Interpreter = {
-    val intp = new Interpreter(
+    lazy val load: Load = new Load(
+      initialRepositories,
+      initialDependencies,
+      classLoaders0,
+      configs,
+      Interpreter.initCompiler()(intp)
+    )
+
+    lazy val intp = new Interpreter(
       imports = new Imports(useClassWrapper = classWrap),
-      classes = if (sharedLoader) sharedClasses else classes0,
+      load = load,
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory
     ) {
@@ -213,10 +199,6 @@ object Ammonite extends AppOf[Ammonite] {
 
     val init = Interpreter.init(
       new shell.BridgeConfig(
-        paths = intp.classes.startPaths,
-        modules = modules0, // wrong if sharedModules is true
-        repositories0 = repositories,
-        pathMap = pathMap,
         shellPrompt = shellPromptRef,
         reset = reset,
         pprintConfig = pprintConfig,

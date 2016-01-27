@@ -40,7 +40,7 @@ trait Interpreter {
   /** Initialization parameters */
 
   def imports: Imports
-  def classes: Classes
+  def load: Load
 
   def getCurrentLine: String
   def sources: Map[String, String]

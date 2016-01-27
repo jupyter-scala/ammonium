@@ -20,7 +20,7 @@ class SparkTests(checker: => Checker,
 
   val requisite =
     if (loadAmmoniteSpark)
-      s"""load.module("com.github.alexarchambault" % "ammonite-spark_${sparkVersion._1}.${sparkVersion._2}_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")"""
+      s"""load.addModule("com.github.alexarchambault" % "ammonite-spark_${sparkVersion._1}.${sparkVersion._2}_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")"""
     else
       "()"
 

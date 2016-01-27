@@ -6,7 +6,6 @@ import java.io.File
 import java.nio.file.Files
 import javax.servlet.http.{ HttpServletResponse, HttpServletRequest }
 
-import ammonite.api.ClassLoaderType
 import ammonite.api.ModuleConstructor._
 import ammonite.spark.Compat.sparkVersion
 
@@ -51,11 +50,11 @@ class Spark(implicit
         def fromClassMaps =
           for {
             List(item) <- Some(path)
-            b <- interpreter.classes.fromAddedClasses(item.stripSuffix(".class"))
+            b <- interpreter.load.fromAddedClasses("compile", item.stripSuffix(".class"))
           } yield b
 
         def fromDirs =
-          interpreter.classes.path()
+          load.path()
             .filterNot(f => f.isFile && f.getName.endsWith(".jar"))
             .map(path.foldLeft(_)(new File(_, _)))
             .collectFirst{ case f if f.exists() => Files.readAllBytes(f.toPath) }
@@ -126,8 +125,7 @@ class Spark(implicit
       .setIfMissing("spark.app.name", "Ammonite Shell")
       .setIfMissingLazy(
         "spark.jars",
-        interpreter
-          .classes
+        load
           .path()
           .filter(f => f.isFile && f.getName.endsWith(".jar"))
           .filterNot(sparkJars)
@@ -161,8 +159,8 @@ class Spark(implicit
   def withConf(f: SparkConf => SparkConf): Unit =
     _sparkConf = f(sparkConf)
 
-  interpreter.classes.onPathsAdded { (newJars, tpe) =>
-    if (_sc != null && (tpe == ClassLoaderType.Main || tpe == ClassLoaderType.Macro))
+  interpreter.load.onPathsAdded("compile") { newJars =>
+    if (_sc != null)
       newJars.filterNot(sparkJars).foreach(_sc addJar _.toURI.toString)
   }
 
