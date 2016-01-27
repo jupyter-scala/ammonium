@@ -120,7 +120,19 @@ object Ammonite extends AppOf[Ammonite] {
     "macro" -> Dependency(
       Module("org.scala-lang", "scala-compiler"), scalaVersion
     )
-  )
+  ) ++ {
+    if (scalaVersion.startsWith("2.10."))
+      Seq(
+        "compile" -> Dependency(
+          Module("org.scalamacros", "quasiquotes_2.10"), "2.0.1"
+        ),
+        "compile" -> Dependency(
+          Module("org.scala-lang", "scala-compiler"), scalaVersion
+        )
+      )
+    else
+      Seq()
+  }
 
   val initialRepositories = Seq(
     coursier.Cache.ivy2Local,
