@@ -3,7 +3,7 @@ package ammonite.shell
 import ammonite.{ Exit, Interpreter }
 import ammonite.api.Eval
 import ammonite.interpreter._
-import ammonite.util.Load
+import ammonite.util.Classpath
 import ammonite.tprint.TPrint
 import ammonite.shell.util._
 
@@ -43,7 +43,7 @@ class BridgeImpl(
       Interpreter.run(code, (), None, None, _ => ())(intp)
   }
 
-  def load: ammonite.api.Load = intp.load
+  def classpath: ammonite.api.Classpath = intp.classpath
   def interpreter: ammonite.api.Interpreter = intp
 
   val setup: ammonite.api.Setup =

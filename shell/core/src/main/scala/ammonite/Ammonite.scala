@@ -4,7 +4,7 @@ import ammonite.interpreter._
 import ammonite.api.{ CodeItem, ParsedCode }
 import ammonite.shell.BuildInfo
 import ammonite.shell.util._
-import ammonite.util.Load
+import ammonite.util.Classpath
 
 import caseapp._
 
@@ -132,8 +132,8 @@ object Ammonite extends AppOf[Ammonite] {
 
   val defaultLoader = Thread.currentThread().getContextClassLoader
 
-  val compileLoader = Load.isolatedLoader(defaultLoader, "ammonium-compile").getOrElse(defaultLoader)
-  val macroLoader = Load.isolatedLoader(defaultLoader, "ammonium-macro").getOrElse(compileLoader)
+  val compileLoader = Classpath.isolatedLoader(defaultLoader, "ammonium-compile").getOrElse(defaultLoader)
+  val macroLoader = Classpath.isolatedLoader(defaultLoader, "ammonium-macro").getOrElse(compileLoader)
 
   lazy val classLoaders0 = Map(
     "runtime" -> compileLoader,
@@ -167,7 +167,7 @@ object Ammonite extends AppOf[Ammonite] {
     initialHistory: Seq[String] = Nil,
     history: => Seq[String]
   ): Interpreter = {
-    lazy val load: Load = new Load(
+    lazy val classpath: Classpath = new Classpath(
       initialRepositories,
       initialDependencies,
       classLoaders0,
@@ -177,7 +177,7 @@ object Ammonite extends AppOf[Ammonite] {
 
     lazy val intp = new Interpreter(
       imports = new Imports(useClassWrapper = classWrap),
-      load = load,
+      classpath = classpath,
       startingLine = if (predef.nonEmpty) -1 else 0,
       initialHistory = initialHistory
     ) {

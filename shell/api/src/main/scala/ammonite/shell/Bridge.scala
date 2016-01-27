@@ -5,7 +5,7 @@ import ammonite.api._
 
 trait Bridge {
   implicit def eval: Eval
-  implicit def load: Load
+  implicit def classpath: Classpath
   implicit def interpreter: Interpreter
   implicit def setup: Setup
   implicit def term: Term

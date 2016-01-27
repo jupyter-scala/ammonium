@@ -11,7 +11,7 @@ import coursier.ivy.IvyRepository
 import scalaz.{ -\/, \/- }
 import scalaz.concurrent.Task
 
-object Load {
+object Classpath {
 
   val logger: Cache.Logger = new Cache.Logger {
     override def downloadingArtifact(url: String, file: File) =
@@ -47,15 +47,15 @@ object Load {
 
 }
 
-class Load(
+class Classpath(
   initialRepositories: Seq[Repository],
   initialDependencies: Seq[(String, Dependency)],
   initialClassLoaders: Map[String, ClassLoader],
   configs: Map[String, Seq[String]],
   classLoadersUpdate: => Unit
-) extends ammonite.api.Load {
+) extends ammonite.api.Classpath {
 
-  import Load._
+  import Classpath._
 
   def configAddPath(config: String)(paths: String*): Unit = {
     if (!configs.contains(config))

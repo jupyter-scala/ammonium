@@ -178,13 +178,13 @@ object Interpreter {
   def loadByteCode(byteCode: Seq[(String, Array[Byte])]): InterpreterAction[Unit] =
     InterpreterAction { interpreter =>
       for ((name, bytes) <- byteCode)
-        interpreter.load.addClass("compile", name, bytes)
+        interpreter.classpath.addClass("compile", name, bytes)
 
       Right(())
     }
   def loadClass(name: String): InterpreterAction[Class[_]] =
     InterpreterAction[Class[_]] { interpreter =>
-      Right(Class.forName(name, true, interpreter.load.classLoader()))
+      Right(Class.forName(name, true, interpreter.classpath.classLoader()))
     }
 
   def splitCode(code: String): InterpreterAction[Seq[String]] =
@@ -242,7 +242,7 @@ object Interpreter {
           val oldClassLoader = thread.getContextClassLoader
 
           try {
-            thread.setContextClassLoader(interpreter.load.classLoader("compile"))
+            thread.setContextClassLoader(interpreter.classpath.classLoader("compile"))
             f(())(interpreter)
           } finally {
             thread.setContextClassLoader(oldClassLoader)
@@ -377,7 +377,7 @@ object Interpreter {
         interpreter.compilerOptions = opts.toList
 
       val (jars, dirs) = (
-        bootStartJars ++ bootStartDirs ++ interpreter.load.path("compile")
+        bootStartJars ++ bootStartDirs ++ interpreter.classpath.path("compile")
       ).toSeq.partition(f => f.isFile && f.getName.endsWith(".jar"))
 
       interpreter.compiler = Compiler(
@@ -385,8 +385,8 @@ object Interpreter {
         dirs,
         interpreter.dynamicClasspath,
         interpreter.compilerOptions,
-        interpreter.load.classLoader("macro"),
-        interpreter.load.classLoader("plugin"),
+        interpreter.classpath.classLoader("macro"),
+        interpreter.classpath.classLoader("plugin"),
         () => interpreter.pressy.shutdownPressy()
       )
 
@@ -394,7 +394,7 @@ object Interpreter {
         jars,
         dirs,
         interpreter.dynamicClasspath,
-        interpreter.load.classLoader("macro")
+        interpreter.classpath.classLoader("macro")
       )
 
       // initializing the compiler so that it does not complain having no phase
@@ -464,10 +464,10 @@ object Interpreter {
 }
 
 class Interpreter(
-  val imports: ammonite.api.Imports = new Imports(),
-  val load: Load,
-  startingLine: Int = 0,
-  initialHistory: Seq[String] = Nil
+                   val imports: ammonite.api.Imports = new Imports(),
+                   val classpath: Classpath,
+                   startingLine: Int = 0,
+                   initialHistory: Seq[String] = Nil
 ) extends ammonite.api.Interpreter {
 
   var compilerOptions = List.empty[String]

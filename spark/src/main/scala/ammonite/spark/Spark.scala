@@ -21,7 +21,7 @@ import scala.annotation.meta.field
 /** The spark entry point from an Ammonite session */
 class Spark(implicit
             @(transient @field) interpreter: ammonite.api.Interpreter,
-            @(transient @field) load: ammonite.api.Load) extends Serializable { api =>
+            @(transient @field) classpath: ammonite.api.Classpath) extends Serializable { api =>
 
   private lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
@@ -50,11 +50,11 @@ class Spark(implicit
         def fromClassMaps =
           for {
             List(item) <- Some(path)
-            b <- interpreter.load.fromAddedClasses("compile", item.stripSuffix(".class"))
+            b <- interpreter.classpath.fromAddedClasses("compile", item.stripSuffix(".class"))
           } yield b
 
         def fromDirs =
-          load.path()
+          classpath.path()
             .filterNot(f => f.isFile && f.getName.endsWith(".jar"))
             .map(path.foldLeft(_)(new File(_, _)))
             .collectFirst{ case f if f.exists() => Files.readAllBytes(f.toPath) }
@@ -105,7 +105,7 @@ class Spark(implicit
   }
 
   /** Filtered out jars (we assume the spark master/slaves already have them) */
-  lazy val sparkJars = load.resolve(
+  lazy val sparkJars = classpath.resolve(
     "org.apache.spark" %% "spark-core" % sparkVersion,
     "org.apache.spark" %% "spark-sql" % sparkVersion
   ).toSet
@@ -125,7 +125,7 @@ class Spark(implicit
       .setIfMissing("spark.app.name", "Ammonite Shell")
       .setIfMissingLazy(
         "spark.jars",
-        load
+        classpath
           .path()
           .filter(f => f.isFile && f.getName.endsWith(".jar"))
           .filterNot(sparkJars)
@@ -159,7 +159,7 @@ class Spark(implicit
   def withConf(f: SparkConf => SparkConf): Unit =
     _sparkConf = f(sparkConf)
 
-  interpreter.load.onPathsAdded("compile") { newJars =>
+  interpreter.classpath.onPathsAdded("compile") { newJars =>
     if (_sc != null)
       newJars.filterNot(sparkJars).foreach(_sc addJar _.toURI.toString)
   }

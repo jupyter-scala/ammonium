@@ -45,7 +45,7 @@ class SerializationTests(check0: => Checker,
           Seq("*** func ***")
 
       check.session(s"""
-        @ load.addModule("com.github.alexarchambault" % "ammonite-spark_1.3_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")
+        @ classpath.addModule("com.github.alexarchambault" % "ammonite-spark_1.3_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")
 
         @ $longSingleLine
         *** decl ***
@@ -59,7 +59,7 @@ class SerializationTests(check0: => Checker,
 
         @ val b = ammonite.spark.util.Serialize.to(c)
 
-        @ val loader = interpreter.load.classLoaderClone("compile")
+        @ val loader = interpreter.classpath.classLoaderClone("compile")
 
         @ val c2 = ammonite.spark.util.Serialize.from(b, loader)
         c2: AnyRef = C

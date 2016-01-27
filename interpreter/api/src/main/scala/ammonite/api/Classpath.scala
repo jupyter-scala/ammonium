@@ -2,8 +2,7 @@ package ammonite.api
 
 import java.io.File
 
-/** Complement of `Classes` - manages things put in the classpath as Maven-style dependencies */
-trait Load {
+trait Classpath {
   def configAddPath(config: String)(paths: String*): Unit
   def addPath(paths: String*): Unit = configAddPath("compile")(paths: _*)
 

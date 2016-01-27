@@ -20,7 +20,7 @@ class AdvancedTests(check0: => Checker,
             @ import scalatags.Text.all._
             error: not found: value scalatags
 
-            @ load.addModule("com.lihaoyi" %% "scalatags" % "0.4.5")
+            @ classpath.addModule("com.lihaoyi" %% "scalatags" % "0.4.5")
 
             @ import scalatags.Text.all._
             import scalatags.Text.all._
@@ -34,7 +34,7 @@ class AdvancedTests(check0: => Checker,
         'dependent{
           // Make sure it automatically picks up jawn-parser since upickle depends on it,
           check.session("""
-            @ load.addModule("com.lihaoyi" %% "upickle" % "0.2.6")
+            @ classpath.addModule("com.lihaoyi" %% "upickle" % "0.2.6")
 
             @ import upickle._
             import upickle._
@@ -52,14 +52,14 @@ class AdvancedTests(check0: => Checker,
         // 'reloading{
         //   // Make sure earlier-loaded things indeed continue working
         //   check.session("""
-        //     @ load.addModule("com.lihaoyi" %%"scalarx" % "0.2.7")
+        //     @ classpath.addModule("com.lihaoyi" %%"scalarx" % "0.2.7")
         //
-        //     @ load.addModule("com.scalatags" %% "scalatags" % "0.2.5")
+        //     @ classpath.addModule("com.scalatags" %% "scalatags" % "0.2.5")
         //
         //     @ scalatags.all.div("omg").toString
         //     res2: String = "<div>omg</div>"
         //
-        //     @ load.addModule("com.lihaoyi" %% "scalatags" % "0.4.5")
+        //     @ classpath.addModule("com.lihaoyi" %% "scalatags" % "0.4.5")
         //
         //     @ import scalatags.Text.all._; scalatags.Text.all.div("omg").toString
         //     import scalatags.Text.all._
@@ -82,7 +82,7 @@ class AdvancedTests(check0: => Checker,
         // }
         'complex{
           check.session("""
-            @ load.addModule("com.typesafe.akka" %% "akka-http-experimental" % "1.0-M3")
+            @ classpath.addModule("com.typesafe.akka" %% "akka-http-experimental" % "1.0-M3")
 
             @ implicit val system = akka.actor.ActorSystem()
 
@@ -172,7 +172,7 @@ class AdvancedTests(check0: => Checker,
 
     'shapeless{
       check.session("""
-        @ load.addModule("com.chuusai" %% "shapeless" % "2.2.5"); if (scala.util.Properties.versionNumberString.startsWith("2.10.")) load.addModule("org.scalamacros" % "paradise_2.10.6" % "2.0.1")
+        @ classpath.addModule("com.chuusai" %% "shapeless" % "2.2.5"); if (scala.util.Properties.versionNumberString.startsWith("2.10.")) classpath.addModule("org.scalamacros" % "paradise_2.10.6" % "2.0.1")
 
         @ import shapeless._
 
@@ -189,7 +189,7 @@ class AdvancedTests(check0: => Checker,
 
     'scalaz{
       check.session("""
-        @ load.addModule("org.scalaz" %% "scalaz-core" % "7.1.1")
+        @ classpath.addModule("org.scalaz" %% "scalaz-core" % "7.1.1")
 
         @ import scalaz._
         import scalaz._
@@ -203,9 +203,9 @@ class AdvancedTests(check0: => Checker,
     }
     'scalazstream{
       check.session("""
-        @ load.addRepository("https://dl.bintray.com/scalaz/releases")
+        @ classpath.addRepository("https://dl.bintray.com/scalaz/releases")
 
-        @ load.addModule("org.scalaz.stream" %% "scalaz-stream" % "0.7a")
+        @ classpath.addModule("org.scalaz.stream" %% "scalaz-stream" % "0.7a")
 
         @ import scalaz.stream._
         import scalaz.stream._
@@ -429,7 +429,7 @@ class AdvancedTests(check0: => Checker,
       check.session("""
         @ // Make sure plugins from eval class loader are not loaded
 
-        @ load.addModule("org.spire-math" %% "kind-projector" % "0.6.3")
+        @ classpath.addModule("org.spire-math" %% "kind-projector" % "0.6.3")
 
         @ trait TC0[F[_]]
         defined trait TC0
@@ -439,7 +439,7 @@ class AdvancedTests(check0: => Checker,
 
         @ // This one must be loaded
 
-        @ load.configAddModule("plugin")("org.spire-math" %% "kind-projector" % "0.6.3")
+        @ classpath.configAddModule("plugin")("org.spire-math" %% "kind-projector" % "0.6.3")
 
         @ trait TC[F[_]]
         defined trait TC
@@ -449,7 +449,7 @@ class AdvancedTests(check0: => Checker,
 
         @ // Useless - does not add plugins, and ignored by eval class loader
         
-        @ load.configAddModule("plugin")("eu.timepit" %% "refined" % "0.2.1")
+        @ classpath.configAddModule("plugin")("eu.timepit" %% "refined" % "0.2.1")
 
         @ import eu.timepit.refined._
         error: not found: value eu
