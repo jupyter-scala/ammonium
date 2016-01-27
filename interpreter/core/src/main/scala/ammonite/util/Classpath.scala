@@ -13,17 +13,6 @@ import scalaz.concurrent.Task
 
 object Classpath {
 
-  val logger: Cache.Logger = new Cache.Logger {
-    override def downloadingArtifact(url: String, file: File) =
-      println(s"Downloading $url")
-    override def downloadedArtifact(url: String, success: Boolean) =
-      println(
-        if (success) s"Downloaded $url"
-        else s"Failed: $url"
-      )
-  }
-
-
   def isolatedLoader(from: ClassLoader, id: String): Option[ClassLoader] =
     if (from == null) {
       println(s"Cannot find isolated loader $id")
@@ -43,7 +32,6 @@ object Classpath {
       } else
         isolatedLoader(from.getParent, id)
     }
-
 
 }
 
