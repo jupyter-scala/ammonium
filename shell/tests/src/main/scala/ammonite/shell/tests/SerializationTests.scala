@@ -6,7 +6,7 @@ import utest._
 class SerializationTests(
   check0: => Checker,
   expectReinitializing: Boolean = true,
-  wrapper: (Int, Int) => String = defaultWrapper
+  wrapper: String = defaultWrapper
 ) extends TestSuite {
 
   val tests = TestSuite{
@@ -58,7 +58,7 @@ class SerializationTests(
         defined class C
 
         @ val c = new C
-        c: ${wrapper(1, 2)}C = C
+        c: ${wrapper}C = C
 
         @ val b = ammonite.spark.util.Serialize.to(c)
 

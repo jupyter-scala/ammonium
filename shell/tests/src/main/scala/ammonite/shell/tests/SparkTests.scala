@@ -7,7 +7,7 @@ class SparkTests(
   checker: => Checker,
   master: String,
   sparkVersion: (Int, Int),
-  wrapper: (Int, Int) => String,
+  wrapper: String,
   loadAmmoniteSpark: Boolean = false
 ) extends TestSuite {
 
@@ -156,7 +156,7 @@ class SparkTests(
           defined class Sum
 
           @ val a = Sum("A", "B")
-          a: ${wrapper(0, 1)}Sum = Sum("A", "B")
+          a: ${wrapper}Sum = Sum("A", "B")
 
           @ def b(a: Sum): String = a match { case Sum(_, _) => "Found Sum" }
           defined function b
@@ -209,7 +209,7 @@ class SparkTests(
           defined class TestClass
 
           @ val t = new TestClass
-          t: ${wrapper(4, 5)}TestClass = TestClass
+          t: ${wrapper}TestClass = TestClass
 
           @ import t.testMethod
           import t.testMethod
@@ -218,7 +218,7 @@ class SparkTests(
           defined class TestCaseClass
 
           @ sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
-          res8: Array[${wrapper(7, 8)}TestCaseClass] = Array(${(1 to 10).map(i => s"  TestCaseClass($i)").mkString("\n" + margin, ",\n" + margin, "\n" + margin)})
+          res8: Array[${wrapper}TestCaseClass] = Array(${(1 to 10).map(i => s"  TestCaseClass($i)").mkString("\n" + margin, ",\n" + margin, "\n" + margin)})
         """, postamble)
     }
 
@@ -229,7 +229,7 @@ class SparkTests(
           defined class Foo
 
           @ sc.parallelize((1 to 100).map(Foo), 10).collect()
-          res5: Array[${wrapper(4, 5)}Foo] = Array(${(1 to 19).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...
+          res5: Array[${wrapper}Foo] = Array(${(1 to 19).map(i => s"  Foo($i),").mkString("\n" + margin, "\n" + margin, "\n" + margin)}...
         """, postamble)
     }
 
@@ -240,11 +240,11 @@ class SparkTests(
           defined class Foo
 
           @ val list = List((1, Foo(1)), (1, Foo(2)))
-          list: List[(Int, ${wrapper(4, 5)}Foo)] = List((1, Foo(1)), (1, Foo(2)))
+          list: List[(Int, ${wrapper}Foo)] = List((1, Foo(1)), (1, Foo(2)))
         """ + (if (!hasSpark6299) s"""
 
           @ sc.parallelize(list).groupByKey().collect()
-          res6: Array[(Int, Iterable[${wrapper(4, 5)}Foo])] = Array((1, CompactBuffer(Foo(1), Foo(2))))
+          res6: Array[(Int, Iterable[${wrapper}Foo])] = Array((1, CompactBuffer(Foo(1), Foo(2))))
         """ else ""), postamble)
     }
   }
@@ -254,7 +254,7 @@ class SparkTests(
 class LocalSparkTests(
   checker: => Checker,
   sparkVersion: (Int, Int),
-  wrapper: (Int, Int) => String
+  wrapper: String
 ) extends tests.SparkTests(
     checker,
     "local",

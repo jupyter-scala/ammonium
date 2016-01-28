@@ -5,7 +5,7 @@ import utest._
 
 class ReflectionTests(
   check0: => Checker,
-  wrapper: (Int, Int) => String = defaultWrapper,
+  wrapper: String = defaultWrapper,
   classWrap: Boolean = false
 ) extends TestSuite {
 
@@ -20,8 +20,7 @@ class ReflectionTests(
     )
 
     'reflection - {
-      val w0 = wrapper(1, 2)
-      val w = if (classWrap) "special" + w0 else w0
+      val w = if (classWrap) "special" + wrapper else wrapper
 
       val isWrapped = w.nonEmpty
 

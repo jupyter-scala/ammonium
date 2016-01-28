@@ -2,10 +2,10 @@ package ammonite.shell
 
 package object classwrapper {
 
-  val wrapper: (Int, Int) => String =
+  val wrapper =
     if (is210)
-      (_, _) => "INSTANCE.$ref$"
+      "INSTANCE.$ref$"
     else
-      (_, _) => ""
+      ""
 
 }

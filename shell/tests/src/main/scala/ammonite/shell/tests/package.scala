@@ -2,10 +2,10 @@ package ammonite.shell
 
 package object tests {
 
-  val defaultWrapper: (Int, Int) => String =
+  val defaultWrapper =
     if (is210)
-      (_, _) => "$user."
+      "$user."
     else
-      (_, _) => ""
+      ""
 
 }

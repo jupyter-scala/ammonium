@@ -9,7 +9,7 @@ class AdvancedTests(
   check0: => Checker,
   isAmmonite: Boolean = true,
   hasMacros: Boolean = !is210,
-  wrapper: (Int, Int) => String = defaultWrapper
+  wrapper: String = defaultWrapper
 ) extends TestSuite{
 
   val tests = TestSuite{
@@ -145,10 +145,10 @@ class AdvancedTests(
         defined class Foo
 
         @ Foo(1, "", Nil)
-        res2: ${wrapper(1, 2)}Foo = Foo(1, "", List())
+        res2: ${wrapper}Foo = Foo(1, "", List())
 
         @ Foo(1234567, "I am a cow, hear me moo", Seq("I weigh twice as much as you", "and I look good on the barbecue"))
-        res3: ${wrapper(1, 3)}Foo = Foo(
+        res3: ${wrapper}Foo = Foo(
           1234567,
           "I am a cow, hear me moo",
           List("I weigh twice as much as you", "and I look good on the barbecue")
@@ -168,7 +168,7 @@ class AdvancedTests(
         defined function pprint
 
         @ new C
-        res2: ${wrapper(0, 2)}C = INSTANCE OF CLASS C
+        res2: ${wrapper}C = INSTANCE OF CLASS C
       """)
     }
 
