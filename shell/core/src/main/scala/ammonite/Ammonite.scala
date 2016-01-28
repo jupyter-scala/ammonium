@@ -136,7 +136,8 @@ object Ammonite extends AppOf[Ammonite] {
 
   val initialRepositories = Seq(
     coursier.Cache.ivy2Local,
-    MavenRepository("https://repo1.maven.org/maven2")
+    MavenRepository("https://repo1.maven.org/maven2"),
+    MavenRepository("https://oss.sonatype.org/content/repositories/releases")
   ) ++ {
     if (BuildInfo.version.endsWith("-SNAPSHOT")) Seq(
       MavenRepository("https://oss.sonatype.org/content/repositories/snapshots")
