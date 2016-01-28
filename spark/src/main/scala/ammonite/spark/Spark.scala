@@ -6,6 +6,7 @@ import java.io.File
 import java.nio.file.Files
 import javax.servlet.http.{ HttpServletResponse, HttpServletRequest }
 
+import ammonite.api.{ Classpath, Interpreter }
 import ammonite.api.ModuleConstructor._
 import ammonite.spark.Compat.sparkVersion
 
@@ -20,8 +21,9 @@ import scala.annotation.meta.field
 
 /** The spark entry point from an Ammonite session */
 class Spark(implicit
-            @(transient @field) interpreter: ammonite.api.Interpreter,
-            @(transient @field) classpath: ammonite.api.Classpath) extends Serializable { api =>
+  @(transient @field) interpreter: Interpreter,
+  @(transient @field) classpath: Classpath
+) extends Serializable {
 
   private lazy val host =
     sys.env.getOrElse("HOST", InetAddress.getLocalHost.getHostAddress)
@@ -105,7 +107,7 @@ class Spark(implicit
   }
 
   /** Filtered out jars (we assume the spark master/slaves already have them) */
-  lazy val sparkJars = classpath.resolve(
+  private lazy val sparkJars = classpath.resolve(
     "org.apache.spark" %% "spark-core" % sparkVersion,
     "org.apache.spark" %% "spark-sql" % sparkVersion
   ).toSet
