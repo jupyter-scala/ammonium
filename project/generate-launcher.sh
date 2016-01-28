@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION=0.4.0-M1
+VERSION=0.4.0-M2
 
 if [ "$1" = "--2.10" ]; then
   SCALA_VERSION=2.10.6
@@ -18,6 +18,6 @@ fi
   --no-default \
   -r central \
   -r sonatype:releases \
-  -D "\${user.home}/.ammonium/bootstrap/$VERSION" \
+  -D "\${user.home}/.ammonium/bootstrap" \
   -f -o "$OUTPUT" \
   -M ammonite.Ammonite
