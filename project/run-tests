@@ -8,7 +8,7 @@ SCALA_VERSION="${TRAVIS_SCALA_VERSION:-2.11.7}"
 export SBT_OPTS="-J-Xmx512m -J-Xms512m"
 SBT="sbt ++$SCALA_VERSION"
 
-for NS in "ammonite.shell" "ammonite.shell.classwrapper"; do
+for NS in "ammonite.shell.classwrapper"; do # "ammonite.shell"
   for TEST in AdvancedTests AutocompleteTests EulerTests EvaluatorTests FailureTests ReflectionTests SerializationTests; do
     $SBT "shell/test-only $NS.$TEST"
   done
