@@ -1,13 +1,17 @@
 language: scala
 scala:
-- 2.11.6
-  #- 2.11.5
-  #- 2.11.4
-  #- 2.11.2
-  #- 2.11.1
-  #- 2.11.0
+- 2.11.7
+#- 2.11.6
+#- 2.11.5
+#- 2.11.4
+#- 2.11.2
+#- 2.11.1
+#- 2.11.0
+- 2.10.6
+#- 2.10.5
+#- 2.10.4
+#- 2.10.3
 jdk:
-- oraclejdk7
 - oraclejdk8
 script: project/run-travis "$(jdk_switcher home oraclejdk7)"
 sudo: false
@@ -17,5 +21,6 @@ cache:
   - $HOME/.sbt
 env:
   global:
+  - COURSIER_NO_TERM=1
   - secure: IahNxFoPWHeGgQ2Y96G9bTzGycDP0v+I15vvc+rbDLw38tQ/+9dAHWlJmvIiYZBgwK09IInXZCc7auFfKulINKvDVo3S2FAASeAkPCye4W3rGPpYm0ttxObfGlNyO4GTdR7iC4YnLi9TSf+FqZ5+2RIysjzMKKEPwHO+g/AT2ik=
   - secure: d8A7m0CgpcqxgWrckvf5+hVeF4v1VGnEjhrQmpO88XP2SMp3C3pe9yBIyvpJ+A5WUabH/lVT5XV3Nd6T2nF1ZlzCQNjM1n+u5Ti4rNUw2OKcibAyMeKt+6hIg1bk53Jc9eyuHUNACIdcD/ILi+458XfrEQSiX2BhIK5wxaOeF/A=

@@ -1,0 +1,40 @@
+{
+  "dependencies": [
+    {
+      "module": {
+        "organization": "com.chuusai",
+        "name": "shapeless_${scala.binaryVersion}"
+      },
+      "version": "${shapeless.version}"
+    }
+  ],
+  "scopedDependencies": [
+    [
+      "macro",
+      {
+        "module": {
+          "organization": "org.scalamacros",
+          "name": "paradise_${scala.version}"
+        },
+        "version": "${macro-paradise.version}"
+      }
+    ]
+  ],
+  "scalaVersion": "[2.10,2.11)",
+  "versions": {
+    "shapeless": "2.2.+",
+    "macro-paradise": "2.0.+"
+  },
+  "codePreambles": {
+    "default": [
+      "import _root_.shapeless._",
+      "import _root_.shapeless.syntax.singleton._",
+      "import _root_.shapeless.syntax.sized._",
+      "import _root_.shapeless.syntax.typeable._",
+      "import _root_.shapeless.syntax.std.maps._",
+      "import _root_.shapeless.syntax.std.product._",
+      "import _root_.shapeless.syntax.std.traversable._",
+      "import _root_.shapeless.syntax.std.tuple._"
+    ]
+  }
+}

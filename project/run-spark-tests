@@ -1,29 +1,28 @@
 #!/bin/bash
 set -ev
 
-PWD="$(cd "$(dirname "$0")"; pwd)"
+for SV in 2.10.6 2.11.7; do
+  sbt ++$SV "spark-11/test-only ammonite.spark.LocalTests"
+  sbt ++$SV "spark-12/test-only ammonite.spark.LocalTests"
+  sbt ++$SV "spark-13/test-only ammonite.spark.LocalTests"
+  sbt ++$SV "spark-14/test-only ammonite.spark.LocalTests"
+  sbt ++$SV "spark-15/test-only ammonite.spark.LocalTests"
+  sbt ++$SV "spark-16/test-only ammonite.spark.LocalTests"
+done
 
-# sbt ++2.10.5 "spark-11/test-only ammonite.spark.LocalTests"
-# sbt ++2.10.5 "spark-12/test-only ammonite.spark.LocalTests"
-sbt "spark-12/test-only ammonite.spark.LocalTests"
-# sbt ++2.10.5 "spark-13/test-only ammonite.spark.LocalTests"
-sbt "spark-13/test-only ammonite.spark.LocalTests"
-# sbt ++2.10.5 "spark-14/test-only ammonite.spark.LocalTests"
-sbt "spark-14/test-only ammonite.spark.LocalTests"
-sbt "spark-15/test-only ammonite.spark.LocalTests"
-
-# SPARK_HOME="/opt/spark-1.1_2.10" sbt ++2.10.5 "spark-11/test-only ammonite.spark.LocalClusterTests"
-# SPARK_HOME="/opt/spark-1.2_2.10" sbt ++2.10.5 "spark-12/test-only ammonite.spark.LocalClusterTests"
-SPARK_HOME="/opt/spark-1.2_2.11" sbt "spark-12/test-only ammonite.spark.LocalClusterTests"
-# SPARK_HOME="/opt/spark-1.3_2.10" sbt ++2.10.5 "spark-13/test-only ammonite.spark.LocalClusterTests"
-SPARK_HOME="/opt/spark-1.3_2.11" sbt "spark-13/test-only ammonite.spark.LocalClusterTests"
-# SPARK_HOME="/opt/spark-1.4_2.10" sbt ++2.10.5 "spark-14/test-only ammonite.spark.LocalClusterTests"
-SPARK_HOME="/opt/spark-1.4_2.11" sbt "spark-14/test-only ammonite.spark.LocalClusterTests"
-# SPARK_HOME="/opt/spark-1.5_2.10" sbt ++2.10.5 "spark-15/test-only ammonite.spark.LocalClusterTests"
-SPARK_HOME="/opt/spark-1.5_2.11" sbt "spark-15/test-only ammonite.spark.LocalClusterTests"
+for SV in 2.10.6 2.11.7; do
+  SHORT=$(echo $SV | sed 's/^\([0-9]*\.[0-9]*\)\..*/\1/')
+  [ $SHORT != 2.10 ] || SPARK_HOME="/opt/spark-1.1_2.10" sbt ++$SV "spark-11/test-only ammonite.spark.LocalClusterTests"
+  SPARK_HOME="/opt/spark-1.2_$SHORT" sbt ++$SV "spark-12/test-only ammonite.spark.LocalClusterTests"
+  SPARK_HOME="/opt/spark-1.3_$SHORT" sbt ++$SV "spark-13/test-only ammonite.spark.LocalClusterTests"
+  SPARK_HOME="/opt/spark-1.4_$SHORT" sbt ++$SV "spark-14/test-only ammonite.spark.LocalClusterTests"
+  SPARK_HOME="/opt/spark-1.5_$SHORT" sbt ++$SV "spark-15/test-only ammonite.spark.LocalClusterTests"
+  SPARK_HOME="/opt/spark-1.6_$SHORT" sbt ++$SV "spark-16/test-only ammonite.spark.LocalClusterTests"
+done
 
 # SPARK_VERSION="1.1" "$PWD/spark/src/test/resources/docker/scripts/run" . ++2.10.5 "spark-11/test-only ammonite.spark.StandAloneClusterTests"
 # SPARK_VERSION="1.2" "$PWD/spark/src/test/resources/docker/scripts/run" . ++2.10.5 "spark-12/test-only ammonite.spark.StandAloneClusterTests"
 # SPARK_VERSION="1.3" "$PWD/spark/src/test/resources/docker/scripts/run" . ++2.10.5 "spark-13/test-only ammonite.spark.StandAloneClusterTests"
 # SPARK_VERSION="1.4" "$PWD/spark/src/test/resources/docker/scripts/run" . ++2.10.5 "spark-14/test-only ammonite.spark.StandAloneClusterTests"
 # SPARK_VERSION="1.5" "$PWD/spark/src/test/resources/docker/scripts/run" . ++2.10.5 "spark-15/test-only ammonite.spark.StandAloneClusterTests"
+# SPARK_VERSION="1.6" "$PWD/spark/src/test/resources/docker/scripts/run" . ++2.10.5 "spark-16/test-only ammonite.spark.StandAloneClusterTests"

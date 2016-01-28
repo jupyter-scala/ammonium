@@ -1,0 +1,22 @@
+{
+  "dependencies": [
+    {
+      "module": {
+        "organization": "com.github.alexarchambault.ammonium",
+        "name": "spark_1.5_${scala.version}"
+      },
+      "version": "${ammonium.version}"
+    }
+  ],
+  "scalaVersion": "[2.10,2.12)",
+  "versions": {
+    "spark": "1.5.+"
+  },
+  "preamble": "Adjust the Spark config via `sparkConf`. Then access the `SparkContext` in `sc`.",
+  "codePreambles": {
+    "default": [
+      "@transient val Spark = new _root_.ammonite.spark.Spark",
+      "import Spark.{ sparkConf, sc }"
+    ]
+  }
+}
