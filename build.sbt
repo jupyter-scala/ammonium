@@ -1,16 +1,18 @@
 
+val coursierVersion = "1.0.0-M5"
+
 lazy val `interpreter-api` = project.in(file("interpreter/api"))
   .settings(commonSettings)
 
 lazy val interpreter = project.in(file("interpreter/core"))
-  .dependsOn(`interpreter-api`)
+  .dependsOn(`interpreter-api`, setup)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "com.lihaoyi" %% "scalaparse" % "0.3.4",
-      "com.github.alexarchambault" %% "coursier" % "1.0.0-M5",
-      "com.github.alexarchambault" %% "coursier-cache" % "1.0.0-M5"
+      "com.github.alexarchambault" %% "coursier" % coursierVersion,
+      "com.github.alexarchambault" %% "coursier-cache" % coursierVersion
     )
   )
 
@@ -152,9 +154,18 @@ lazy val spark14 = sparkProject("1.4.1")
 lazy val spark15 = sparkProject("1.5.2")
 lazy val spark16 = sparkProject("1.6.0")
 
+lazy val setup = project
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.github.alexarchambault" %% "coursier" % coursierVersion,
+      "com.github.alexarchambault" %% "argonaut-shapeless_6.1" % "1.0.0-M1"
+    )
+  )
+
 lazy val root = project.in(file("."))
-  .aggregate(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark16, spark15, spark14, spark13, spark12, spark11, shell, tprint)
-  .dependsOn(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark16, spark15, spark14, spark13, spark12, spark11, shell, tprint)
+  .aggregate(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark16, spark15, spark14, spark13, spark12, spark11, shell, tprint, setup)
+  .dependsOn(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark16, spark15, spark14, spark13, spark12, spark11, shell, tprint, setup)
   .settings(commonSettings)
   .settings(noPublishSettings)
   .settings(

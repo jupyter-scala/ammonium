@@ -76,7 +76,7 @@ class AutocompleteTests(check0: => Checker, checkSignatures: Boolean = true) ext
 //      )
     }
     'scopePrefix{
-      complete("""ammon<caret>""", Set("ammonite") ^ _)
+      complete("""ammon<caret>""", Set("ammonite", "ammonium") ^ _)
 
       complete("""Seq(1, 2, 3).map(argNameLol => argNam<caret>)""", Set("argNameLol") ^)
 

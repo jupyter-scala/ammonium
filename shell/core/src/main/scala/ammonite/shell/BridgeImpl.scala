@@ -47,12 +47,9 @@ class BridgeImpl(
   def interpreter: ammonite.api.Interpreter = intp
 
   val setup: ammonite.api.Setup =
-    new ammonite.api.Setup {
-      def apply(modules: String*) = {
-
-        ???
-      }
-    }
+    new ammonite.util.Setup(classpath, eval, Map(
+      "ammonium.version" -> BuildInfo.version
+    ))
 
   val term: Term = new Term {
 
