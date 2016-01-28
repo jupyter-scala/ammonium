@@ -228,7 +228,11 @@ lazy val testSettings = Seq(
   testFrameworks += new TestFramework("utest.runner.Framework"),
   fork in test := true,
   fork in (Test, test) := true,
-  fork in (Test, testOnly) := true
+  fork in (Test, testOnly) := true,
+  javaOptions in Test ++= Seq(
+    "-Xmx3172M",
+    "-Xms3172M"
+  )
 )
 
 lazy val noPublishSettings = Seq(
