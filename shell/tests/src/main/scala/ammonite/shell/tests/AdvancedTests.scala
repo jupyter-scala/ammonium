@@ -190,7 +190,7 @@ class AdvancedTests(
             "shapeless.::[Int,shapeless.::[String,shapeless.::[Boolean,shapeless.HNil]]]"
           else
             "Int :: String :: Boolean :: HNil"
-        } = ::(2, ::("a", ::(true, HNil)))
+        } = 2 :: a :: true :: HNil
       """)
     }
 
@@ -274,7 +274,7 @@ class AdvancedTests(
 //    }
     'scalaparse{
       // Prevent regressions when wildcard-importing things called `macro` or `_`
-      check.session("""
+      check.session(s"""
         @ classpath.add("com.lihaoyi" %% "scalaparse" % "0.3.4")
 
         @ import scalaparse.Scala._
@@ -286,7 +286,7 @@ class AdvancedTests(
         res3: fastparse.core.Parsed[Unit] = Failure("(":1:1 ..."1 + 1")
 
         @ ExprCtx.Parened.parse("(1 + 1)")
-        res4: fastparse.core.Parsed[Unit] = Success((),7)
+        res4: fastparse.core.Parsed[Unit] = Success((),${if (is210) "" else " " /* ??? */}7)
       """)
     }
     'macros{
