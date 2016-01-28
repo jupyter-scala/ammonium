@@ -20,9 +20,9 @@ class ReflectionTests(
     )
 
     'reflection - {
-      val w = if (classWrap) "special" + wrapper else wrapper
+      val isWrapped = wrapper.nonEmpty
 
-      val isWrapped = w.nonEmpty
+      val w = if (classWrap && isWrapped) "special" + wrapper else wrapper
 
       def withSuffixIfNonEmpty(s: String, suffix: String) =
         if (s.isEmpty)
