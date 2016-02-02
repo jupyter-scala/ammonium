@@ -9,5 +9,5 @@ case class Evaluated[T](
 
 /** Evaluates code with the interpreter */
 trait Eval {
-  def apply(code: String): Either[InterpreterError, Evaluated[Unit]]
+  def apply(code: String, silent: Boolean = false): Either[InterpreterError, Evaluated[Unit]]
 }
