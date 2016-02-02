@@ -19,25 +19,34 @@ class Setup(
 
   def loadAll(modVer: Seq[(String, Map[String, String])]): Unit = {
     val modVer0 = modVer.map {
-      case (mod, vers) =>
+      case (mod0, vers) =>
+        val (mod, strVerOpt) = parseMod(mod0)
+
+        val verOpt = strVerOpt.map { str =>
+          Parse.version(str).getOrElse {
+            throw new IllegalArgumentException(s"Cannot parse version '$str'")
+          }
+        }
+
         (
           mod,
+          verOpt,
           vers.map {
             case (k, v) =>
               k -> Parse.version(v).getOrElse {
                 throw new IllegalArgumentException(s"Cannot parse version '$v'")
               }
           }
-          )
+        )
     }
 
     val withSetupOpt = modVer0.map {
-      case (mod, v) =>
-        (mod, Setup0.hardCoded.get(mod), v)
+      case (mod, forcedVerOpt, v) =>
+        (mod, forcedVerOpt, Setup0.hardCoded.get(mod), v)
     }
 
     val notFound = withSetupOpt.collect {
-      case (mod, None, _) => mod
+      case (mod, _, None, _) => mod
     }
 
     if (notFound.nonEmpty)
@@ -51,11 +60,19 @@ class Setup(
     }
 
     val withValidSetups = withSetupOpt.collect {
-      case (mod, Some(setups), vers) =>
-        mod -> setups.filter {
+      case (mod, forcedVerOpt, Some(setups), vers) =>
+        val kept0 = setups.filter {
           case (v, setup) =>
             setup.scalaVersionMatches(scalaVersion) && setup.matches(vers)
         }
+
+        val kept = forcedVerOpt.fold(kept0) { v =>
+          kept0.filter {
+            case (k, _) => k == v
+          }
+        }
+
+        mod -> kept
     }
 
     val noValidSetup = withValidSetups.collect {
