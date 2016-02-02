@@ -1,4 +1,4 @@
-## ammonite-shell
+## ammonium
 
 *A modified version of Ammonite*
 
@@ -11,6 +11,10 @@ Compared to it, it adds, among others, the following features:
 * cleaner user-facing ClassLoader (less dependencies -> cleaner completion, easier to move the session JARs around),
 * better dependencies management (adding Maven repositories, faster module resolution with [coursier](https://github.com/alexarchambault/coursier), *not wiping out the session variables upon dependency adding* - with Ammonite, these are lazily recomputed),
 * easier to use programatically in other contexts (in particular, [jupyter-scala](https://github.com/alexarchambault/jupyter-scala), the initial motivation of this repo).
+
+**This README is being updated, taking into account things recently pushed. You can have a look at [its updated draft](https://github.com/alexarchambault/ammonium/tree/topic/update-readme). Below is the now deprecated README of the previous main development branch.**
+
+---
 
 It does not aim at replacing the official Ammonite project by any mean. The motivation for this separate
 repository is mainly that its changes don't have to go through the time consuming
