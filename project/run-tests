@@ -26,10 +26,10 @@ if [ "$TRAVIS_SCALA_VERSION" = "" ]; then
   $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark15Tests"
   $SBT "shell/test-only ammonite.shell.classwrapper.LocalSpark16Tests"
 
-  [ $SHORT != 2.10 ] || $SBT "spark-11/test-only ammonite.spark.LocalTests"
-  $SBT "spark-12/test-only ammonite.spark.LocalTests"
-  $SBT "spark-13/test-only ammonite.spark.LocalTests"
-  $SBT "spark-14/test-only ammonite.spark.LocalTests"
-  $SBT "spark-15/test-only ammonite.spark.LocalTests"
-  $SBT "spark-16/test-only ammonite.spark.LocalTests"
+  [ $SHORT != 2.10 ] || $SBT "spark-111/test-only ammonite.spark.LocalTests"
+  $SBT "spark-122/test-only ammonite.spark.LocalTests"
+  $SBT "spark-131/test-only ammonite.spark.LocalTests"
+  $SBT "spark-141/test-only ammonite.spark.LocalTests"
+  $SBT "spark-152/test-only ammonite.spark.LocalTests"
+  $SBT "spark-160/test-only ammonite.spark.LocalTests"
 fi
