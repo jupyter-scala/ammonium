@@ -3,16 +3,26 @@ package tests
 
 import utest._
 
+import scala.util.Try
+
 class SparkTests(
   checker: => Checker,
   master: String,
-  sparkVersion: (Int, Int),
+  sparkVersion: String,
   wrapper: String,
   loadAmmoniteSpark: Boolean = false
 ) extends TestSuite {
 
-  val atLeastSpark13 = implicitly[Ordering[(Int, Int)]].compare(sparkVersion, (1, 3)) >= 0
-  val atLeastSpark14 = implicitly[Ordering[(Int, Int)]].compare(sparkVersion, (1, 4)) >= 0
+  val (sparkMajor, sparkMinor) = {
+    sparkVersion.split('.').take(2).map(s => Try(s.toInt).toOption) match {
+      case Array(Some(maj), Some(min)) => (maj, min)
+      case _ =>
+        throw new Exception(s"Can't get major / minor from Spark version '$sparkVersion'")
+    }
+  }
+
+  val atLeastSpark13 = implicitly[Ordering[(Int, Int)]].compare((sparkMajor, sparkMinor), (1, 3)) >= 0
+  val atLeastSpark14 = implicitly[Ordering[(Int, Int)]].compare((sparkMajor, sparkMinor), (1, 4)) >= 0
 
   def hasSpark5281 = loadAmmoniteSpark // https://issues.apache.org/jira/browse/SPARK-5281
   def hasSpark6299 = !atLeastSpark13 // https://issues.apache.org/jira/browse/SPARK-6299
@@ -25,7 +35,7 @@ class SparkTests(
 
   val requisite =
     if (loadAmmoniteSpark)
-      s"""classpath.add("com.github.alexarchambault.ammonium" % "spark_${sparkVersion._1}.${sparkVersion._2}_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")"""
+      s"""classpath.add("com.github.alexarchambault.ammonium" % "spark_${sparkVersion}_${scala.util.Properties.versionNumberString}" % "${BuildInfo.version}")"""
     else
       "()"
 
@@ -253,7 +263,7 @@ class SparkTests(
 
 class LocalSparkTests(
   checker: => Checker,
-  sparkVersion: (Int, Int),
+  sparkVersion: String,
   wrapper: String
 ) extends tests.SparkTests(
     checker,

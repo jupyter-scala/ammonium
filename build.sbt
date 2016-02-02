@@ -113,17 +113,16 @@ val sparkExclusions = Seq(
 )
 
 def sparkProject(sparkVersion: String, extraDirSuffix: String = "", onlyIn210: Boolean = false) = {
-  val binaryVersion = sparkVersion.split('.').take(2).mkString(".")
-  val shortBinaryVersion = binaryVersion.filter('.'.!=)
+  val shortVersion = sparkVersion.filter('.'.!=)
 
-  Project(id = s"spark-$shortBinaryVersion", base = file("spark"))
+  Project(id = s"spark-$shortVersion", base = file("spark"))
     .dependsOn(`shell-api`, shell % "test->test")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(if (onlyIn210) onlyPublish210Settings else Nil)
     .settings(
-      moduleName := s"spark_$binaryVersion",
-      target := target.value / s"spark-$binaryVersion",
+      moduleName := s"spark_$sparkVersion",
+      target := target.value / s"spark-$sparkVersion",
       libraryDependencies ++= {
         if (!onlyIn210 || scalaBinaryVersion.value == "2.10") Seq(
           "org.apache.spark" %% "spark-core" % sparkVersion excludeAll(sparkExclusions: _*),
@@ -147,12 +146,20 @@ def sparkProject(sparkVersion: String, extraDirSuffix: String = "", onlyIn210: B
     )
 }
 
-lazy val spark11 = sparkProject("1.1.1", "-1.1", onlyIn210 = true)
-lazy val spark12 = sparkProject("1.2.2")
-lazy val spark13 = sparkProject("1.3.1")
-lazy val spark14 = sparkProject("1.4.1")
-lazy val spark15 = sparkProject("1.5.2")
-lazy val spark16 = sparkProject("1.6.0")
+lazy val spark110 = sparkProject("1.1.0", "-1.1", onlyIn210 = true)
+lazy val spark111 = sparkProject("1.1.1", "-1.1", onlyIn210 = true)
+lazy val spark120 = sparkProject("1.2.0")
+lazy val spark121 = sparkProject("1.2.1")
+lazy val spark122 = sparkProject("1.2.2")
+lazy val spark130 = sparkProject("1.3.0")
+lazy val spark131 = sparkProject("1.3.1")
+// Running into weird SBT errors with this one
+// lazy val spark140 = sparkProject("1.4.0")
+lazy val spark141 = sparkProject("1.4.1")
+lazy val spark150 = sparkProject("1.5.0")
+lazy val spark151 = sparkProject("1.5.1")
+lazy val spark152 = sparkProject("1.5.2")
+lazy val spark160 = sparkProject("1.6.0")
 
 lazy val setup = project
   .settings(commonSettings)
@@ -164,8 +171,8 @@ lazy val setup = project
   )
 
 lazy val root = project.in(file("."))
-  .aggregate(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark16, spark15, spark14, spark13, spark12, spark11, shell, tprint, setup)
-  .dependsOn(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark16, spark15, spark14, spark13, spark12, spark11, shell, tprint, setup)
+  .aggregate(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark160, spark152, spark151, spark150, spark141, spark131, spark130, spark122, spark121, spark120, spark111, spark110, shell, tprint, setup)
+  .dependsOn(`interpreter-api`, interpreter, `shell-api`, `shell-tests`, spark160, spark152, spark151, spark150, spark141, spark131, spark130, spark122, spark121, spark120, spark111, spark110, shell, tprint, setup)
   .settings(commonSettings)
   .settings(noPublishSettings)
   .settings(
