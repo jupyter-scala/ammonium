@@ -69,10 +69,11 @@ class Setup(
 
     val betterSetups = withValidSetups.collect {
       case (mod, s) if s.nonEmpty =>
-        val (_, setup) = s.maxBy {
+        val (ver, setup) = s.maxBy {
           case (v, _) => v
         }
 
+        println(s"Adding setup $mod ${ver.repr}")
         mod -> setup
     }
 
@@ -101,8 +102,13 @@ class Setup(
     }
 
     // FIXME No roll-back if the dependencies of a given scope cannot be found here
-    for ((scope, deps) <- g)
+    for ((scope, deps) <- g) {
+      println(s"  Adding dependencies${if (scope == "compile") "" else s" in configuration $scope"}")
+      for ((org, name, ver) <- deps.sorted)
+        println(s"$org:$name:$ver")
+
       classpath.addInConfig(scope)(deps: _*)
+    }
 
     val codePreambles = betterSetups.map {
       case (mod, setup) =>
@@ -113,20 +119,16 @@ class Setup(
     for ((mod, code) <- codePreambles if code.nonEmpty) {
       println(s"Initializing $mod")
       for (l <- code)
-        eval(l)
+        eval(l, silent = false)
     }
 
     val messages = betterSetups.flatMap {
       case (_, setup) =>
         setup.preamble.toSeq
     }
-    var isFirst = true
+
     for (msg <- messages) {
-      if (isFirst)
-        isFirst = false
-      else
-        println("")
-      println(msg)
+      println("\n" + msg)
     }
   }
 }
