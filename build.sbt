@@ -50,7 +50,7 @@ lazy val shell = project.in(file("shell/core"))
     libraryDependencies ++= Seq(
       "jline" % "jline" % "2.12",
       "com.github.alexarchambault" %% "case-app" % "0.2.2",
-      "com.lihaoyi" %% "ammonite-terminal" % "0.5.2"
+      "com.lihaoyi" %% "ammonite-terminal" % "0.5.3"
     )
   )
 

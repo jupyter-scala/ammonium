@@ -21,11 +21,12 @@ case class AmmoniteFrontEnd(extraFilters: TermCore.Filter = PartialFunction.empt
              prompt: String,
              colors: Colors,
              compilerComplete: (Int, String) => (Int, Seq[String], Seq[String]),
-             history: Seq[String],
+             history: IndexedSeq[String],
              addHistory: String => Unit) = {
     val res = readLine(reader, output, prompt, colors, compilerComplete, history) match{
       case None => Res.Exit
       case Some(code) =>
+
         addHistory(code)
         Parsers.Splitter.parse(code) match{
           case Parsed.Success(value, idx) => Res.Success((code, value))
@@ -43,7 +44,7 @@ case class AmmoniteFrontEnd(extraFilters: TermCore.Filter = PartialFunction.empt
                prompt: String,
                colors: Colors,
                compilerComplete: (Int, String) => (Int, Seq[String], Seq[String]),
-               history: Seq[String]) = {
+               history: IndexedSeq[String]) = {
     val writer = new OutputStreamWriter(output)
 
     val autocompleteFilter: TermCore.Filter = {
@@ -59,6 +60,7 @@ case class AmmoniteFrontEnd(extraFilters: TermCore.Filter = PartialFunction.empt
             colors.reset()
           ).mkString
         }
+
         lazy val common = FrontEndUtils.findPrefix(completions, 0)
         val completions2 = for(comp <- completions) yield {
 
@@ -69,7 +71,7 @@ case class AmmoniteFrontEnd(extraFilters: TermCore.Filter = PartialFunction.empt
           FrontEndUtils.printCompletions(completions2, details2)
                        .mkString
 
-        if (details.length != 0 || completions.length == 0)
+        if (details.nonEmpty || completions.isEmpty)
           Printing(TermState(rest, b, c), stdout)
         else{
           val newBuffer = b.take(newCursor) ++ common ++ b.drop(c)
@@ -86,18 +88,20 @@ case class AmmoniteFrontEnd(extraFilters: TermCore.Filter = PartialFunction.empt
         BasicFilters.injectNewLine(b, c, rest)
     }
 
-    val historyFilter = ReadlineFilters.HistoryFilter(() => history.reverse)
+    val historyFilter = new HistoryFilter(
+      () => history.reverse, colors.comment(), colors.reset()
+    )
     val cutPasteFilter = ReadlineFilters.CutPasteFilter()
     val selectionFilter = GUILikeFilters.SelectionFilter(indent = 2)
 
     val allFilters =
+      historyFilter.filter orElse
       extraFilters orElse
       selectionFilter orElse
       GUILikeFilters.altFilter orElse
       GUILikeFilters.fnFilter orElse
       ReadlineFilters.navFilter orElse
       autocompleteFilter orElse
-      historyFilter.filter orElse
       cutPasteFilter orElse
       multilineFilter orElse
       BasicFilters.all
@@ -109,15 +113,17 @@ case class AmmoniteFrontEnd(extraFilters: TermCore.Filter = PartialFunction.empt
       writer,
       allFilters,
       displayTransform = { (buffer, cursor) =>
+        val resetColor = "\u001b[39m"
+
         val indices = Highlighter.defaultHighlightIndices(
           buffer,
           colors.comment(),
           colors.`type`(),
           colors.literal(),
           colors.keyword(),
-          colors.reset()
+          resetColor
         )
-        selectionFilter.mark match{
+        val (newBuffer, offset) = selectionFilter.mark match{
           case Some(mark) if mark != cursor =>
             val Seq(min, max) = Seq(cursor, mark).sorted
             val before = indices.filter(_._1 <= min)
@@ -137,11 +143,17 @@ case class AmmoniteFrontEnd(extraFilters: TermCore.Filter = PartialFunction.empt
             // in TermCore, to be fixed later when we clean up the crazy
             // TermCore.readLine logic
             (
-              Highlighter.flattenIndices(newIndices, buffer) ++ Console.RESET,
+              Highlighter.flattenIndices(newIndices, buffer) ++ resetColor,
               displayOffset
             )
-          case _ => (Highlighter.flattenIndices(indices, buffer) ++ Console.RESET, 0)
+          case _ => (Highlighter.flattenIndices(indices, buffer) ++ resetColor, 0)
         }
+
+        val newNewBuffer: Vector[Char] = HistoryFilter.mangleBuffer(
+          historyFilter, newBuffer, cursor,
+          Console.UNDERLINED, Ansi.resetUnderline
+        )
+        (newNewBuffer, offset)
       }
     )
     res
