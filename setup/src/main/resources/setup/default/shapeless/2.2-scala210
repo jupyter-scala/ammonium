@@ -10,7 +10,7 @@
   ],
   "scopedDependencies": [
     [
-      "macro",
+      "plugin",
       {
         "module": {
           "organization": "org.scalamacros",
