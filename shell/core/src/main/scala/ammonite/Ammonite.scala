@@ -2,7 +2,8 @@ package ammonite
 
 import ammonite.interpreter._
 import ammonite.api.{ CodeItem, ParsedCode }
-import ammonite.shell.BuildInfo
+import ammonite.shell.FrontEnd.{ JLineUnix, JLineWindows }
+import ammonite.shell.{ AmmoniteFrontEnd, BuildInfo }
 import ammonite.shell.util._
 import ammonite.util.Classpath
 
@@ -23,7 +24,8 @@ case class Ammonite(
   predef: String,
   wrap: String,
   histFile: String = new File(System.getProperty("user.home"), ".amm") .toString,
-  sharedLoader: Boolean = false
+  @ExtraName("F")
+    frontEnd: String
 ) extends App {
 
   println("Loading...")
@@ -44,11 +46,30 @@ case class Ammonite(
     case _ => Console.err.println(s"Unrecognized wrap argument: $wrap"); sys exit 255
   }
 
+  lazy val isWindows =
+    Option(System.getProperty("os.name"))
+      .exists(_.startsWith("Windows"))
+
+  val frontEnd0 = frontEnd.toLowerCase match {
+    case "unix" => JLineUnix
+    case "windows" => JLineWindows
+    case "enhanced" => AmmoniteFrontEnd()
+    case "" =>
+      if (isWindows)
+        JLineWindows
+      else
+        AmmoniteFrontEnd()
+
+    case other =>
+      Console.err.println(s"Unrecognized front-end value: '$other'")
+      sys.exit(255)
+  }
+
   val shell = new Shell(
     initialHistory,
     predef,
     classWrap,
-    sharedLoader
+    frontEnd0
   )
 
   import shell._
@@ -176,7 +197,6 @@ object Ammonite extends AppOf[Ammonite] {
     classWrap: Boolean,
     pprintConfig: pprint.Config,
     colors: Colors,
-    sharedLoader: Boolean,
     shellPromptRef: => Ref[String] = Ref("@"),
     reset: => Unit = (),
     initialHistory: Seq[String] = Nil,

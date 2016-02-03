@@ -53,7 +53,8 @@ class Classpath(
     var anyNewFile = false
 
     for (cfg <- dependees + config) {
-      anyNewFile = updateConfigPath(config, paths.map(new File(_)), addToClassLoader = true) || anyNewFile
+      val added = updateConfigPath(config, paths.map(new File(_)), addToClassLoader = true)
+      anyNewFile = added != 0 || anyNewFile
     }
 
     if (anyNewFile)
@@ -129,7 +130,7 @@ class Classpath(
     )
   }
 
-  def updateConfigPath(config: String, files: Seq[File], addToClassLoader: Boolean): Boolean = {
+  def updateConfigPath(config: String, files: Seq[File], addToClassLoader: Boolean): Int = {
     val currentFiles = currentPaths.getOrElse(config, Nil)
 
     val newFiles = files.diff(currentFiles)
@@ -138,9 +139,9 @@ class Classpath(
       if (addToClassLoader) {
         currentClassLoaders(config).add(newFiles: _*)
         hooks.getOrElse(config, Nil).foreach(_(newFiles))
-        true
-      } else false
-    } else false
+        newFiles.length
+      } else 0
+    } else 0
   }
 
   def updateDependencies(dependencies: Seq[(String, Dependency)]): Unit = {
@@ -172,7 +173,7 @@ class Classpath(
       val prevArtifactCount = currentResolution.artifacts.length
 
       if (addToClasses)
-        println(s"Adding ${artifactCount - prevArtifactCount} artifact(s)")
+        println(s"${artifactCount - prevArtifactCount} new artifact(s)")
 
       val errors = artifacts.collect {
         case (a, -\/(err)) => a -> err
@@ -200,7 +201,12 @@ class Classpath(
               Seq(f)
           }.flatten
 
-          anyNewFile = updateConfigPath(cfg, files, addToClasses) || anyNewFile
+          val added = updateConfigPath(cfg, files, addToClasses)
+
+          if (added != 0) {
+            Console.err.println(s"$added new artifacts in $cfg")
+            anyNewFile = true
+          }
         }
 
         if (anyNewFile)

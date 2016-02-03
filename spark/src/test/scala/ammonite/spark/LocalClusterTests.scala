@@ -5,7 +5,7 @@ import ammonite.spark.Compat.sparkVersion
 import ammonite.shell.tests.SparkTests
 
 object LocalClusterTests extends SparkTests(
-  new AmmoniteClassWrapperChecker(sharedLoader = true),
+  new AmmoniteClassWrapperChecker,
   "local-cluster[1,1,512]",
   sparkVersion,
   wrapper = wrapper

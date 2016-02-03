@@ -24,7 +24,7 @@ trait FrontEnd{
              prompt: String,
              colors: Colors,
              compilerComplete: (Int, String) => (Int, Seq[String], Seq[String]),
-             history: Seq[String],
+             history: IndexedSeq[String],
              addHistory: String => Unit): Res[(String, Seq[String])]
 }
 
@@ -41,7 +41,7 @@ object FrontEnd{
                prompt: String,
                colors: Colors,
                compilerComplete: (Int, String) => (Int, Seq[String], Seq[String]),
-               history: Seq[String],
+               history: IndexedSeq[String],
                addHistory: String => Unit) = {
 
       val term = makeTerm()
