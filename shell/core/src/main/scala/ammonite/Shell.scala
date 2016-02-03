@@ -52,7 +52,7 @@ object ShellAction {
 
   val readTerm: ShellAction[(String, Seq[String])] =
     instance { shell =>
-      shell.frontEnd().action(
+      shell.frontEnd.action(
         System.in, shell.reader, System.out,
         shell.colors().prompt() + shell.prompt() + scala.Console.RESET + " ",
         shell.colors(),
@@ -118,14 +118,14 @@ object ShellAction {
 class Shell(
   initialHistory: Seq[String],
   predef: String,
-  classWrap: Boolean
+  classWrap: Boolean,
+  val frontEnd: FrontEnd
 ) {
 
   val reader = new InputStreamReader(System.in)
 
   var history = new History(initialHistory.toVector)
 
-  val frontEnd = Ref[FrontEnd](AmmoniteFrontEnd())
   val prompt = Ref("@")
   val colors = Ref[Colors](Colors.Default)
 
@@ -135,7 +135,7 @@ class Shell(
     Ammonite.newInterpreter(
       predef,
       classWrap,
-      pprintConfig.copy(width = frontEnd().width, height = frontEnd().height),
+      pprintConfig.copy(width = frontEnd.width, height = frontEnd.height),
       colors(),
       prompt,
       () => ???,
