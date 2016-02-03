@@ -22,8 +22,7 @@ case class Ammonite(
   initialPrompt: String = "@",
   predef: String,
   wrap: String,
-  histFile: String = new File(System.getProperty("user.home"), ".amm") .toString,
-  sharedLoader: Boolean = false
+  histFile: String = new File(System.getProperty("user.home"), ".amm") .toString
 ) extends App {
 
   println("Loading...")
@@ -47,8 +46,7 @@ case class Ammonite(
   val shell = new Shell(
     initialHistory,
     predef,
-    classWrap,
-    sharedLoader
+    classWrap
   )
 
   import shell._
@@ -176,7 +174,6 @@ object Ammonite extends AppOf[Ammonite] {
     classWrap: Boolean,
     pprintConfig: pprint.Config,
     colors: Colors,
-    sharedLoader: Boolean,
     shellPromptRef: => Ref[String] = Ref("@"),
     reset: => Unit = (),
     initialHistory: Seq[String] = Nil,

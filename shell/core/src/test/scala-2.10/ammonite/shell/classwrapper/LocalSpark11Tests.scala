@@ -4,7 +4,7 @@ package classwrapper
 import ammonite.shell.tests.LocalSparkTests
 
 object LocalSpark11Tests extends LocalSparkTests(
-  new AmmoniteClassWrapperChecker(),
+  new AmmoniteClassWrapperChecker,
   "1.1.1",
   wrapper = wrapper
 )

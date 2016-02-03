@@ -118,8 +118,7 @@ object ShellAction {
 class Shell(
   initialHistory: Seq[String],
   predef: String,
-  classWrap: Boolean,
-  sharedLoader: Boolean
+  classWrap: Boolean
 ) {
 
   val reader = new InputStreamReader(System.in)
@@ -138,7 +137,6 @@ class Shell(
       classWrap,
       pprintConfig.copy(width = frontEnd().width, height = frontEnd().height),
       colors(),
-      sharedLoader,
       prompt,
       () => ???,
       initialHistory,

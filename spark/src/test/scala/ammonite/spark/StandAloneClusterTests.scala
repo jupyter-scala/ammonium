@@ -5,7 +5,7 @@ import ammonite.spark.Compat.sparkVersion
 import ammonite.shell.tests.SparkTests
 
 object StandAloneClusterTests extends SparkTests(
-  new AmmoniteClassWrapperChecker(sharedLoader = true),
+  new AmmoniteClassWrapperChecker,
   "spark://master:7077",
   sparkVersion,
   wrapper = wrapper

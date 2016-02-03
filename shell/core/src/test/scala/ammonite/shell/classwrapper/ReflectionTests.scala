@@ -2,6 +2,6 @@ package ammonite.shell
 package classwrapper
 
 object ReflectionTests extends tests.ReflectionTests(
-  new AmmoniteClassWrapperChecker(),
+  new AmmoniteClassWrapperChecker,
   classWrap = true
 )
