@@ -22,7 +22,7 @@ lazy val `shell-api` = project.in(file("shell/api"))
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "com.lihaoyi" %% "pprint" % "0.3.7"
+      "com.lihaoyi" %% "pprint" % "0.3.8"
     )
   )
   .settings(buildInfoSettings)
@@ -60,7 +60,7 @@ lazy val tprint = project.in(file("shell/tprint"))
     libraryDependencies ++= {
       Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-        "com.lihaoyi" %% "pprint" % "0.3.7"
+        "com.lihaoyi" %% "pprint" % "0.3.8"
       ) ++ {
         if (scalaBinaryVersion.value == "2.11") Seq(
           "org.scala-lang" % "scala-compiler" % scalaVersion.value
