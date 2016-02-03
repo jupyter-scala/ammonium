@@ -1,10 +1,11 @@
 #!/bin/bash
 
-VERSION=0.4.0-SNAPSHOT
+VERSION=0.4.0-M2
 SCALA_VERSION=2.11.7
 
 exec "$(dirname "$0")/coursier" launch \
   com.github.alexarchambault.ammonium:shell_$SCALA_VERSION:$VERSION \
   -I ammonium-compile:com.github.alexarchambault.ammonium:shell-api_$SCALA_VERSION:$VERSION \
   -I ammonium-macro:org.scala-lang:scala-compiler:$SCALA_VERSION \
-  -i ammonium-compile,ammonium-macro
+  -i ammonium-compile,ammonium-macro \
+  -- -- "$@"
