@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION=0.4.0-M2
+VERSION=0.4.0-M4
 SCALA_VERSION=2.11.7
 
 exec "$(dirname "$0")/coursier" launch \
