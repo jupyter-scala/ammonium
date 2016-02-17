@@ -39,8 +39,14 @@ class BridgeImpl(
   def exit: Nothing = throw Exit
 
   val eval: Eval = new Eval {
-    def apply(code: String) =
-      Interpreter.run(code, (), None, None, _ => ())(intp)
+    def apply(code: String, silent: Boolean) =
+      Interpreter.run(
+        code,
+        (),
+        None,
+        None,
+        if (silent) _ => () else _.asInstanceOf[Iterator[String]].foreach(print)
+      )(intp)
   }
 
   def classpath: ammonite.api.Classpath = intp.classpath

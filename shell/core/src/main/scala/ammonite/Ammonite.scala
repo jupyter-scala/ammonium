@@ -81,13 +81,14 @@ case class Ammonite(
   if (predef.nonEmpty)
     Parsers.split(predef) match {
       case Some(Success(stmts, _)) =>
-        Interpreter.interpret(
-          stmts,
-          (),
-          None,
-          None,
-          _.asInstanceOf[Iterator[String]].foreach(print)
-        )(interp.asInstanceOf[Interpreter])
+        for (stmt <- stmts)
+          Interpreter.interpret(
+            Seq(stmt),
+            (),
+            None,
+            None,
+            _.asInstanceOf[Iterator[String]].foreach(print)
+          )(interp.asInstanceOf[Interpreter])
 
         // FIXME Handle errors
 
