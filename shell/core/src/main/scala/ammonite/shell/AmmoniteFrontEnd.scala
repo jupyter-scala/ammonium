@@ -6,6 +6,7 @@ import java.io.{ OutputStreamWriter, OutputStream, InputStream }
 
 import ammonite.interpreter.{ Parsers, Res, Colors }
 import ammonite.shell.util.Highlighter
+import ammonite.terminal.GUILikeFilters.SelectionFilter
 import ammonite.terminal.LazyList.~:
 import ammonite.terminal._
 import fastparse.core.Parsed
@@ -48,7 +49,7 @@ case class AmmoniteFrontEnd(extraFilters: TermCore.Filter = PartialFunction.empt
     val writer = new OutputStreamWriter(output)
 
     val autocompleteFilter: TermCore.Filter = {
-      case TermInfo(TermState(9 ~: rest, b, c), width) =>
+      case TermInfo(TermState(9 ~: rest, b, c, _), width) =>
         val (newCursor, completions, details) = compilerComplete(c, b.mkString)
         val details2 = for (d <- details) yield {
           Highlighter.defaultHighlight(
@@ -81,7 +82,7 @@ case class AmmoniteFrontEnd(extraFilters: TermCore.Filter = PartialFunction.empt
     }
 
     val multilineFilter: TermCore.Filter = {
-      case TermState(lb ~: rest, b, c)
+      case TermState(lb ~: rest, b, c, _)
         if (lb == 10 || lb == 13)
         && Parsers.split(b.mkString).isEmpty => // Enter
 
@@ -123,35 +124,13 @@ case class AmmoniteFrontEnd(extraFilters: TermCore.Filter = PartialFunction.empt
           colors.keyword(),
           resetColor
         )
-        val (newBuffer, offset) = selectionFilter.mark match{
-          case Some(mark) if mark != cursor =>
-            val Seq(min, max) = Seq(cursor, mark).sorted
-            val before = indices.filter(_._1 <= min)
-            val after = indices.filter(_._1 > max)
-            val lastBeforeAfter =
-              indices.filter(_._1 <= max)
-                .lastOption
-                .map(_._2)
-                .getOrElse("")
-            val middle = Seq(
-              (min, colors.reset() + colors.selected(), true),
-              (max, colors.reset() + lastBeforeAfter, true)
-            )
-            val newIndices = before ++ middle ++ after
-            val displayOffset = if (cursor < mark) 0 else -1
-            // Add Console.RESET to the end of the buffer to hack around bug
-            // in TermCore, to be fixed later when we clean up the crazy
-            // TermCore.readLine logic
-            (
-              Highlighter.flattenIndices(newIndices, buffer) ++ resetColor,
-              displayOffset
-            )
-          case _ => (Highlighter.flattenIndices(indices, buffer) ++ resetColor, 0)
-        }
+        val highlighted = Ansi.Str.parse(Highlighter.flattenIndices(indices, buffer).mkString)
+        val (newBuffer, offset) = SelectionFilter.mangleBuffer(
+          selectionFilter, highlighted, cursor, Ansi.Color.ParseMap(colors.selected())
+        )
 
-        val newNewBuffer: Vector[Char] = HistoryFilter.mangleBuffer(
-          historyFilter, newBuffer, cursor,
-          Console.UNDERLINED, Ansi.resetUnderline
+        val newNewBuffer = HistoryFilter.mangleBuffer(
+          historyFilter, newBuffer, cursor, Ansi.Underlined
         )
         (newNewBuffer, offset)
       }
