@@ -182,7 +182,7 @@ lazy val `ammonium` = project.in(file("."))
 
 
 lazy val commonSettings = releaseSettings ++ Seq(
-  scalaVersion := "2.11.7",
+  scalaVersion := "2.11.8",
   resolvers ++= Seq(
     "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/",
     "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases",
