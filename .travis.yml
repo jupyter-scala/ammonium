@@ -20,6 +20,7 @@ cache:
   directories:
   - $HOME/.ivy2/cache
   - $HOME/.sbt
+  - $HOME/.coursier
 env:
   global:
   - COURSIER_NO_TERM=1
