@@ -13,7 +13,7 @@ scala:
 #- 2.10.4
 #- 2.10.3
 jdk:
-- oraclejdk8
+- oraclejdk7
 script: project/run-travis "$(jdk_switcher home oraclejdk7)"
 sudo: false
 cache:
