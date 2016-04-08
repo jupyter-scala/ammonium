@@ -1,5 +1,5 @@
 
-val coursierVersion = "1.0.0-M9"
+val coursierVersion = "1.0.0-M10"
 
 lazy val `interpreter-api` = project.in(file("interpreter/api"))
   .settings(commonSettings)
@@ -182,7 +182,7 @@ lazy val `ammonium` = project.in(file("."))
 
 
 lazy val commonSettings = releaseSettings ++ Seq(
-  scalaVersion := "2.11.7",
+  scalaVersion := "2.11.8",
   resolvers ++= Seq(
     "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/",
     "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases",
