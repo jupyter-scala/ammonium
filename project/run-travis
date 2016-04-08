@@ -4,10 +4,16 @@ set -ev
 PWD="$(cd "$(dirname "$0")"; pwd)"
 SBT="sbt ++${TRAVIS_SCALA_VERSION:-2.11.8}"
 
-$SBT publish-local | grep -v "exclude("
+PROJECTS="interpreter interpreter-api setup shell shell-api spark-110 spark-111 spark-120 spark-121 spark-122 spark-130 spark-131 spark-140 spark-141 spark-150 spark-151 spark-152 spark-160 spark-161 tprint"
+
+for PROJ in $PROJECTS; do
+  $SBT "$PROJ/publishLocal" | grep -v "exclude("
+done
 
 "$PWD/run-tests"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" -a "$TRAVIS_BRANCH" == "master" ]; then
-  $SBT publish
+  for PROJ in $PROJECTS; do
+    $SBT "$PROJ/publish" | grep -v "exclude("
+  done
 fi
