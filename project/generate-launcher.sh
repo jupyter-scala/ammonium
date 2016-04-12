@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION=0.4.0-M4
+VERSION=0.4.0-M5
 
 if [ "$1" = "--2.10" ]; then
   SCALA_VERSION=2.10.6
@@ -11,7 +11,7 @@ if [ "$1" = "--2.10" ]; then
     -I ammonium-compile:org.scalamacros:quasiquotes_2.10:2.0.1 \
   "
 else
-  SCALA_VERSION=2.11.7
+  SCALA_VERSION=2.11.8
   OUTPUT=ammonium
   EXTRA=
 fi
