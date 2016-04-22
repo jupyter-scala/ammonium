@@ -129,7 +129,7 @@ Example of Spark session on a YARN cluster
 @ classpath.addPath(hadoopConfDir)
 
 @ classpath.add(
-    "com.github.alexarchambault.ammonium" % s"spark_${sparkVersion}_${scalaVersion}" % "0.4.0-M5",
+    "com.github.alexarchambault.ammonium" % s"spark_${sparkVersion}_${scalaVersion}" % "0.4.0-M6",
     "org.apache.spark" %% "spark-yarn" % sparkVersion,
     "org.apache.hadoop" % "hadoop-client" % hadoopVersion,
     "org.apache.hadoop" % "hadoop-yarn-server-web-proxy" % hadoopVersion,
@@ -172,7 +172,7 @@ terminal-specific parts (`shell-api` and `shell`). So the 4 resulting modules ar
 The launchers heavily use the possibilities offered by [coursier](https://github.com/alexarchambault/coursier).
 With the coursier launcher, one could trivially launch ammonium with
 ```
-$ ./coursier launch com.github.alexarchambault.ammonium:shell_2.11.7:0.4.0-M5
+$ ./coursier launch com.github.alexarchambault.ammonium:shell_2.11.7:0.4.0-M6
 ```
 
 Launching ammonium this way prevents class loader isolation to work though: the ammonium dependencies are
@@ -183,9 +183,9 @@ with just the right dependencies, alongside the class loader that loads and runs
 achieved with
 ```
 $ ./coursier launch \
-    com.github.alexarchambault.ammonium:shell_2.11.7:0.4.0-M5 \
+    com.github.alexarchambault.ammonium:shell_2.11.7:0.4.0-M6 \
     -i ammonium-compile,ammonium-macro \
-    -I ammonium-compile:com.github.alexarchambault.ammonium:shell-api_2.11.7:0.4.0-M5 \
+    -I ammonium-compile:com.github.alexarchambault.ammonium:shell-api_2.11.7:0.4.0-M6 \
     -I ammonium-macro:org.scala-lang:scala-compiler:2.11.7
 ```
 
@@ -195,12 +195,12 @@ The class loaders setup by the launcher form a hierarchy, that is `ammonium-comp
 be the parent of `ammonium-macro`, which will itself be the parent of the class loader
 that will load the remaining dependencies.
 
-The `-I ammonium-compile:com.github.alexarchambault.ammonium:shell-api_2.11.7:0.4.0-M5` option
-asks the launcher to put the dependency `com.github.alexarchambault.ammonium:shell-api_2.11.7:0.4.0-M5`,
+The `-I ammonium-compile:com.github.alexarchambault.ammonium:shell-api_2.11.7:0.4.0-M6` option
+asks the launcher to put the dependency `com.github.alexarchambault.ammonium:shell-api_2.11.7:0.4.0-M6`,
 along with its transitive dependencies, in the `ammonium-compile` loader. In the same
 fashion, `-I ammonium-macro:org.scala-lang:scala-compiler:2.11.7` asks the launcher to put
 `org.scala-lang:scala-compiler:2.11.7` and its transitive dependencies in the `ammonium-macro` loader.
-The remaining dependencies of `com.github.alexarchambault.ammonium:shell_2.11.7:0.4.0-M5` will
+The remaining dependencies of `com.github.alexarchambault.ammonium:shell_2.11.7:0.4.0-M6` will
 be put in a third class loader, inheriting `ammonium-macro`.
 
 Launched this way, ammonium will find the `ammonium-compile` and `ammonium-macro` loaders,
