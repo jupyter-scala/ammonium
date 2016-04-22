@@ -97,10 +97,17 @@ class Classpath(
     m
   }
 
+  private val scalaVersion = scala.util.Properties.versionNumberString
+
   private var currentPaths = Map.empty[String, Seq[File]] // TODO Add paths from initialDependencies
   private var currentDependencies = Map.empty[String, Set[Dependency]]
   private var currentResolution = Resolution(
-    initialDependencies.map { case (_, dep) => dep }.toSet
+    initialDependencies.map { case (_, dep) => dep }.toSet,
+    forceVersions = Map(
+      Module("org.scala-lang", "scala-library")  -> scalaVersion,
+      Module("org.scala-lang", "scala-compiler") -> scalaVersion,
+      Module("org.scala-lang", "scala-reflect")  -> scalaVersion
+    )
   )
 
   private var hooks = Map.empty[String, Seq[Seq[File] => Unit]]
