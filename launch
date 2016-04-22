@@ -11,4 +11,4 @@ exec "$(dirname "$0")/coursier" launch \
   -I ammonium-compile:com.github.alexarchambault.ammonium:shell-api_$SCALA_VERSION:$VERSION \
   -I ammonium-macro:org.scala-lang:scala-compiler:$SCALA_VERSION \
   -i ammonium-compile,ammonium-macro \
-  -- -- "$@"
+  -- "$@"

@@ -1,5 +1,5 @@
 
-val coursierVersion = "1.0.0-M11"
+val coursierVersion = "1.0.0-M11-1"
 
 lazy val `interpreter-api` = project.in(file("interpreter/api"))
   .settings(commonSettings)
