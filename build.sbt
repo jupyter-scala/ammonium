@@ -49,7 +49,7 @@ lazy val shell = project.in(file("shell/core"))
   .settings(
     libraryDependencies ++= Seq(
       "jline" % "jline" % "2.12",
-      "com.github.alexarchambault" %% "case-app" % "0.2.2",
+      "com.github.alexarchambault" %% "case-app" % "1.0.0-RC2",
       "com.lihaoyi" %% "ammonite-terminal" % "0.5.7"
     )
   )

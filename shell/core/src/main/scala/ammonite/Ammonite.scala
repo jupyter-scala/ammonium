@@ -19,7 +19,7 @@ import scala.annotation.tailrec
 
 // TODO Add options --predef-file, --no-scala-predef, --no-preimports, --hist-file
 
-case class Ammonite(
+case class AmmoniteApp(
   initialPrompt: String = "@",
   predef: String,
   wrap: String,
@@ -127,8 +127,7 @@ case class Ammonite(
   loop()
 }
 
-object Ammonite extends AppOf[Ammonite] {
-  val parser = default
+object Ammonite extends AppOf[AmmoniteApp] {
 
   def print0(items: Seq[CodeItem], colors: Colors): String =
     s""" Iterator[Iterator[String]](${items.map(ShellDisplay(_, colors)).mkString(", ")}).filter(_.nonEmpty).flatMap(_ ++ Iterator("\\n")) """
