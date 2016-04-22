@@ -5,6 +5,9 @@ SCALA_VERSION=2.11.7
 
 exec "$(dirname "$0")/coursier" launch \
   com.github.alexarchambault.ammonium:shell_$SCALA_VERSION:$VERSION \
+  -V org.scala-lang:scala-library:$SCALA_VERSION \
+  -V org.scala-lang:scala-compiler:$SCALA_VERSION \
+  -V org.scala-lang:scala-reflect:$SCALA_VERSION \
   -I ammonium-compile:com.github.alexarchambault.ammonium:shell-api_$SCALA_VERSION:$VERSION \
   -I ammonium-macro:org.scala-lang:scala-compiler:$SCALA_VERSION \
   -i ammonium-compile,ammonium-macro \
