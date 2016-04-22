@@ -10,7 +10,7 @@ lazy val interpreter = project.in(file("interpreter/core"))
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-      "com.lihaoyi" %% "scalaparse" % "0.3.5",
+      "com.lihaoyi" %% "scalaparse" % "0.3.7",
       "io.get-coursier" %% "coursier" % coursierVersion,
       "io.get-coursier" %% "coursier-cache" % coursierVersion
     )
@@ -22,7 +22,7 @@ lazy val `shell-api` = project.in(file("shell/api"))
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "com.lihaoyi" %% "pprint" % "0.3.8"
+      "com.lihaoyi" %% "pprint" % "0.3.9"
     )
   )
   .settings(buildInfoSettings)
@@ -50,7 +50,7 @@ lazy val shell = project.in(file("shell/core"))
     libraryDependencies ++= Seq(
       "jline" % "jline" % "2.12",
       "com.github.alexarchambault" %% "case-app" % "0.2.2",
-      "com.lihaoyi" %% "ammonite-terminal" % "0.5.5"
+      "com.lihaoyi" %% "ammonite-terminal" % "0.5.7"
     )
   )
 
@@ -60,7 +60,7 @@ lazy val tprint = project.in(file("shell/tprint"))
     libraryDependencies ++= {
       Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-        "com.lihaoyi" %% "pprint" % "0.3.8"
+        "com.lihaoyi" %% "pprint" % "0.3.9"
       ) ++ {
         if (scalaBinaryVersion.value == "2.11") Seq(
           "org.scala-lang" % "scala-compiler" % scalaVersion.value
@@ -167,7 +167,7 @@ lazy val setup = project
   .settings(
     libraryDependencies ++= Seq(
       "io.get-coursier" %% "coursier" % coursierVersion,
-      "com.github.alexarchambault" %% "argonaut-shapeless_6.1" % "1.0.0-M1"
+      "com.github.alexarchambault" %% "argonaut-shapeless_6.1" % "1.0.0-RC1"
     )
   )
 
