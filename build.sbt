@@ -1,5 +1,5 @@
 
-val coursierVersion = "1.0.0-M10"
+val coursierVersion = "1.0.0-M11"
 
 lazy val `interpreter-api` = project.in(file("interpreter/api"))
   .settings(commonSettings)
@@ -11,8 +11,8 @@ lazy val interpreter = project.in(file("interpreter/core"))
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "com.lihaoyi" %% "scalaparse" % "0.3.5",
-      "com.github.alexarchambault" %% "coursier" % coursierVersion,
-      "com.github.alexarchambault" %% "coursier-cache" % coursierVersion
+      "io.get-coursier" %% "coursier" % coursierVersion,
+      "io.get-coursier" %% "coursier-cache" % coursierVersion
     )
   )
 
@@ -166,7 +166,7 @@ lazy val setup = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.github.alexarchambault" %% "coursier" % coursierVersion,
+      "io.get-coursier" %% "coursier" % coursierVersion,
       "com.github.alexarchambault" %% "argonaut-shapeless_6.1" % "1.0.0-M1"
     )
   )
