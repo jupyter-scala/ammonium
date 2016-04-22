@@ -16,7 +16,7 @@ else
   EXTRA=
 fi
 
-"$(dirname "$0")/../coursier" launch com.github.alexarchambault:coursier-cli_2.11:1.0.0-M10 -- -- bootstrap \
+"$(dirname "$0")/../coursier" bootstrap \
   com.github.alexarchambault.ammonium:shell_$SCALA_VERSION:$VERSION \
   -I ammonium-compile:com.github.alexarchambault.ammonium:shell-api_$SCALA_VERSION:$VERSION \
   -I ammonium-macro:org.scala-lang:scala-compiler:$SCALA_VERSION \
@@ -25,6 +25,6 @@ fi
   --no-default \
   -r central \
   -r sonatype:releases \
-  -D "\${user.home}/.ammonium/bootstrap" \
+  -d "\${user.home}/.ammonium/bootstrap" \
   -f -o "$OUTPUT" \
   -M ammonite.Ammonite
