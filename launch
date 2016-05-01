@@ -1,7 +1,7 @@
 #!/bin/bash
 
-VERSION=0.4.0-M5
-SCALA_VERSION=2.11.7
+VERSION=0.4.0-M6-1
+SCALA_VERSION=2.11.8
 
 exec "$(dirname "$0")/coursier" launch \
   com.github.alexarchambault.ammonium:shell_$SCALA_VERSION:$VERSION \

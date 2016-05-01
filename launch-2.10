@@ -1,13 +1,16 @@
 #!/bin/bash
 
-VERSION=0.4.0-M5
+VERSION=0.4.0-M6-1
 SCALA_VERSION=2.10.6
 
 exec "$(dirname "$0")/coursier" launch \
   com.github.alexarchambault.ammonium:shell_$SCALA_VERSION:$VERSION \
+  -V org.scala-lang:scala-library:$SCALA_VERSION \
+  -V org.scala-lang:scala-compiler:$SCALA_VERSION \
+  -V org.scala-lang:scala-reflect:$SCALA_VERSION \
   -E com.chuusai:shapeless_2.10.4 \
   -I ammonium-compile:com.github.alexarchambault.ammonium:shell-api_$SCALA_VERSION:$VERSION \
   -I ammonium-compile:org.scala-lang:scala-compiler:$SCALA_VERSION \
   -I ammonium-compile:org.scalamacros:quasiquotes_2.10:2.0.1 \
   -i ammonium-compile,ammonium-macro \
-  -- -- "$@"
+  -- "$@"
