@@ -10,7 +10,8 @@ import ammonite.api.{ Classpath, Interpreter }
 import ammonite.api.ModuleConstructor._
 import ammonite.spark.Compat.sparkVersion
 
-import org.apache.spark.{ SparkContext, SparkConf }
+import org.apache.spark.scheduler._
+import org.apache.spark.{ SparkConf, SparkContext, SparkContextOps }
 import org.apache.spark.sql.SQLContext
 
 import org.eclipse.jetty.server.Server
@@ -18,9 +19,11 @@ import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 
 import scala.annotation.meta.field
+import scala.concurrent.duration.{ Duration, FiniteDuration }
+import scala.util.Try
 
 /** The spark entry point from an Ammonite session */
-class Spark(implicit
+class Spark(ttl: Duration = Spark.defaultTtl)(implicit
   @(transient @field) interpreter: Interpreter,
   @(transient @field) classpath: Classpath
 ) extends Serializable {
@@ -148,6 +151,8 @@ class Spark(implicit
 
   @transient private var _sparkConf: SparkConf = null
   @transient private var _sc: SparkContext = null
+  @transient private var _updateTtl: () => Unit = () => ()
+  @transient private var _cancelTtl: () => Unit = () => ()
 
   /** The `SparkConf` associated to this handle */
   def sparkConf: SparkConf = {
@@ -195,9 +200,22 @@ class Spark(implicit
         throw new IllegalArgumentException(s"Spark master set to $master and spark.home not set")
 
       _sc = new Spark.SparkContext(sparkConf)
+
+      ttl match {
+        case d: FiniteDuration =>
+          val t = Spark.addTtl(_sc, d)
+          _updateTtl = t._1
+          _cancelTtl = t._2
+        case _ =>
+      }
     }
 
+    _updateTtl()
     _sc
+  }
+
+  def cancelTtl(): Unit = {
+    _cancelTtl()
   }
 
   /** Alias for `sc` */
@@ -239,5 +257,68 @@ object Spark {
   class SparkContext(sparkConf: SparkConf)
     extends org.apache.spark.SparkContext(sparkConf) {
     override def toString = "SparkContext"
+  }
+
+  private implicit def toSparkContextOps(sc: org.apache.spark.SparkContext) =
+    new SparkContextOps(sc)
+
+  def addTtl(sc: org.apache.spark.SparkContext, ttl: FiniteDuration): (() => Unit, () => Unit) = {
+
+    @volatile var lastAccess = System.currentTimeMillis()
+
+    def accessed(): Unit = {
+      lastAccess = System.currentTimeMillis()
+    }
+
+    def shouldBeStopped(): Boolean = {
+      val currentTs = System.currentTimeMillis()
+      currentTs > lastAccess + ttl.toMillis
+    }
+
+    val listener = new SparkListener {
+      override def onStageCompleted(stageCompleted: SparkListenerStageCompleted) =
+        accessed()
+      override def onStageSubmitted(stageSubmitted: SparkListenerStageSubmitted) =
+        accessed()
+      override def onTaskStart(taskStart: SparkListenerTaskStart) =
+        accessed()
+      override def onTaskGettingResult(taskGettingResult: SparkListenerTaskGettingResult) =
+        accessed()
+      override def onTaskEnd(taskEnd: SparkListenerTaskEnd) =
+        accessed()
+      override def onJobStart(jobStart: SparkListenerJobStart) =
+        accessed()
+      override def onJobEnd(jobEnd: SparkListenerJobEnd) =
+        accessed()
+      override def onApplicationStart(applicationStart: SparkListenerApplicationStart) =
+        accessed()
+    }
+
+    sc.addSparkListener(listener)
+
+    @volatile var cancelled = false
+
+    val t = new Thread {
+      override def run() =
+        while (!sc.isStopped && !cancelled)
+          if (shouldBeStopped())
+            sc.stop()
+          else
+            Thread.sleep(2000L)
+    }
+
+    t.start()
+
+    (() => accessed(), () => { cancelled = true })
+  }
+
+  def defaultTtl: Duration = {
+
+    val fromEnv = sys.env.get("SPARK_CONTEXT_TTL")
+      .flatMap(s => Try(Duration(s)).toOption)
+    def fromProps = sys.props.get("sparkContext.ttl")
+      .flatMap(s => Try(Duration(s)).toOption)
+
+    fromEnv.orElse(fromProps).getOrElse(Duration.Inf)
   }
 }
