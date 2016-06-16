@@ -196,8 +196,6 @@ class Spark(ttl: Duration = Spark.defaultTtl)(implicit
     if (_sc == null) {
       setConfDefaults(sparkConf)
       val master = sparkConf.get("spark.master")
-      if ((!master.startsWith("local") || master.contains("cluster")) && sparkConf.getOption("spark.home").isEmpty)
-        throw new IllegalArgumentException(s"Spark master set to $master and spark.home not set")
 
       _sc = new Spark.SparkContext(sparkConf)
 
