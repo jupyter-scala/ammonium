@@ -33,4 +33,5 @@ if [ "$TRAVIS_SCALA_VERSION" = "" ]; then
   $SBT "spark-152/test-only ammonite.spark.LocalTests"
   $SBT "spark-160/test-only ammonite.spark.LocalTests"
   $SBT "spark-161/test-only ammonite.spark.LocalTests"
+  $SBT "spark-162/test-only ammonite.spark.LocalTests"
 fi
