@@ -1,4 +1,4 @@
-package ammonite.spark
+package ammonite
 
 import java.io.IOException
 import java.net._
@@ -6,9 +6,9 @@ import java.io.File
 import java.nio.file.Files
 import javax.servlet.http.{ HttpServletResponse, HttpServletRequest }
 
-import ammonite.api.{ Classpath, Interpreter }
+import ammonite.api.{ Classpath, Eval, Interpreter }
 import ammonite.api.ModuleConstructor._
-import ammonite.spark.Compat.sparkVersion
+import ammonite.SparkCompat.sparkVersion
 
 import org.apache.spark.scheduler._
 import org.apache.spark.{ SparkConf, SparkContext, SparkContextOps }
@@ -24,8 +24,8 @@ import scala.util.Try
 
 /** The spark entry point from an Ammonite session */
 class Spark(ttl: Duration = Spark.defaultTtl)(implicit
-  @(transient @field) interpreter: Interpreter,
-  @(transient @field) classpath: Classpath
+  interpreter: Interpreter,
+  classpath: Classpath
 ) extends Serializable {
 
   private lazy val host =
@@ -195,7 +195,6 @@ class Spark(ttl: Duration = Spark.defaultTtl)(implicit
   def sc: SparkContext = {
     if (_sc == null) {
       setConfDefaults(sparkConf)
-      val master = sparkConf.get("spark.master")
 
       _sc = new Spark.SparkContext(sparkConf)
 
@@ -252,7 +251,31 @@ class Spark(ttl: Duration = Spark.defaultTtl)(implicit
 }
 
 object Spark {
-  class SparkContext(sparkConf: SparkConf)
+
+  private var interpreter0: Interpreter = null
+  private var classpath0: Classpath = null
+  private var ttl0: Duration = Spark.defaultTtl
+
+  lazy val handle: Spark = {
+    def errMsg = "ammonite.Spark.init() must be called prior to using sparkConf / sc / sqlContext"
+    assert(interpreter0 != null, errMsg)
+    assert(classpath0 != null, errMsg)
+
+    new Spark(ttl0)(interpreter0, classpath0)
+  }
+
+  def apply(ttl: Duration = Spark.defaultTtl)(implicit eval: Eval, interpreter: Interpreter, classpath: Classpath): Unit =
+    init(ttl)
+
+  def init(ttl: Duration = Spark.defaultTtl)(implicit eval: Eval, interpreter: Interpreter, classpath: Classpath): Unit = {
+    interpreter0 = interpreter
+    classpath0 = classpath
+    ttl0 = ttl
+    handle // eagerly create handle from here
+    eval("import _root_.ammonite.Spark.handle.{ sparkConf, sc, sqlContext }")
+  }
+
+  private class SparkContext(sparkConf: SparkConf)
     extends org.apache.spark.SparkContext(sparkConf) {
     override def toString = "SparkContext"
   }
@@ -260,7 +283,7 @@ object Spark {
   private implicit def toSparkContextOps(sc: org.apache.spark.SparkContext) =
     new SparkContextOps(sc)
 
-  def addTtl(sc: org.apache.spark.SparkContext, ttl: FiniteDuration): (() => Unit, () => Unit) = {
+  private def addTtl(sc: org.apache.spark.SparkContext, ttl: FiniteDuration): (() => Unit, () => Unit) = {
 
     @volatile var lastAccess = System.currentTimeMillis()
 
@@ -310,7 +333,7 @@ object Spark {
     (() => accessed(), () => { cancelled = true })
   }
 
-  def defaultTtl: Duration = {
+  private def defaultTtl: Duration = {
 
     val fromEnv = sys.env.get("SPARK_CONTEXT_TTL")
       .flatMap(s => Try(Duration(s)).toOption)

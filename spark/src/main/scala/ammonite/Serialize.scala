@@ -1,4 +1,4 @@
-package ammonite.spark.util
+package ammonite
 
 import java.io._
 
