@@ -23,7 +23,10 @@ import scala.concurrent.duration.{ Duration, FiniteDuration }
 import scala.util.Try
 
 /** The spark entry point from an Ammonite session */
-class Spark(ttl: Duration = Spark.defaultTtl)(implicit
+class Spark(
+  ttl: Duration = Spark.defaultTtl,
+  yarnVersion: String = "2.6.0"
+)(implicit
   interpreter: Interpreter,
   classpath: Classpath
 ) extends Serializable {
@@ -115,6 +118,23 @@ class Spark(ttl: Duration = Spark.defaultTtl)(implicit
     "org.apache.spark" %% "spark-sql" % sparkVersion
   ).toSet
 
+  /** JARs sent to YARN, if not already set and no spark home (spark >= 2.0.0-preview) */
+  private lazy val sparkYarnJars = classpath.resolve(
+    "org.apache.spark" %% "spark-hive-thriftserver" % sparkVersion,
+    "org.apache.spark" %% "spark-repl" % sparkVersion,
+    "org.apache.spark" %% "spark-hive" % sparkVersion,
+    "org.apache.spark" %% "spark-graphx" % sparkVersion,
+    "org.apache.spark" %% "spark-mllib" % sparkVersion,
+    "org.apache.spark" %% "spark-streaming" % sparkVersion,
+    "org.apache.spark" %% "spark-yarn" % sparkVersion,
+    "org.apache.spark" %% "spark-sql" % sparkVersion,
+    "org.apache.hadoop" % "hadoop-client" % yarnVersion,
+    "org.apache.hadoop" % "hadoop-yarn-server-web-proxy" % yarnVersion,
+    "org.apache.hadoop" % "hadoop-yarn-server-nodemanager" % yarnVersion
+  ).distinct
+
+  private val needsSparkHome = sparkVersion.startsWith("1.")
+
   /** Called before creation of the `SparkContext` to setup the `SparkConf`. */
   def setConfDefaults(conf: SparkConf): Unit = {
     implicit class SparkConfExtensions(val conf: SparkConf) {
@@ -144,9 +164,16 @@ class Spark(ttl: Duration = Spark.defaultTtl)(implicit
       for (execUri <- Option(System.getenv("SPARK_EXECUTOR_URI")))
         conf.set("spark.executor.uri", execUri)
 
-    if (conf.getOption("spark.home").isEmpty)
-      for (sparkHome <- Option(System.getenv("SPARK_HOME")))
-        conf.set("spark.home", sparkHome)
+    if (needsSparkHome) {
+      if (conf.getOption("spark.home").isEmpty)
+        for (sparkHome <- Option(System.getenv("SPARK_HOME")))
+          conf.set("spark.home", sparkHome)
+    } else {
+      if (conf.get("spark.master").startsWith("yarn")) {
+        if (conf.getOption("spark.yarn.jars").isEmpty && conf.getOption("spark.home").isEmpty && !sys.env.contains("SPARK_HOME"))
+          conf.set("spark.yarn.jars", sparkYarnJars.toVector.map(_.getAbsolutePath).sorted.mkString(","))
+      }
+    }
   }
 
   @transient private var _sparkConf: SparkConf = null
