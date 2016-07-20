@@ -1,7 +1,7 @@
 package ammonite.spark
 
 import ammonite.shell.classwrapper.{ AmmoniteClassWrapperChecker, wrapper }
-import ammonite.spark.Compat.sparkVersion
+import ammonite.SparkCompat.sparkVersion
 import ammonite.shell.tests.SparkTests
 
 object LocalTests extends SparkTests(

@@ -60,11 +60,11 @@ class SerializationTests(
         @ val c = new C
         c: ${wrapper}C = C
 
-        @ val b = ammonite.spark.util.Serialize.to(c)
+        @ val b = ammonite.Serialize.to(c)
 
         @ val loader = interpreter.classpath.classLoaderClone("compile")
 
-        @ val c2 = ammonite.spark.util.Serialize.from(b, loader)
+        @ val c2 = ammonite.Serialize.from(b, loader)
         c2: AnyRef = C
 
         @ c2.getClass.getMethod("get").invoke(c2)

@@ -1,5 +1,5 @@
-package ammonite.spark
+package ammonite
 
-object Compat {
+object SparkCompat {
   val sparkVersion = org.apache.spark.SPARK_VERSION
 }

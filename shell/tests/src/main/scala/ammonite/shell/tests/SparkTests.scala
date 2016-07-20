@@ -42,19 +42,18 @@ class SparkTests(
   val preamble = s"""
           @ $requisite
 
-          @ import ammonite.spark._ ${if (importSparkContextContent) "; import org.apache.spark.SparkContext._" else ""}
-          import ammonite.spark._${if (importSparkContextContent) s"\n${margin}import org.apache.spark.SparkContext._" else ""}
+          @ (); ${if (importSparkContextContent) "; import org.apache.spark.SparkContext._" else ""}
+          ${if (importSparkContextContent) s"\n${margin}import org.apache.spark.SparkContext._" else ""}
 
-          @ @transient val Spark = new Spark
+          @ ammonite.Spark()
 
-          @ Spark.withConf(_.setMaster("$master")); import Spark.sc; Spark.start()
-          import Spark.sc
+          @ sparkConf.setMaster("$master")
 
       """
 
   val postamble =
     """
-          @ Spark.stop()
+          @ sc.stop()
     """
 
   /*
@@ -196,8 +195,7 @@ class SparkTests(
 
         check.session(preamble +
          s"""
-          @ import Spark.sqlContext; import org.apache.spark.sql.Row
-          import Spark.sqlContext
+          @ import org.apache.spark.sql.Row
           import org.apache.spark.sql.Row
 
           @ import $imp
