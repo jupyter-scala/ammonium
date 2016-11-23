@@ -591,7 +591,9 @@ class Interpreter(val printer: Printer,
   def handleOutput(res: Res[Evaluated]): Unit = {
     res match{
       case Res.Skip => // do nothing
-      case Res.Exit(value) => pressy.shutdownPressy()
+      case Res.Exit(value) =>
+        onExitCallbacks.foreach(_(value))
+        pressy.shutdownPressy()
       case Res.Success(ev) => eval.update(ev.imports)
       case Res.Failure(ex, msg) => lastException = ex.getOrElse(lastException)
       case Res.Exception(ex, msg) => lastException = ex
@@ -711,6 +713,11 @@ class Interpreter(val printer: Printer,
       }
 
     }
+  }
+
+  var onExitCallbacks = Seq.empty[Any => Unit]
+  def onExit(cb: Any => Unit): Unit = {
+    onExitCallbacks = onExitCallbacks :+ cb
   }
 
 }

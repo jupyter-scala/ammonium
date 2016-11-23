@@ -26,6 +26,8 @@ trait RuntimeAPI {
    */
   def exit(value: Any) = throw ReplExit(value)
 
+  def onExit(cb: Any => Unit): Unit
+
 
   /**
    * Display help text if you don't know how to use the REPL

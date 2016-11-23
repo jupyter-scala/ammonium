@@ -136,4 +136,7 @@ class RuntimeApiImpl(val interp: Interpreter,
     }
   }
 
+  def onExit(cb: Any => Unit): Unit =
+    interp.onExit(cb)
+
 }
