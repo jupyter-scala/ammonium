@@ -196,9 +196,9 @@ object ProjectTests extends TestSuite{
         @   }
         @ }
 
-        @ val server = Httpx.serve(":8080", service)
+        @ val server = Httpx.serve(":12391", service)
 
-        @ val client: Service[httpx.Request, httpx.Response] = Httpx.newService(":8080")
+        @ val client: Service[httpx.Request, httpx.Response] = Httpx.newService(":12391")
 
         @ val request = httpx.Request(httpx.Method.Get, "/")
 
