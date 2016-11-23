@@ -127,79 +127,79 @@ object BuiltinTests extends TestSuite{
     }
 
 
-    'saveLoad {
-      check.session(
-        """
-        @ val veryImportant = 1
-        veryImportant: Int = 1
-
-        @ repl.sess.save()
-
-        @ val oopsDontWantThis = 2
-        oopsDontWantThis: Int = 2
-
-        @ // Let's try this new cool new library
-
-        @ import $ivy.`com.lihaoyi::scalatags:0.5.3`
-
-        @ veryImportant
-        res4: Int = 1
-
-        @ oopsDontWantThis
-        res5: Int = 2
-
-        @ import scalatags.Text.all._
-
-        @ div("Hello").render
-        res7: String = "<div>Hello</div>"
-
-        @ // Oh no, maybe we don't want scalatags!
-
-        @ repl.sess.load()
-
-        @ veryImportant
-        res9: Int = 1
-
-        @ oopsDontWantThis
-        error: not found: value oopsDontWantThis
-
-        @ import scalatags.Text.all._
-        error: not found: value scalatags
-        """)
-    }
-    'saveLoad2{
-      check.session("""
-        @ val (x, y) = (1, 2)
-        x: Int = 1
-        y: Int = 2
-
-        @ repl.sess.save("xy initialized")
-
-        @ val z = x + y
-        z: Int = 3
-
-        @ repl.sess.save("first z")
-
-        @ repl.sess.load("xy initialized")
-
-        @ val z = x - y
-        z: Int = -1
-
-        @ repl.sess.save("second z")
-
-        @ z
-        res7: Int = -1
-
-        @ repl.sess.load("first z")
-
-        @ z
-        res9: Int = 3
-
-        @ repl.sess.load("second z")
-
-        @ z
-        res11: Int = -1
-                    """)
-    }
+    // 'saveLoad {
+    //   check.session(
+    //     """
+    //     @ val veryImportant = 1
+    //     veryImportant: Int = 1
+    //
+    //     @ repl.sess.save()
+    //
+    //     @ val oopsDontWantThis = 2
+    //     oopsDontWantThis: Int = 2
+    //
+    //     @ // Let's try this new cool new library
+    //
+    //     @ import $ivy.`com.lihaoyi::scalatags:0.5.3`
+    //
+    //     @ veryImportant
+    //     res4: Int = 1
+    //
+    //     @ oopsDontWantThis
+    //     res5: Int = 2
+    //
+    //     @ import scalatags.Text.all._
+    //
+    //     @ div("Hello").render
+    //     res7: String = "<div>Hello</div>"
+    //
+    //     @ // Oh no, maybe we don't want scalatags!
+    //
+    //     @ repl.sess.load()
+    //
+    //     @ veryImportant
+    //     res9: Int = 1
+    //
+    //     @ oopsDontWantThis
+    //     error: not found: value oopsDontWantThis
+    //
+    //     @ import scalatags.Text.all._
+    //     error: not found: value scalatags
+    //     """)
+    // }
+    // 'saveLoad2{
+    //   check.session("""
+    //     @ val (x, y) = (1, 2)
+    //     x: Int = 1
+    //     y: Int = 2
+    //
+    //     @ repl.sess.save("xy initialized")
+    //
+    //     @ val z = x + y
+    //     z: Int = 3
+    //
+    //     @ repl.sess.save("first z")
+    //
+    //     @ repl.sess.load("xy initialized")
+    //
+    //     @ val z = x - y
+    //     z: Int = -1
+    //
+    //     @ repl.sess.save("second z")
+    //
+    //     @ z
+    //     res7: Int = -1
+    //
+    //     @ repl.sess.load("first z")
+    //
+    //     @ z
+    //     res9: Int = 3
+    //
+    //     @ repl.sess.load("second z")
+    //
+    //     @ z
+    //     res11: Int = -1
+    //                 """)
+    // }
   }
 }

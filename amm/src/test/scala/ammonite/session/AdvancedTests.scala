@@ -87,25 +87,25 @@ object AdvancedTests extends TestSuite{
       """)
 
     }
-    'macros{
-      check.session("""
-        @ import language.experimental.macros
-
-        @ import reflect.macros.Context
-
-        @ def impl(c: Context): c.Expr[String] = {
-        @  import c.universe._
-        @  c.Expr[String](Literal(Constant("Hello!")))
-        @ }
-        defined function impl
-
-        @ def m: String = macro impl
-        defined function m
-
-        @ m
-        res4: String = "Hello!"
-      """)
-    }
+    // 'macros{
+    //   check.session("""
+    //     @ import language.experimental.macros
+    //
+    //     @ import reflect.macros.Context
+    //
+    //     @ def impl(c: Context): c.Expr[String] = {
+    //     @  import c.universe._
+    //     @  c.Expr[String](Literal(Constant("Hello!")))
+    //     @ }
+    //     defined function impl
+    //
+    //     @ def m: String = macro impl
+    //     defined function m
+    //
+    //     @ m
+    //     res4: String = "Hello!"
+    //   """)
+    // }
     'typeScope{
       // Fancy type-printing isn't implemented at all in 2.10.x
       if (!scala2_10) check.session("""
@@ -227,19 +227,19 @@ object AdvancedTests extends TestSuite{
         ...
       """)
     }
-    'private{
-      check.session("""
-        @ private val x = 1; val y = x + 1
-        x: Int = 1
-        y: Int = 2
-
-        @ y
-        res1: Int = 2
-
-        @ x
-        error: not found: value x
-      """)
-    }
+    // 'private{
+    //   check.session("""
+    //     @ private val x = 1; val y = x + 1
+    //     x: Int = 1
+    //     y: Int = 2
+    //
+    //     @ y
+    //     res1: Int = 2
+    //
+    //     @ x
+    //     error: not found: value x
+    //   """)
+    // }
     'compilerPlugin - retry(3){
       check.session("""
         @ // Make sure plugins from eval class loader are not loaded
