@@ -40,6 +40,8 @@ trait LoadJar {
    * Load a library from its maven/ivy coordinates
    */
   def ivy(coordinates: (String, String, String), verbose: Boolean = true): Unit
+
+  def onJarAdded(cb: Seq[java.io.File] => Unit): Unit
 }
 
 trait Load extends LoadJar{

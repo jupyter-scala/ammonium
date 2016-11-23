@@ -635,18 +635,28 @@ class Interpreter(val printer: Printer,
 
     def handleClasspath(jar: File): Unit
 
+    private def handleClasspath0(jars: Seq[File]): Unit = {
+      callbacks.foreach(_(jars))
+      jars.foreach(handleClasspath)
+    }
+
     def cp(jar: Path): Unit = {
-      handleClasspath(new java.io.File(jar.toString))
+      val f = new java.io.File(jar.toString)
+      handleClasspath0(Seq(f))
       reInit()
     }
     def ivy(coordinates: (String, String, String), verbose: Boolean = true): Unit = {
       val resolved = loadIvy(coordinates, verbose)
       val (groupId, artifactId, version) = coordinates
 
-
-      resolved.foreach(handleClasspath)
+      handleClasspath0(resolved.toSeq)
 
       reInit()
+    }
+
+    private var callbacks = Seq.empty[Seq[java.io.File] => Unit]
+    def onJarAdded(cb: Seq[java.io.File] => Unit): Unit = {
+      callbacks = callbacks :+ cb
     }
   }
 
