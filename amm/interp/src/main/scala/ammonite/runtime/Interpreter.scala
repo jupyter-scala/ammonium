@@ -589,41 +589,13 @@ class Interpreter(val printer: Printer,
   }
   def loadIvy(coordinates: (String, String, String), verbose: Boolean = true) = {
     val (groupId, artifactId, version) = coordinates
-    val cacheKey = (interpApi.resolvers().hashCode.toString, groupId, artifactId, version)
 
-    val fetched =
-      storage.ivyCache()
-        .get(cacheKey)
-
-    val psOpt =
-      fetched
-        .map(_.map(new java.io.File(_)))
-        .filter(_.forall(_.exists()))
-
-    psOpt match{
-      case Some(ps) => ps
-      case None =>
-        val resolved = ammonite.runtime.tools.DependencyThing(
-          () => interpApi.resolvers(),
-          printer,
-          verboseOutput
-        ).resolveArtifact(
-          groupId,
-          artifactId,
-          version,
-          if (verbose) 2 else 1
-        ).toSet
-
-        // #433 only non-snapshot versions are cached
-        if (!version.endsWith("SNAPSHOT")) {
-          storage.ivyCache() = storage.ivyCache().updated(
-            cacheKey,
-            resolved.map(_.getAbsolutePath)
-          )
-        }
-
-        resolved
-    }
+    depThing.resolveArtifact(
+      groupId,
+      artifactId,
+      version,
+      if (verbose) 2 else 1
+    ).toSet
   }
   abstract class DefaultLoadJar extends LoadJar {
 

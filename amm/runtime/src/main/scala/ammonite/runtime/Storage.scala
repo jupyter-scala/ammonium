@@ -4,7 +4,7 @@ import acyclic.file
 import ammonite.ops._
 import ammonite.util.ImportTree
 import ammonite.util.{Imports, StableRef}
-import ammonite.util.Util.{CacheOutput, ClassFiles, CompileCache, IvyMap, newLine}
+import ammonite.util.Util.{CacheOutput, ClassFiles, CompileCache, newLine}
 
 import scala.util.Try
 import scala.collection.generic.CanBuildFrom
@@ -22,7 +22,6 @@ trait Storage{
   def loadPredef: String
   def loadSharedPredef: String
   val fullHistory: StableRef[History]
-  val ivyCache: StableRef[IvyMap]
   def compileCacheSave(path: String, tag: String, data: CompileCache): Unit
   def compileCacheLoad(path: String, tag: String): Option[CompileCache]
   def classFilesListSave(pkg: String,
@@ -47,12 +46,6 @@ object Storage{
     val fullHistory = new StableRef[History]{
       def apply() = _history
       def update(h: History): Unit = _history = h
-    }
-
-    var _ivyCache: IvyMap = Map.empty
-    val ivyCache = new StableRef[IvyMap]{
-      def apply() = _ivyCache
-      def update(value: IvyMap): Unit = _ivyCache = value
     }
 
     var compileCache: mutable.Map[String, (String, CompileCache)] = mutable.Map.empty
@@ -110,7 +103,6 @@ object Storage{
     val cacheDir = dir/'cache/ammonite.Constants.version
     val compileCacheDir = cacheDir/'compile
     val classFilesOrder = "classFilesOrder.json"
-    val ivyCacheFile = cacheDir/"ivycache.json"
     val metadataFile = "metadata.json"
     val historyFile = dir/'history
     val fullHistory = new StableRef[History]{
@@ -234,20 +226,6 @@ object Storage{
       }.toOption
     }
 
-
-    val ivyCache = new StableRef[IvyMap]{
-      def apply() = {
-        val json =
-          try read(ivyCacheFile)
-          catch{ case e: java.nio.file.NoSuchFileException => "[]" }
-
-        try upickle.default.read[IvyMap](json)
-        catch{ case e: Exception => Map.empty }
-      }
-      def update(map: IvyMap) = {
-        write.over(ivyCacheFile, upickle.default.write(map, indent = 4))
-      }
-    }
 
     def loadPredef = try{
       read(predef)
