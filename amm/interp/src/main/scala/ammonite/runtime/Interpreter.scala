@@ -620,7 +620,7 @@ class Interpreter(val printer: Printer,
     psOpt match{
       case Some(ps) => ps
       case None =>
-        val resolved = ammonite.runtime.tools.IvyThing(
+        val resolved = ammonite.runtime.tools.DependencyThing(
           () => interpApi.resolvers(),
           printer,
           verboseOutput
@@ -644,7 +644,7 @@ class Interpreter(val printer: Printer,
   }
   abstract class DefaultLoadJar extends LoadJar {
 
-    lazy val ivyThing = ammonite.runtime.tools.IvyThing(
+    lazy val ivyThing = ammonite.runtime.tools.DependencyThing(
       () => interpApi.resolvers(),
       printer,
       verboseOutput

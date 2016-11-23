@@ -3,7 +3,7 @@ package ammonite
 import ammonite.runtime.{History, Interpreter, Storage}
 import ammonite.main.Defaults
 import ammonite.ops._
-import ammonite.runtime.tools.IvyConstructor._
+import ammonite.runtime.tools.DependencyConstructor._
 import ammonite.TestUtils._
 import utest._
 

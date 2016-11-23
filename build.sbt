@@ -171,7 +171,7 @@ lazy val ammRuntime = project
 
     name := "ammonite-runtime",
     libraryDependencies ++= Seq(
-      "org.apache.ivy" % "ivy" % "2.4.0",
+      "io.get-coursier" %% "coursier-cache" % "1.0.0-M14-6",
       "org.scalaj" %% "scalaj-http" % "2.3.0"
     )
   )

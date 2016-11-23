@@ -4,7 +4,7 @@ import java.io.File
 
 import acyclic.file
 import ammonite.ops.{read, _}
-import ammonite.runtime.tools.IvyThing
+import ammonite.runtime.tools.DependencyThing
 import ammonite.util._
 
 /**
@@ -159,7 +159,7 @@ object ImportHook{
     def resolve(interp: InterpreterInterface, signature: String) = for{
       (a, b, c) <-  signature.split(':') match{
         case Array(a, b, c) => Res.Success((a, b, c))
-        case Array(a, "", b, c) => Res.Success((a, b + "_" + IvyThing.scalaBinaryVersion, c))
+        case Array(a, "", b, c) => Res.Success((a, b + "_" + DependencyThing.scalaBinaryVersion, c))
         case _ => Res.Failure(None, s"Invalid $$ivy import: [$signature]")
       }
       jars <- {

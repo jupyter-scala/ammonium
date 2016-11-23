@@ -80,7 +80,7 @@ object ProjectTests extends TestSuite{
 
               @ val oss = Resolver.Http(
               @   "ambiata-oss",
-              @   "https://ambiata-oss.s3-ap-southeast-2.amazonaws.com",
+              @   "https://ambiata-oss.s3-ap-southeast-2.amazonaws.com/",
               @   IvyPattern,
               @   false
               @ )
