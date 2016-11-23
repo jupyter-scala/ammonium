@@ -58,6 +58,15 @@ class Interpreter(val printer: Printer,
 
   def evalClassloader = eval.frames.head.classloader
 
+  var addedDependencies0 = new mutable.ListBuffer[(String, String, String)]
+  var addedJars0 = new mutable.HashSet[File]
+  var addedPluginDependencies = new mutable.ListBuffer[(String, String, String)]
+  var addedPluginJars = new mutable.HashSet[File]
+
+  def addedJars(plugin: Boolean) =
+    if (plugin) addedPluginJars
+    else addedJars0
+
   def reInit() = {
     if(compiler != null)
       init()
@@ -166,8 +175,8 @@ class Interpreter(val printer: Printer,
           }
         case res: ImportHook.Result.ClassPath =>
 
-          if (res.plugin) handlePluginClasspath(res.file.toIO)
-          else handleEvalClasspath(res.file.toIO)
+          if (res.plugin) handlePluginClasspath(res.files.map(_.toIO), res.coordinates)
+          else handleEvalClasspath(res.files.map(_.toIO), res.coordinates)
 
           Res.Success(Imports())
       }
@@ -587,41 +596,51 @@ class Interpreter(val printer: Printer,
       case Res.Exception(ex, msg) => lastException = ex
     }
   }
-  def loadIvy(coordinates: (String, String, String), verbose: Boolean = true) = {
+
+  lazy val depThing = new ammonite.runtime.tools.DependencyThing(
+    () => interpApi.resolvers(),
+    printer,
+    verboseOutput
+  )
+
+  def addedDependencies(plugin: Boolean): Seq[(String, String, String)] =
+    if (plugin) addedPluginDependencies
+    else addedDependencies0
+  def loadIvy(
+    coordinates: (String, String, String),
+    previousCoordinates: Seq[(String, String, String)],
+    verbose: Boolean = true
+  ) = {
     val (groupId, artifactId, version) = coordinates
 
     depThing.resolveArtifact(
       groupId,
       artifactId,
       version,
+      previousCoordinates,
       if (verbose) 2 else 1
     ).toSet
   }
   abstract class DefaultLoadJar extends LoadJar {
 
-    lazy val ivyThing = ammonite.runtime.tools.DependencyThing(
-      () => interpApi.resolvers(),
-      printer,
-      verboseOutput
-    )
+    def isPlugin: Boolean
+    def handleClasspath(jars: Seq[File], coords: Seq[(String, String, String)]): Seq[File]
 
-    def handleClasspath(jar: File): Unit
-
-    private def handleClasspath0(jars: Seq[File]): Unit = {
+    private def handleClasspath0(jars: Seq[File], coords: Seq[(String, String, String)]): Unit = {
       callbacks.foreach(_(jars))
-      jars.foreach(handleClasspath)
+      handleClasspath(jars, coords)
     }
 
     def cp(jar: Path): Unit = {
       val f = new java.io.File(jar.toString)
-      handleClasspath0(Seq(f))
+      handleClasspath0(Seq(f), Nil)
       reInit()
     }
     def ivy(coordinates: (String, String, String), verbose: Boolean = true): Unit = {
-      val resolved = loadIvy(coordinates, verbose)
+      val resolved = loadIvy(coordinates, addedDependencies(isPlugin), verbose) -- addedJars(isPlugin)
       val (groupId, artifactId, version) = coordinates
 
-      handleClasspath0(resolved.toSeq)
+      handleClasspath0(resolved.toSeq, Seq(coordinates))
 
       reInit()
     }
@@ -632,12 +651,22 @@ class Interpreter(val printer: Printer,
     }
   }
 
-  def handleEvalClasspath(jar: File) = {
-    eval.frames.head.addClasspath(Seq(jar))
-    evalClassloader.add(jar.toURI.toURL)
+  def handleEvalClasspath(jars: Seq[File], coords: Seq[(String, String, String)]) = {
+    val newJars = jars.filterNot(addedJars0)
+    eval.frames.head.addClasspath(newJars)
+    for (jar <- newJars)
+      evalClassloader.add(jar.toURI.toURL)
+    addedJars0 ++= newJars
+    addedDependencies0 ++= coords
+    newJars
   }
-  def handlePluginClasspath(jar: File) = {
-    eval.frames.head.pluginClassloader.add(jar.toURI.toURL)
+  def handlePluginClasspath(jars: Seq[File], coords: Seq[(String, String, String)]): Seq[File] = {
+    val newJars = jars.filterNot(addedPluginJars)
+    for (jar <- newJars)
+      eval.frames.head.pluginClassloader.add(jar.toURI.toURL)
+    addedPluginJars ++= newJars
+    addedPluginDependencies ++= coords
+    newJars
   }
   lazy val interpApi: InterpAPI = new InterpAPI{ outer =>
     lazy val resolvers =
@@ -645,7 +674,9 @@ class Interpreter(val printer: Printer,
 
     object load extends DefaultLoadJar with Load {
 
-      def handleClasspath(jar: File) = handleEvalClasspath(jar)
+      def isPlugin = false
+      def handleClasspath(jars: Seq[File], coords: Seq[(String, String, String)]) =
+        handleEvalClasspath(jars, coords)
 
       def apply(line: String, silent: Boolean) = processExec(line, silent) match{
         case Res.Failure(ex, s) => throw new CompilationError(s)
@@ -673,7 +704,9 @@ class Interpreter(val printer: Printer,
       }
 
       object plugin extends DefaultLoadJar {
-        def handleClasspath(jar: File) = handlePluginClasspath(jar)
+        def isPlugin = true
+        def handleClasspath(jars: Seq[File], coords: Seq[(String, String, String)]) =
+          handlePluginClasspath(jars, coords)
       }
 
     }

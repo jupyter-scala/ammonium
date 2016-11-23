@@ -29,7 +29,7 @@ trait DependencyConstructor{
  *
  * And transliterated into Scala. I have no idea how or why it works.
  */
-case class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verboseOutput: Boolean) {
+class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verboseOutput: Boolean) {
 
   def exceptionMessage(conflicts: Seq[String], failed: Seq[String], converged: Boolean) =
     Seq(
@@ -54,10 +54,14 @@ case class DependencyThing(resolvers: () => List[Resolver], printer: Printer, ve
   def resolveArtifact(groupId: String,
                       artifactId: String,
                       version: String,
+                      previousCoordinates: Seq[(String, String, String)],
                       verbosity: Int = 2) = synchronized {
 
+    val dep = Dependency(Module(groupId, artifactId), version)
+    val previousDeps = previousCoordinates.map { case (org, name, ver) => Dependency(Module(org, name), ver) }
+
     val start = Resolution(
-      Set(Dependency(Module(groupId, artifactId), version))
+      (previousDeps :+ dep).toSet
     )
 
     val metadataLogger = new TermDisplay(new PrintWriter(System.out))
@@ -82,7 +86,7 @@ case class DependencyThing(resolvers: () => List[Resolver], printer: Printer, ve
 
     val a =
       try {
-        Task.gatherUnordered(res.artifacts.map { artifact =>
+        Task.gatherUnordered(res.dependencyArtifacts.map(_._2).filter(_.`type` == "jar").map { artifact =>
           Cache.file(artifact)
             .run
             .map(artifact -> _)

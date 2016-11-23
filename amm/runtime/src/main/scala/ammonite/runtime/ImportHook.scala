@@ -29,7 +29,12 @@ object ImportHook{
     */
   trait InterpreterInterface{
     def wd: Path
-    def loadIvy(coordinates: (String, String, String), verbose: Boolean = true): Set[File]
+    def addedDependencies(plugin: Boolean): Seq[(String, String, String)]
+    def loadIvy(
+      coordinates: (String, String, String),
+      previousCoordinates: Seq[(String, String, String)],
+      verbose: Boolean = true
+    ): Set[File]
   }
 
   /**
@@ -44,7 +49,7 @@ object ImportHook{
                       source: ImportHook.Source,
                       imports: Imports,
                       exec: Boolean) extends Result
-    case class ClassPath(file: Path, plugin: Boolean) extends Result
+    case class ClassPath(files: Seq[Path], coordinates: Seq[(String, String, String)], plugin: Boolean) extends Result
   }
 
   /**
@@ -163,18 +168,21 @@ object ImportHook{
         case _ => Res.Failure(None, s"Invalid $$ivy import: [$signature]")
       }
       jars <- {
-        try Res.Success(interp.loadIvy((a, b, c))) catch {case ex =>
+        try Res.Success(interp.loadIvy((a, b, c), interp.addedDependencies(plugin))) catch {case ex =>
           Res.Exception(ex, "")
         }
       }
-    } yield jars
+    } yield (jars, Seq((a, b, c)))
 
     def handle(source: ImportHook.Source, tree: ImportTree, interp: InterpreterInterface) = for{
     // import $ivy.`com.lihaoyi:scalatags_2.11:0.5.4`
       parts <- splitImportTree(tree)
       resolved <- Res.map(parts)(resolve(interp, _))
     } yield {
-      resolved.flatten.map(Path(_)).map(Result.ClassPath(_, plugin))
+      resolved.map {
+        case (files, coords) =>
+          Result.ClassPath(files.toSeq.map(Path(_)), coords, plugin)
+      }
     }
   }
   object Classpath extends BaseClasspath(plugin = false)
@@ -191,7 +199,7 @@ object ImportHook{
             Res.Failure(None, "Cannot resolve $cp import: " + missing.mkString(", "))
           } else Res.Success(
             for(((relativeModule, rename), filePath) <- relativeModules.zip(files))
-            yield Result.ClassPath(filePath, plugin)
+            yield Result.ClassPath(Seq(filePath), Nil, plugin)
           )
         case Source.URL(path) => ???
       }
