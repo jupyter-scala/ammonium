@@ -28,10 +28,10 @@ object ShelloutTests extends TestSuite{
       'chained{
         assert(%%('git, 'init).out.string.contains("Reinitialized existing Git repository"))
         assert(%%('git, "init").out.string.contains("Reinitialized existing Git repository"))
-        assert(%%('ls, pwd).out.string.contains("readme.md"))
+        assert(%%('ls, pwd).out.string.contains("README.md"))
       }
       'basicList{
-        val files = List("readme.md", "build.sbt")
+        val files = List("README.md", "build.sbt")
         val output = %%('ls, files).out.string
         assert(files.forall(output.contains))
       }
