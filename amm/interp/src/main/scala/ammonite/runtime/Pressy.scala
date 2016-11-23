@@ -18,7 +18,8 @@ import ammonite.util.Util.newLine
 trait Pressy{
   def complete(snippetIndex: Int,
                previousImports: String,
-               snippet: String): (Int, Seq[String], Seq[String])
+               snippet: String,
+               replaceMode: Boolean = false): (Int, Seq[String], Seq[String])
   def shutdownPressy(): Unit
 }
 object Pressy {
@@ -113,7 +114,7 @@ object Pressy {
         }
     }
 
-    def prefixed: (Int, Seq[(String, Option[String])]) = tree match {
+    def prefixed(replaceMode: Boolean = false): (Int, Seq[(String, Option[String])]) = tree match {
       case t @ pressy.Select(qualifier, name) =>
 
         val dotOffset = if (qualifier.pos.point == t.pos.point) 0 else 1
@@ -157,8 +158,8 @@ object Pressy {
         )
         lazy val deep = deepCompletion(name.decoded).distinct
 
-        if (shallow.length > 0) (t.pos.start, shallow)
-        else if (deep.length == 1) (t.pos.start, deep)
+        if (shallow.nonEmpty) (t.pos.start, shallow)
+        else if (deep.length == 1 || replaceMode) (t.pos.start, deep)
         else (t.pos.end, deep :+ ("" -> None))
 
       case t =>
@@ -215,7 +216,7 @@ object Pressy {
      * different completions depending on where the `index` is placed, but
      * the outside caller probably doesn't care.
      */
-    def complete(snippetIndex: Int, previousImports: String, snippet: String) = {
+    def complete(snippetIndex: Int, previousImports: String, snippet: String, replaceMode: Boolean) = {
       val prefix = previousImports + newLine + "object AutocompleteWrapper{" + newLine
       val suffix = newLine + "}"
       val allCode = prefix + snippet + suffix
@@ -233,7 +234,7 @@ object Pressy {
 
       val run = Try(new Run(pressy, currentFile, allCode, index))
 
-      val (i, all): (Int, Seq[(String, Option[String])]) = run.map(_.prefixed) match {
+      val (i, all): (Int, Seq[(String, Option[String])]) = run.map(_.prefixed(replaceMode)) match {
         case Success(prefixed) => prefixed
         case Failure(throwable) => (0, Seq.empty)
       }
