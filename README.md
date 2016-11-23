@@ -1,4 +1,4 @@
-### ammonium
+# ammonium
 
 *Modified Ammonite, for big data frameworks and use from jupyter-scala*
 
@@ -9,17 +9,17 @@ The changes added in this repository fall into the following categories:
 - `lib`: aim at making it easier to use Ammonite from other projects (mostly jupyter-scala),
 - `fork`: specific to this fork, with no relevance for mainline Ammonite,
 - `api`: changes in the user-facing Ammonite API,
-- `serialization`: changes to make Ammonite "Java serialization-friendly" (so that Spark, Flink, ..., can serialize things from the REPL).
+- `serialization`: changes to make Ammonite "Java serialization-friendly" (so that Spark, Flink, etc., can serialize things from the REPL).
 
 All commits specific to this repository are tagged with one of these categories.
 
 Support for Spark, POC for Flink, are (will be) in the [jupyter-scala](https://github.com/alexarchambault/jupyter-scala) repository.
 
-# Running it
+## Running it
 
 Ensure [coursier](https://github.com/alexarchambault/coursier) is in your path (`$ coursier --help` should print the version of coursier, among other things). Then download and run the [`ammonium` script](https://github.com/alexarchambault/ammonium/blob/master/ammonium) of this repository.
 
-# Limitations
+## Limitations
 
 Test coverage of the added features is rather poor for now.
 
