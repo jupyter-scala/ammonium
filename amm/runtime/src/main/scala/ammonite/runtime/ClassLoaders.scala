@@ -2,6 +2,8 @@ package ammonite.runtime
 
 import java.net.{URL, URLClassLoader}
 import java.nio.ByteBuffer
+import java.nio.file.Files
+
 import acyclic.file
 import ammonite.ops._
 import ammonite.util.{Imports, Util}
@@ -81,6 +83,26 @@ object SpecialClassLoader{
   */
 class SpecialClassLoader(specialLocalClasses: Set[String], parent: ClassLoader, parentSignature: Seq[(Path, Long)])
   extends URLClassLoader(Array(), parent){
+
+
+
+  override def getResource(name: String): URL = {
+
+    val bOpt = Some(name)
+      .collect { case n if n.endsWith(".class") => n.stripSuffix(".class") }
+      .map(_.replace('/', '.'))
+      .flatMap(newFileDict.get)
+
+    bOpt match {
+      case Some(b) =>
+        val path = Files.createTempFile("ammonite-special-loader", ".class")
+        Files.write(path, b)
+        path.toFile.deleteOnExit()
+        path.toUri.toURL
+      case None =>
+        super.getResource(name)
+    }
+  }
 
   def cloneClassLoader(): SpecialClassLoader = {
     val clone = parent match {
