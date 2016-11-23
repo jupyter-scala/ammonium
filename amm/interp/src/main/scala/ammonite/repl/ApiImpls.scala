@@ -12,10 +12,12 @@ class SessionApiImpl(eval: Evaluator) extends Session{
   def frames = eval.frames
   def childFrame(parent: Frame) = new Frame(
     new SpecialClassLoader(
+      eval.specialLocalClasses,
       parent.classloader,
       parent.classloader.classpathSignature
     ),
     new SpecialClassLoader(
+      eval.specialLocalClasses,
       parent.pluginClassloader,
       parent.pluginClassloader.classpathSignature
     ),

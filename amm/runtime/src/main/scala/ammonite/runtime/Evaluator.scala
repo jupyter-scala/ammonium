@@ -19,6 +19,7 @@ import scala.util.Try
   * to take the already-compile Scala bytecode and execute it in our process.
  */
 trait Evaluator{
+  def specialLocalClasses: Set[String]
   def loadClass(wrapperName: String, classFiles: ClassFiles): Res[Class[_]]
   def evalMain(cls: Class[_]): Any
   def getCurrentLine: String
@@ -71,7 +72,7 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
 
     def initialFrame = {
       val hash = SpecialClassLoader.initialClasspathSignature(currentClassloader)
-      def special = new SpecialClassLoader(currentClassloader, hash)
+      def special = new SpecialClassLoader(eval.specialLocalClasses, currentClassloader, hash)
       new Frame(
         special,
         special,
@@ -82,6 +83,12 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
     var frames = List(initialFrame)
 
 
+    def specialLocalClasses = Set(
+      "ammonite.repl.ReplBridge",
+      "ammonite.repl.ReplBridge$",
+      "ammonite.runtime.InterpBridge",
+      "ammonite.runtime.InterpBridge$"
+    )
 
     def loadClass(fullName: String, classFiles: ClassFiles): Res[Class[_]] = {
       Res[Class[_]](Try {
@@ -119,7 +126,7 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
     }
 
     def process(printer: Printer, value: AnyRef): Any =
-      Evaluator.evaluatorRunPrinter(value.asInstanceOf[Iterator[String]].foreach(printer.out))
+      value.asInstanceOf[Iterator[String]].foreach(printer.out)
 
     def processLine(classFiles: Util.ClassFiles,
                     newImports: Imports,
@@ -133,8 +140,7 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
       } yield {
         // Exhaust the printer iterator now, before exiting the `Catching`
         // block, so any exceptions thrown get properly caught and handled
-        val value = evalMain(cls)
-        val processedValue = process(printer, value)
+        val processedValue = process(printer, Evaluator.evaluatorRunPrinter(evalMain(cls)))
 
         // "" Empty string as cache tag of repl code
         evaluationResult(Seq(Name("$sess"), indexedWrapperName), newImports, "", processedValue)

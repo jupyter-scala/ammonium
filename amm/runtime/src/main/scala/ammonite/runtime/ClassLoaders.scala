@@ -79,16 +79,16 @@ object SpecialClassLoader{
   *
   * http://stackoverflow.com/questions/3544614/how-is-the-control-flow-to-findclass-of
   */
-class SpecialClassLoader(parent: ClassLoader, parentSignature: Seq[(Path, Long)])
+class SpecialClassLoader(specialLocalClasses: Set[String], parent: ClassLoader, parentSignature: Seq[(Path, Long)])
   extends URLClassLoader(Array(), parent){
 
   def cloneClassLoader(): SpecialClassLoader = {
     val clone = parent match {
       case scl: SpecialClassLoader =>
         val p = scl.cloneClassLoader()
-        new SpecialClassLoader(p, p.classpathSignature)
+        new SpecialClassLoader(specialLocalClasses, p, p.classpathSignature)
       case other =>
-        new SpecialClassLoader(other, SpecialClassLoader.initialClasspathSignature(other))
+        new SpecialClassLoader(specialLocalClasses, other, SpecialClassLoader.initialClasspathSignature(other))
     }
 
     for (url <- getURLs)
@@ -110,12 +110,6 @@ class SpecialClassLoader(parent: ClassLoader, parentSignature: Seq[(Path, Long)]
     newFileDict(name) = bytes
   }
   def findClassPublic(name: String) = findClass(name)
-  val specialLocalClasses = Set(
-    "ammonite.repl.ReplBridge",
-    "ammonite.repl.ReplBridge$",
-    "ammonite.runtime.InterpBridge",
-    "ammonite.runtime.InterpBridge$"
-  )
   override def findClass(name: String): Class[_] = {
     val loadedClass = this.findLoadedClass(name)
     if (loadedClass != null) loadedClass
