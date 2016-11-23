@@ -1,0 +1,11 @@
+#!/bin/bash
+
+VERSION=0.8.1-SNAPSHOT
+ORG=org.jupyter-scala
+SCALA_VERSION=2.11.8
+
+# Runs ammonium / ammonite with only the ammonite-repl seen by the user
+exec coursier launch \
+  -i ammonite -I ammonite:$ORG:ammonite-repl_$SCALA_VERSION:$VERSION \
+  $ORG:ammonite_$SCALA_VERSION:$VERSION \
+  -- "$@"
