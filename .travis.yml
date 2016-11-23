@@ -3,7 +3,7 @@ scala:
 - 2.11.8
 jdk:
 - oraclejdk8
-script: sbt ++${TRAVIS_SCALA_VERSION} published/test $(if [[ "${TRAVIS_PULL_REQUEST}"
+script: sbt ++${TRAVIS_SCALA_VERSION} amm/test $(if [[ "${TRAVIS_PULL_REQUEST}"
   == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then echo "published/publish";
   fi)
 branches:
