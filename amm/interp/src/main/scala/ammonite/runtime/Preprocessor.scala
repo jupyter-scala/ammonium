@@ -96,7 +96,7 @@ object Preprocessor{
     }
   }
 
-  def apply(parse: => String => Either[String, Seq[G#Tree]]): Preprocessor = new Preprocessor{
+  def apply(printBridge: String, parse: => String => Either[String, Seq[G#Tree]]): Preprocessor = new Preprocessor{
 
     def transform(stmts: Seq[String],
                   resultIndex: String,
@@ -121,20 +121,14 @@ object Preprocessor{
     def pprintSignature(ident: String, customMsg: Option[String]) = {
       val customCode = customMsg.fold("_root_.scala.None")(x => s"""_root_.scala.Some("$x")""")
       s"""
-      _root_.ammonite
-            .repl
-            .ReplBridge
-            .value
+      $printBridge
             .Internal
             .print(wrapper.wrapper.$ident, wrapper.wrapper.$ident, "$ident", $customCode)
       """
     }
     def definedStr(definitionLabel: String, name: String) =
       s"""
-      _root_.ammonite
-            .repl
-            .ReplBridge
-            .value
+      $printBridge
             .Internal
             .printDef("$definitionLabel", "$name")
       """
@@ -180,10 +174,7 @@ object Preprocessor{
         val tq = "\"\"\""
         Expanded(code, Seq(
           s"""
-          _root_.ammonite
-                .repl
-                .ReplBridge
-                .value
+          $printBridge
                 .Internal
                 .printImport($tq$body$tq)
           """

@@ -37,6 +37,7 @@ class Interpreter(val printer: Printer,
                   verboseOutput: Boolean = true)
   extends ImportHook.InterpreterInterface{ interp =>
 
+  def printBridge = "_root_.ammonite.repl.ReplBridge.value"
 
 
   //this variable keeps track of where should we put the imports resulting from scripts.
@@ -234,7 +235,7 @@ class Interpreter(val printer: Printer,
     }
 
   def processLine(code: String, stmts: Seq[String], fileName: String): Res[Evaluated] = {
-    val preprocess = Preprocessor(compiler.parse)
+    val preprocess = Preprocessor(printBridge, compiler.parse)
     for{
       _ <- Catching { case ex =>
         Res.Exception(ex, "Something unexpected went wrong =(")
@@ -257,7 +258,7 @@ class Interpreter(val printer: Printer,
         Seq(Name("$sess")),
         Name("cmd" + eval.getCurrentLine),
         predefImports ++ eval.frames.head.imports ++ hookImports,
-        prints => s"ammonite.repl.ReplBridge.value.Internal.combinePrints($prints)",
+        prints => s"$printBridge.Internal.combinePrints($prints)",
         extraCode = ""
       )
       out <- evaluateLine(
@@ -521,7 +522,7 @@ class Interpreter(val printer: Printer,
                            extraCode: String
                           ): Res[Interpreter.CacheData] = {
 
-    val preprocess = Preprocessor(compiler.parse)
+    val preprocess = Preprocessor(printBridge, compiler.parse)
     // we store the old value, because we will reassign this in the loop
     val outerScriptImportCallback = scriptImportCallback
 
@@ -767,4 +768,35 @@ object Interpreter{
     )
     (colors, printStream, errorPrintStream, printer)
   }
+
+  def initClassLoader = {
+
+    @tailrec
+    def findBaseLoader(cl: ClassLoader): Option[ClassLoader] =
+      Option(cl) match {
+        case Some(cl0) =>
+          val isBaseLoader =
+            try {
+              cl0.asInstanceOf[AnyRef {def getIsolationTargets(): Array[String]}]
+                .getIsolationTargets()
+                .contains("ammonite")
+            } catch {
+              case _: NoSuchMethodException =>
+                false
+            }
+
+          if (isBaseLoader)
+            Some(cl0)
+          else
+            findBaseLoader(cl0.getParent)
+        case None =>
+          None
+      }
+
+    val cl = Thread.currentThread().getContextClassLoader
+
+    findBaseLoader(cl).getOrElse(cl)
+  }
+
+  def defaultEvaluator = Evaluator(initClassLoader, 0)
 }

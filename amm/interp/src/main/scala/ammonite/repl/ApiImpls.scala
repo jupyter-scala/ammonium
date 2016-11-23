@@ -1,9 +1,6 @@
 package ammonite.repl
 
-import java.io.File
-
 import ammonite.runtime._
-import ammonite.ops.{Path, read}
 import ammonite.util.Util._
 import ammonite.util._
 import pprint.{Config, PPrint}
@@ -52,23 +49,19 @@ class SessionApiImpl(eval: Evaluator) extends Session{
   }
   save()
 }
-class ReplApiImpl(val interp: Interpreter,
+class RuntimeApiImpl(val interp: Interpreter,
                   width0: => Int,
                   height0: => Int,
                   colors0: Ref[Colors],
-                  prompt0: Ref[String],
-                  frontEnd0: Ref[FrontEnd],
                   history0: => History,
                   sess0: Session,
-                  replArgs0: Seq[Bind[_]]) extends DefaultReplAPI{
+                  replArgs0: Seq[Bind[_]]) extends DefaultRuntimeAPI {
   import interp._
 
   def lastException = interp.lastException
 
   def imports = Preprocessor.importBlock(eval.frames.head.imports)
   val colors = colors0
-  val prompt = prompt0
-  val frontEnd = frontEnd0
 
   implicit def tprintColors = pprint.TPrintColors(
     typeColor = colors().`type`()
