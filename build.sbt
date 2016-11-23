@@ -123,6 +123,10 @@ lazy val amm = project
     packAutoSettings,
     crossVersion := CrossVersion.full,
     test in assembly := {},
+    // publish test artifacts, see https://stackoverflow.com/questions/16389446/compile-tests-with-sbt-and-package-them-to-be-run-later/16409096#16409096
+    publishArtifact in (Test, packageBin) := true,
+    publishArtifact in (Test, packageDoc) := true,
+    publishArtifact in (Test, packageSrc) := true,
     name := "ammonite",
     libraryDependencies ++= (
       if (scalaVersion.value startsWith "2.10.") Nil
