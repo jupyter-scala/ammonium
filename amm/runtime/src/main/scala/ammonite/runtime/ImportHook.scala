@@ -29,10 +29,13 @@ object ImportHook{
     */
   trait InterpreterInterface{
     def wd: Path
+    def exclude(coordinates: (String, String)): Unit
     def addedDependencies(plugin: Boolean): Seq[(String, String, String)]
+    def exclusions(plugin: Boolean): Seq[(String, String)]
     def loadIvy(
       coordinates: (String, String, String),
       previousCoordinates: Seq[(String, String, String)],
+      exclusions: Seq[(String, String)],
       verbose: Boolean = true
     ): Set[File]
   }
@@ -154,23 +157,26 @@ object ImportHook{
   }
   object Ivy extends BaseIvy(plugin = false)
   object PluginIvy extends BaseIvy(plugin = true)
+  object IvyExclude extends BaseExcludeIvy(plugin = false)
+  object PluginIvyExclude extends BaseExcludeIvy(plugin = true)
   class BaseIvy(plugin: Boolean) extends ImportHook{
+    def name = "$ivy"
     def splitImportTree(tree: ImportTree): Res[Seq[String]] = {
       tree match{
         case ImportTree(Seq(part), None, _, _) => Res.Success(Seq(part))
         case ImportTree(Nil, Some(mapping), _, _) if mapping.map(_._2).forall(_.isEmpty) =>
           Res.Success(mapping.map(_._1))
-        case _ => Res.Failure(None, "Invalid $ivy import " + tree)
+        case _ => Res.Failure(None, s"Invalid $name import " + tree)
       }
     }
     def resolve(interp: InterpreterInterface, signature: String) = for{
       (a, b, c) <-  signature.split(':') match{
         case Array(a, b, c) => Res.Success((a, b, c))
         case Array(a, "", b, c) => Res.Success((a, b + "_" + DependencyThing.scalaBinaryVersion, c))
-        case _ => Res.Failure(None, s"Invalid $$ivy import: [$signature]")
+        case _ => Res.Failure(None, s"Invalid $name import: [$signature]")
       }
       jars <- {
-        try Res.Success(interp.loadIvy((a, b, c), interp.addedDependencies(plugin))) catch {case ex =>
+        try Res.Success(interp.loadIvy((a, b, c), interp.addedDependencies(plugin), interp.exclusions(plugin))) catch {case ex =>
           Res.Exception(ex, "")
         }
       }
@@ -186,6 +192,21 @@ object ImportHook{
           Result.ClassPath(files.toSeq.map(Path(_)), coords, plugin)
       }
     }
+  }
+  class BaseExcludeIvy(plugin: Boolean) extends BaseIvy(plugin){
+    override def name = "$exclude"
+    override def resolve(interp: InterpreterInterface, signature: String) = for{
+      (a, b) <-  signature.split(':') match{
+        case Array(a, b) => Res.Success((a, b))
+        case Array(a, "", b) => Res.Success((a, b + "_" + DependencyThing.scalaBinaryVersion))
+        case _ => Res.Failure(None, s"Invalid $name import: [$signature]")
+      }
+      _ <- {
+        try Res.Success(interp.exclude((a, b))) catch {case ex =>
+          Res.Exception(ex, "")
+        }
+      }
+    } yield (Set(), Nil)
   }
   object Classpath extends BaseClasspath(plugin = false)
   object PluginClasspath extends BaseClasspath(plugin = true)

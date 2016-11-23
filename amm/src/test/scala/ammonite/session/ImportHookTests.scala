@@ -98,6 +98,23 @@ object ImportHookTests extends TestSuite{
            """)
         }
 
+        'exclude - {
+          check.session(s"""
+            @ import org.scalacheck._
+            error: object scalacheck is not a member of package org
+
+            @ import $$exclude.`org.scalacheck:*`
+
+            @ import $$ivy.`com.github.alexarchambault::scalacheck-shapeless_1.13:1.1.4`
+
+            @ import org.scalacheck._
+            import org.scalacheck._
+
+            @ Thread.currentThread.getContextClassLoader.loadClass("org.scalacheck.Gen")
+            error: java.lang.ClassNotFoundException: org.scalacheck.Gen
+           """)
+        }
+
         'inline - {
           check.session("""
             @ import scalatags.Text.all._

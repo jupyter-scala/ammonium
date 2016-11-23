@@ -30,6 +30,13 @@ package $lib{
 }
 
 /**
+  * Package that gets filled with ivy exclude patterns the user loads
+  */
+package $exclude{
+  object $
+}
+
+/**
   * Package that gets filled with any web scripts people load from http URLs
   */
 package $url{

@@ -60,6 +60,7 @@ class Interpreter(val printer: Printer,
 
   var addedDependencies0 = new mutable.ListBuffer[(String, String, String)]
   var addedJars0 = new mutable.HashSet[File]
+  var dependencyExclusions = new mutable.ListBuffer[(String, String)]
   var addedPluginDependencies = new mutable.ListBuffer[(String, String, String)]
   var addedPluginJars = new mutable.HashSet[File]
 
@@ -112,9 +113,11 @@ class Interpreter(val printer: Printer,
     Seq("exec") -> ImportHook.Exec,
     Seq("url") -> ImportHook.Http,
     Seq("ivy") -> ImportHook.Ivy,
+    Seq("exclude") -> ImportHook.IvyExclude,
     Seq("lib") -> ImportHook.Ivy,
     Seq("cp") -> ImportHook.Classpath,
     Seq("plugin", "ivy") -> ImportHook.PluginIvy,
+    Seq("plugin", "exclude") -> ImportHook.PluginIvyExclude,
     Seq("plugin", "lib") -> ImportHook.PluginIvy,
     Seq("plugin", "cp") -> ImportHook.PluginClasspath
   ))
@@ -608,12 +611,18 @@ class Interpreter(val printer: Printer,
     verboseOutput
   )
 
+  def exclude(coordinates: (String, String)): Unit =
+    dependencyExclusions += coordinates
   def addedDependencies(plugin: Boolean): Seq[(String, String, String)] =
     if (plugin) addedPluginDependencies
     else addedDependencies0
+  def exclusions(plugin: Boolean): Seq[(String, String)] =
+    if (plugin) Nil
+    else dependencyExclusions
   def loadIvy(
     coordinates: (String, String, String),
     previousCoordinates: Seq[(String, String, String)],
+    exclusions: Seq[(String, String)],
     verbose: Boolean = true
   ) = {
     val (groupId, artifactId, version) = coordinates
@@ -623,6 +632,7 @@ class Interpreter(val printer: Printer,
       artifactId,
       version,
       previousCoordinates,
+      exclusions,
       if (verbose) 2 else 1
     ).toSet
   }
@@ -642,7 +652,7 @@ class Interpreter(val printer: Printer,
       reInit()
     }
     def ivy(coordinates: (String, String, String), verbose: Boolean = true): Unit = {
-      val resolved = loadIvy(coordinates, addedDependencies(isPlugin), verbose) -- addedJars(isPlugin)
+      val resolved = loadIvy(coordinates, addedDependencies(isPlugin), exclusions(isPlugin), verbose) -- addedJars(isPlugin)
       val (groupId, artifactId, version) = coordinates
 
       handleClasspath0(resolved.toSeq, Seq(coordinates))

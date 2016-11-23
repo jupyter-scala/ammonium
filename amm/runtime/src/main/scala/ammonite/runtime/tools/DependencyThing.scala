@@ -55,13 +55,18 @@ class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verbose
                       artifactId: String,
                       version: String,
                       previousCoordinates: Seq[(String, String, String)],
+                      exclusions: Seq[(String, String)],
                       verbosity: Int = 2) = synchronized {
 
     val dep = Dependency(Module(groupId, artifactId), version)
     val previousDeps = previousCoordinates.map { case (org, name, ver) => Dependency(Module(org, name), ver) }
 
     val start = Resolution(
-      (previousDeps :+ dep).toSet
+      (previousDeps :+ dep).map { dep0 =>
+        dep0.copy(
+          exclusions = dep0.exclusions ++ exclusions
+        )
+      }.toSet
     )
 
     val metadataLogger = new TermDisplay(new PrintWriter(System.out))
