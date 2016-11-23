@@ -1,6 +1,9 @@
 package ammonite.repl
 
 
+import java.io.File
+import java.nio.file.Files
+
 import ammonite.runtime.tools.Resolver
 import ammonite.util.{Bind, CodeColors, Colors, Ref}
 import ammonite.util.Util.newLine
@@ -165,6 +168,52 @@ trait Session{
     * is no longer accessible.
     */
   def delete(name: String): Unit
+
+
+  /**
+    * Generates a JAR containing all the build products of this session.
+    */
+  def sessionJar(frames: List[Frame] = frames): Array[Byte] = {
+
+    val buffer = new java.io.ByteArrayOutputStream
+    val outputZip = new java.util.zip.ZipOutputStream(buffer)
+
+    def putEntry(name: String, content: Array[Byte]): Unit = {
+      val entry = new java.util.zip.ZipEntry(name)
+
+      outputZip.putNextEntry(entry)
+      outputZip.write(content)
+      outputZip.closeEntry()
+    }
+
+    for ((name, bytes) <- frames.reverse.flatMap(_.classloader.newFileDict).toMap)
+      putEntry(name.replace('.', '/') + ".class", bytes)
+
+    outputZip.close()
+
+    buffer.toByteArray
+  }
+
+  def sessionJarFile(output: File, frames: List[Frame]): java.io.File = {
+    val b = sessionJar(frames)
+    Files.write(output.toPath, b)
+    output
+  }
+
+  def sessionJarFile(output: File): java.io.File =
+    sessionJarFile(output, frames)
+
+  def sessionJarFile(frames: List[Frame]): java.io.File = {
+    val path = Files.createTempFile("ammonite-session", ".jar")
+    sessionJarFile(path.toFile, frames)
+  }
+
+  def sessionJarFile(): java.io.File =
+    sessionJarFile(frames)
+
+  def classpath(frames: List[Frame] = frames): Seq[java.io.File] =
+    frames.flatMap(_.classpath)
+
 }
 
 // End of ReplAPI
