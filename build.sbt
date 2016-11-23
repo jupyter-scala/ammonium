@@ -124,9 +124,6 @@ lazy val amm = project
     crossVersion := CrossVersion.full,
     test in assembly := {},
     name := "ammonite",
-    libraryDependencies ++= Seq(
-      "com.github.scopt" %% "scopt" % "3.4.0"
-    ),
     libraryDependencies ++= (
       if (scalaVersion.value startsWith "2.10.") Nil
       else Seq("com.chuusai" %% "shapeless" % "2.1.0" % "test")
@@ -206,7 +203,8 @@ lazy val ammRepl = project
     crossVersion := CrossVersion.full,
     name := "ammonite-repl",
     libraryDependencies ++= Seq(
-      "jline" % "jline" % "2.12"
+      "jline" % "jline" % "2.12",
+      "com.github.scopt" %% "scopt" % "3.4.0"
     )
   )
 

@@ -23,23 +23,25 @@ object Classpath {
    * memory but is better than reaching all over the filesystem every time we
    * want to do something.
    */
-  var current = Thread.currentThread().getContextClassLoader
-  val files = collection.mutable.Buffer.empty[java.io.File]
-  files.appendAll(
-    System.getProperty("sun.boot.class.path")
-          .split(java.io.File.pathSeparator)
-          .map(new java.io.File(_))
-  )
-  while(current != null){
-    current match{
-      case t: java.net.URLClassLoader =>
-        files.appendAll(t.getURLs.map(u => new java.io.File(u.toURI)))
-      case _ =>
+  def classpath(cl: ClassLoader) = {
+    var current = cl
+    val files = collection.mutable.Buffer.empty[java.io.File]
+    files.appendAll(
+      System.getProperty("sun.boot.class.path")
+        .split(java.io.File.pathSeparator)
+        .map(new java.io.File(_))
+    )
+    while(current != null){
+      current match{
+        case t: java.net.URLClassLoader =>
+          files.appendAll(t.getURLs.map(u => new java.io.File(u.toURI)))
+        case _ =>
+      }
+      current = current.getParent
     }
-    current = current.getParent
-  }
 
-  val classpath = files.toVector.filter(_.exists)
+    files.toVector.filter(_.exists)
+  }
 
   def canBeOpenedAsJar(file: File): Boolean =
     try {

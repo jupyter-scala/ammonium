@@ -2,6 +2,7 @@ package ammonite.runtime
 
 import java.io.{File, OutputStream, PrintStream}
 
+import scala.language.reflectiveCalls
 import scala.collection.mutable
 import scala.tools.nsc.Settings
 import ammonite.ops._
@@ -48,7 +49,35 @@ class Interpreter(val printer: Printer,
 
 
   val mainThread = Thread.currentThread()
-  val eval = Evaluator(mainThread.getContextClassLoader, 0)
+  val initClassLoader = {
+
+    @tailrec
+    def findBaseLoader(cl: ClassLoader): Option[ClassLoader] =
+      Option(cl) match {
+        case Some(cl0) =>
+          val isBaseLoader =
+            try {
+              cl0.asInstanceOf[AnyRef {def getIsolationTargets(): Array[String]}]
+                .getIsolationTargets()
+                .contains("ammonite")
+            } catch {
+              case _: NoSuchMethodException =>
+                false
+            }
+
+          if (isBaseLoader)
+            Some(cl0)
+          else
+            findBaseLoader(cl0.getParent)
+        case None =>
+          None
+      }
+
+    val cl = mainThread.getContextClassLoader
+
+    findBaseLoader(cl).getOrElse(cl)
+  }
+  val eval = Evaluator(initClassLoader, 0)
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
   var compiler: Compiler = null
@@ -67,8 +96,9 @@ class Interpreter(val printer: Printer,
     // Otherwise activating autocomplete makes the presentation compiler mangle
     // the shared settings and makes the main compiler sad
     val settings = Option(compiler).fold(new Settings)(_.compiler.settings.copy)
+    val classpath = Classpath.classpath(eval.frames.last.classloader.getParent) ++ eval.frames.head.classpath
     compiler = Compiler(
-      Classpath.classpath ++ eval.frames.head.classpath,
+      classpath,
       dynamicClasspath,
       evalClassloader,
       eval.frames.head.pluginClassloader,
@@ -76,7 +106,7 @@ class Interpreter(val printer: Printer,
       settings
     )
     pressy = Pressy(
-      Classpath.classpath ++ eval.frames.head.classpath,
+      classpath,
       dynamicClasspath,
       evalClassloader,
 
