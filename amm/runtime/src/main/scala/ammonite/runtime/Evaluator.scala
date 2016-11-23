@@ -48,15 +48,8 @@ trait Evaluator{
 
 }
 
-object Evaluator{
-
-  def interrupted(e: Throwable) = {
-    Thread.interrupted()
-    Res.Failure(Some(e), newLine + "Interrupted!")
-  }
-
-  def apply(currentClassloader: ClassLoader,
-            startingLine: Int): Evaluator = new Evaluator{ eval =>
+class EvaluatorImpl(currentClassloader: ClassLoader,
+                    startingLine: Int) extends Evaluator{ eval =>
 
 
     /**
@@ -115,15 +108,18 @@ object Evaluator{
       case Ex(_: InvEx, _: InitEx, ReplExit(value))  => Res.Exit(value)
 
       // Interrupted during pretty-printing
-      case Ex(e: ThreadDeath)                 =>  interrupted(e)
+      case Ex(e: ThreadDeath)                 =>  Evaluator.interrupted(e)
 
       // Interrupted during evaluation
-      case Ex(_: InvEx, e: ThreadDeath)       =>  interrupted(e)
+      case Ex(_: InvEx, e: ThreadDeath)       =>  Evaluator.interrupted(e)
 
       case Ex(_: InvEx, _: InitEx, userEx@_*) => Res.Exception(userEx(0), "")
       case Ex(_: InvEx, userEx@_*)            => Res.Exception(userEx(0), "")
       case Ex(userEx@_*)                      => Res.Exception(userEx(0), "")
     }
+
+    def process(printer: Printer, value: AnyRef): Any =
+      Evaluator.evaluatorRunPrinter(value.asInstanceOf[Iterator[String]].foreach(printer.out))
 
     def processLine(classFiles: Util.ClassFiles,
                     newImports: Imports,
@@ -137,11 +133,11 @@ object Evaluator{
       } yield {
         // Exhaust the printer iterator now, before exiting the `Catching`
         // block, so any exceptions thrown get properly caught and handled
-        val iter = evalMain(cls).asInstanceOf[Iterator[String]]
-        evaluatorRunPrinter(iter.foreach(printer.out))
+        val value = evalMain(cls)
+        val processedValue = process(printer, value)
 
         // "" Empty string as cache tag of repl code
-        evaluationResult(Seq(Name("$sess"), indexedWrapperName), newImports, "")
+        evaluationResult(Seq(Name("$sess"), indexedWrapperName), newImports, "", processedValue)
       }
     }
 
@@ -155,7 +151,7 @@ object Evaluator{
         _ <- Catching{userCodeExceptionHandler}
       } yield {
         evalMain(cls)
-        val res = evaluationResult(pkgName :+ wrapperName, newImports, tag)
+        val res = evaluationResult(pkgName :+ wrapperName, newImports, tag, null)
         res
       }
     }
@@ -167,7 +163,7 @@ object Evaluator{
                              classFilesList: Seq[String]): Res[Seq[_]] = {
       Res.map(cachedData.zipWithIndex) {
         case (clsFiles, index) =>
-          addToClasspath(clsFiles, dynamicClasspath)
+          Evaluator.addToClasspath(clsFiles, dynamicClasspath)
           val cls = eval.loadClass(classFilesList(index), clsFiles)
           try cls.map(eval.evalMain(_))
           catch userCodeExceptionHandler
@@ -180,7 +176,8 @@ object Evaluator{
 
     def evaluationResult(wrapperName: Seq[Name],
                          imports: Imports,
-                         tag: String) = {
+                         tag: String,
+                         result: Any) = {
       Evaluated(
         wrapperName,
         Imports(
@@ -200,17 +197,27 @@ object Evaluator{
             id.copy(prefix = rootedPrefix)
           }
         ),
-        tag
+        tag,
+        result
       )
     }
   }
 
+object Evaluator{
+
+  def interrupted(e: Throwable) = {
+    Thread.interrupted()
+    Res.Failure(Some(e), newLine + "Interrupted!")
+  }
+
+  def apply(currentClassloader: ClassLoader,
+            startingLine: Int): Evaluator = new EvaluatorImpl(currentClassloader, startingLine)
   /**
    * Dummy function used to mark this method call in the stack trace,
    * so we can easily cut out the irrelevant part of the trace when
    * showing it to the user.
    */
-  def evaluatorRunPrinter(f: => Unit) = f
+  def evaluatorRunPrinter[T](f: => T): T = f
 
 
   def writeDeep(d: VirtualDirectory,

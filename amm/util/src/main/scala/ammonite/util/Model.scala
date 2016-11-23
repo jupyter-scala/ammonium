@@ -20,7 +20,8 @@ class CompilationError(message: String) extends Exception(message)
 
 case class Evaluated(wrapper: Seq[Name],
                      imports: Imports,
-                     tag: String)
+                     tag: String,
+                     value: Any)
 
 /**
   * Represents the importing of a single name in the Ammonite REPL, of the

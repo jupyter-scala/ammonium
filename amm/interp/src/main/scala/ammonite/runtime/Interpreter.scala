@@ -34,7 +34,8 @@ class Interpreter(val printer: Printer,
                   // the REPL before it starts
                   extraBridges: Interpreter => Seq[(String, String, AnyRef)],
                   val wd: Path,
-                  verboseOutput: Boolean = true)
+                  verboseOutput: Boolean = true,
+                  val eval: Evaluator = Interpreter.defaultEvaluator)
   extends ImportHook.InterpreterInterface{ interp =>
 
   def printBridge = "_root_.ammonite.repl.ReplBridge.value"
@@ -50,35 +51,6 @@ class Interpreter(val printer: Printer,
 
 
   val mainThread = Thread.currentThread()
-  val initClassLoader = {
-
-    @tailrec
-    def findBaseLoader(cl: ClassLoader): Option[ClassLoader] =
-      Option(cl) match {
-        case Some(cl0) =>
-          val isBaseLoader =
-            try {
-              cl0.asInstanceOf[AnyRef {def getIsolationTargets(): Array[String]}]
-                .getIsolationTargets()
-                .contains("ammonite")
-            } catch {
-              case _: NoSuchMethodException =>
-                false
-            }
-
-          if (isBaseLoader)
-            Some(cl0)
-          else
-            findBaseLoader(cl0.getParent)
-        case None =>
-          None
-      }
-
-    val cl = mainThread.getContextClassLoader
-
-    findBaseLoader(cl).getOrElse(cl)
-  }
-  val eval = Evaluator(initClassLoader, 0)
 
   val dynamicClasspath = new VirtualDirectory("(memory)", None)
   var compiler: Compiler = null
