@@ -6,6 +6,7 @@ import ammonite.util._
 import ammonite.util.Util.{windowsPlatform, newLine, normalizeNewlines}
 import fastparse.all._
 
+import scala.annotation.tailrec
 import scala.reflect.internal.Flags
 import scala.tools.nsc.{Global => G}
 import collection.mutable
@@ -125,7 +126,7 @@ object Preprocessor{
             .ReplBridge
             .value
             .Internal
-            .print($ident, $ident, "$ident", $customCode)
+            .print(wrapper.wrapper.$ident, wrapper.wrapper.$ident, "$ident", $customCode)
       """
     }
     def definedStr(definitionLabel: String, name: String) =
@@ -300,6 +301,14 @@ object Preprocessor{
     res
   }
 
+  def partitionSessionImports(imports: Imports): (Imports, Imports) = {
+    val (fromSession, others) = imports.value.partition { data =>
+      data.prefix.startsWith(Seq(Name("_root_"), Name(s"$$sess")))
+    }
+
+    (Imports(fromSession), Imports(others))
+  }
+
   def wrapCode(pkgName: Seq[Name],
                indexedWrapperName: Name,
                code: String,
@@ -307,18 +316,57 @@ object Preprocessor{
                imports: Imports,
                extraCode: String) = {
 
+    val (sessionImports, otherImports) = partitionSessionImports(imports)
+
+    @tailrec
+    def noWrapperImport(data: ImportData): ImportData =
+      if (data.prefix(2).raw.endsWith("Wrapper")) {
+        noWrapperImport(data.copy(prefix = data.prefix.take(2) ++ data.prefix.slice(3, 4) ++ Seq(Name("wrapper")) ++ data.prefix.drop(4)))
+      } else
+        data
+
+    val noWrapperSessionImports = sessionImports.value.map(noWrapperImport)
+
+    val cellReferences = noWrapperSessionImports.map { data =>
+      val ref = data.prefix.take(4).map(_.backticked).mkString(".")
+      s"lazy val ${data.prefix(2).backticked}: $ref.type = $ref"
+    }.distinct // required vy some BuiltinTests - a bit worrying though...
+    val shortenedSessionImports = noWrapperSessionImports.map { data =>
+      data.copy(prefix = data.prefix match {
+        case Seq(_, _, name, _, rem @ _*) => name +: rem
+      })
+    }
+
     //we need to normalize topWrapper and bottomWrapper in order to ensure
     //the snippets always use the platform-specific newLine
     val topWrapper = normalizeNewlines(s"""
 package ${pkgName.map(_.backticked).mkString(".")}
-${importBlock(imports)}
+${importBlock(otherImports)}
 
-object ${indexedWrapperName.backticked}{\n""")
+object ${indexedWrapperName.backticked} {
 
-    val bottomWrapper = normalizeNewlines(s"""\ndef $$main() = { $printCode }
+  ${cellReferences.mkString("\n")}
+
+  ${importBlock(Imports(shortenedSessionImports))}
+
+  val wrapper = new ${indexedWrapperName.copy(raw = indexedWrapperName.raw + "Wrapper").backticked}
+  def $$main() = { import wrapper.wrapper._; $printCode }
   override def toString = "${indexedWrapperName.raw}"
-  $extraCode
 }
+
+final class ${indexedWrapperName.copy(raw = indexedWrapperName.raw + "Wrapper").backticked} extends java.io.Serializable{
+
+  ${cellReferences.mkString("\n")}
+
+  ${importBlock(Imports(shortenedSessionImports))}
+
+  val wrapper = new Helper
+
+  final class Helper extends java.io.Serializable{\n""")
+
+    val bottomWrapper = normalizeNewlines(s"""\n
+  $extraCode
+}}
 """)
     val importsLen = topWrapper.length
 

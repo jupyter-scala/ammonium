@@ -102,8 +102,8 @@ object ImportHook{
                 val fullPrefix = pkg ++ Seq(wrapper)
 
                 val importData = Seq(ImportData(
-                  fullPrefix.last, Name(rename.getOrElse(relativeModule.last)),
-                  fullPrefix.dropRight(1), ImportData.TermType
+                  Name("wrapper"), Name(rename.getOrElse(relativeModule.last)),
+                  fullPrefix :+ Name("wrapper"), ImportData.TermType
                 ))
 
                 Result.Source(
@@ -132,7 +132,7 @@ object ImportHook{
         Name(url),
         Seq(Name("$url")),
         ImportHook.Source.URL(url),
-        Imports(Seq(ImportData(Name(url), Name(target), Seq(Name("$url")), ImportData.Term))),
+        Imports(Seq(ImportData(Name("wrapper"), Name(target), Seq(Name("$url"), Name(url), Name("wrapper")), ImportData.Term))),
         false
       ))
     }

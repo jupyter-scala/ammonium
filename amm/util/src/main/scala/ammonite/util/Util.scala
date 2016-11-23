@@ -23,7 +23,7 @@ object Util{
       case -1 => path.last
       case i => path.last.take(i)
     }
-    (pkg, Name(wrapper))
+    (pkg, Name("$" + wrapper))
   }
   def md5Hash(data: Iterator[Array[Byte]]) = {
     val digest = MessageDigest.getInstance("MD5")

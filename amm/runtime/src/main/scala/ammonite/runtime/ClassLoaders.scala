@@ -82,6 +82,23 @@ object SpecialClassLoader{
 class SpecialClassLoader(parent: ClassLoader, parentSignature: Seq[(Path, Long)])
   extends URLClassLoader(Array(), parent){
 
+  def cloneClassLoader(): SpecialClassLoader = {
+    val clone = parent match {
+      case scl: SpecialClassLoader =>
+        val p = scl.cloneClassLoader()
+        new SpecialClassLoader(p, p.classpathSignature)
+      case other =>
+        new SpecialClassLoader(other, SpecialClassLoader.initialClasspathSignature(other))
+    }
+
+    for (url <- getURLs)
+      clone.add(url)
+    for ((name, bytes) <- newFileDict)
+      clone.addClassFile(name, bytes)
+
+    clone
+  }
+
   /**
     * Files which have been compiled, stored so that our special
     * classloader can get at them.

@@ -189,7 +189,7 @@ object Evaluator{
               if (id.prefix.isEmpty) {
                 // For some reason, for things not-in-packages you can't access
                 // them off of `_root_`
-                wrapperName
+                wrapperName ++ Seq(Name("wrapper"), Name("wrapper"))
               } else {
                 id.prefix
               }

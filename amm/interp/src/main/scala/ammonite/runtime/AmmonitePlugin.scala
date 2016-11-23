@@ -94,7 +94,11 @@ object AmmonitePlugin{
       !ignoredNames(sym.name.decoded)
     }
 
-    val stats = unit.body.children.last.asInstanceOf[g.ModuleDef].impl.body
+    val stats = unit.body.children.last.asInstanceOf[g.ClassDef].impl.body.collectFirst {
+      case t @ g.ClassDef(_, _, _, _) => t.impl.body
+    }.getOrElse {
+      throw new Exception("Unrecognized wrapper class")
+    }
     val symbols = stats.filter(x => !Option(x.symbol).exists(_.isPrivate))
                        .foldLeft(List.empty[(Boolean, String, String, Seq[Name])]){
       // These are all the ways we want to import names from previous
@@ -105,7 +109,7 @@ object AmmonitePlugin{
 
         def rec(expr: g.Tree): List[(g.Name, g.Symbol)] = {
           expr match {
-            case s @ g.Select(lhs, name) => (name -> s.symbol) :: rec(lhs)
+            case s @ g.Select(lhs, _) => (s.symbol.name -> s.symbol) :: rec(lhs)
             case i @ g.Ident(name) => List(name -> i.symbol)
             case t @ g.This(pkg) => List(pkg -> t.symbol)
           }
