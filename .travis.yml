@@ -11,7 +11,8 @@ branches:
   - master
 env:
   global:
-    secure: bRTmSL4sBHWWsYZIWknPlNZxokHY08ortiIodBFAGvkteGIBHuRBniSIvuOysg1QlG1ggZXilsXbNvyzj0L21uPNDWm3y90IDny7j9GBLaYfiIJ3SPanjnU6bmruUPWgxR5e2owzClLQedizocZAIh9e35M0zCmLtcTbr/g/2QI=
+  - secure: bRTmSL4sBHWWsYZIWknPlNZxokHY08ortiIodBFAGvkteGIBHuRBniSIvuOysg1QlG1ggZXilsXbNvyzj0L21uPNDWm3y90IDny7j9GBLaYfiIJ3SPanjnU6bmruUPWgxR5e2owzClLQedizocZAIh9e35M0zCmLtcTbr/g/2QI=
+  - secure: dNVrUzm8AaR5UebEFgqnslvEJXX4r/X1hxsO8A0xn7BuA2o5MYkWvuDLR0jNiyKM95DE6yNM+0APq9mFKe2V2u1h6CU9+xTZLRMMKeU/WXe4ne/wBaCDzcD/oZ5uFR7B9STErm7lq6DjqsTIdhAH/dtDOCmRNGc14kJDC4GGVrE=
 cache:
   directories:
   - $HOME/.coursier
