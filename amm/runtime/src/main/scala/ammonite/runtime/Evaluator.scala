@@ -29,6 +29,7 @@ trait Evaluator{
                   newImports: Imports,
                   printer: Printer,
                   fileName: String,
+                  isExec: Boolean,
                   indexedWrapperName: Name): Res[Evaluated]
 
   def processScriptBlock(cls: Class[_],
@@ -125,13 +126,14 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
       case Ex(userEx@_*)                      => Res.Exception(userEx(0), "")
     }
 
-    def process(printer: Printer, value: AnyRef): Any =
+    def process(printer: Printer, isExec: Boolean, value: AnyRef): Any =
       value.asInstanceOf[Iterator[String]].foreach(printer.out)
 
     def processLine(classFiles: Util.ClassFiles,
                     newImports: Imports,
                     printer: Printer,
                     fileName: String,
+                    isExec: Boolean,
                     indexedWrapperName: Name) = {
       for {
         cls <- loadClass("$sess." + indexedWrapperName.backticked, classFiles)
@@ -140,7 +142,7 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
       } yield {
         // Exhaust the printer iterator now, before exiting the `Catching`
         // block, so any exceptions thrown get properly caught and handled
-        val processedValue = process(printer, Evaluator.evaluatorRunPrinter(evalMain(cls)))
+        val processedValue = process(printer, isExec, Evaluator.evaluatorRunPrinter(evalMain(cls)))
 
         // "" Empty string as cache tag of repl code
         evaluationResult(Seq(Name("$sess"), indexedWrapperName), newImports, "", processedValue)

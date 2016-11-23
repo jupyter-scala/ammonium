@@ -235,7 +235,8 @@ class Interpreter(val printer: Printer,
       )
       out <- evaluateLine(
         processed, printer,
-        fileName, Name("cmd" + eval.getCurrentLine)
+        fileName, Name("cmd" + eval.getCurrentLine),
+        isExec = false
       )
     } yield out.copy(imports = out.imports ++ hookImports)
 
@@ -274,7 +275,8 @@ class Interpreter(val printer: Printer,
   def evaluateLine(processed: Preprocessor.Output,
                    printer: Printer,
                    fileName: String,
-                   indexedWrapperName: Name): Res[Evaluated] = {
+                   indexedWrapperName: Name,
+                   isExec: Boolean): Res[Evaluated] = {
 
     for{
       _ <- Catching{ case e: ThreadDeath => Evaluator.interrupted(e) }
@@ -289,6 +291,7 @@ class Interpreter(val printer: Printer,
           newImports,
           printer,
           fileName,
+          isExec,
           indexedWrapperName
         )
 
@@ -450,6 +453,7 @@ class Interpreter(val printer: Printer,
             )
           ),
         autoImport,
+        silent = true,
         extraCode
       )
     } yield (imports ++ hookImports, cacheData, importTrees.flatten)
@@ -457,7 +461,7 @@ class Interpreter(val printer: Printer,
 
 
 
-  def processExec(code: String): Res[Imports] = {
+  def processExec(code: String, silent: Boolean): Res[Imports] = {
     init()
     for {
       (processedBlocks, hookImports, _) <- preprocessScript(
@@ -474,10 +478,12 @@ class Interpreter(val printer: Printer,
             processed,
             printer,
             s"Main$wrapperIndex.sc",
-            indexedWrapperName
+            indexedWrapperName,
+            isExec = true
           )
         },
         autoImport = true,
+        silent = silent,
         ""
       )
     } yield imports ++ hookImports
@@ -491,6 +497,7 @@ class Interpreter(val printer: Printer,
                            wrapperName: Name,
                            evaluate: Interpreter.EvaluateCallback,
                            autoImport: Boolean,
+                           silent: Boolean,
                            extraCode: String
                           ): Res[Interpreter.CacheData] = {
 
@@ -533,7 +540,10 @@ class Interpreter(val printer: Printer,
             pkgName,
             indexedWrapperName,
             scriptImports,
-            _ => "scala.Iterator[String]()",
+            if (silent)
+              _ => "scala.Iterator[String]()"
+            else
+              prints => s"$printBridge.Internal.combinePrints($prints)",
             extraCode = extraCode
           )
 
@@ -655,7 +665,7 @@ class Interpreter(val printer: Printer,
 
       def handleClasspath(jar: File) = handleEvalClasspath(jar)
 
-      def apply(line: String) = processExec(line) match{
+      def apply(line: String, silent: Boolean) = processExec(line, silent) match{
         case Res.Failure(ex, s) => throw new CompilationError(s)
         case Res.Exception(t, s) => throw t
         case _ =>

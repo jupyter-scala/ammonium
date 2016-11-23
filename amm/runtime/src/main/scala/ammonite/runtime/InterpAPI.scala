@@ -42,12 +42,12 @@ trait LoadJar {
   def ivy(coordinates: (String, String, String), verbose: Boolean = true): Unit
 }
 
-trait Load extends (String => Unit) with LoadJar{
+trait Load extends LoadJar{
   /**
    * Loads a command into the REPL and
    * evaluates them one after another
    */
-  def apply(line: String): Unit
+  def apply(line: String, silent: Boolean = true): Unit
 
   /**
    * Loads and executes the scriptfile on the specified path.
