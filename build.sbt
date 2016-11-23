@@ -31,7 +31,7 @@ val macroSettings = Seq(
 val sharedSettings = Seq(
 
   scalaVersion := "2.11.8",
-  organization := "com.lihaoyi",
+  organization := "org.jupyter-scala",
   version := _root_.ammonite.Constants.version,
   libraryDependencies += "com.lihaoyi" %% "utest" % "0.4.3" % "test",
   // Needed for acyclic to work...
