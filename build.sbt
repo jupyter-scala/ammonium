@@ -54,11 +54,25 @@ val sharedSettings = Seq(
   libraryDependencies ++= Seq(
     "com.lihaoyi" %% "acyclic" % "0.1.4" % "provided"
   ) ,
-  publishTo := Some(
-    "releases" at "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-  ),
+  publishMavenStyle := true,
+  pomIncludeRepository := { _ => false },
+  publishTo := Some {
+    val nexus = "https://oss.sonatype.org/"
+    if (isSnapshot.value)
+      "snapshots" at nexus + "content/repositories/snapshots"
+    else
+      "releases" at nexus + "service/local/staging/deploy/maven2"
+  },
+  credentials ++= {
+    Seq("SONATYPE_USER", "SONATYPE_PASS").map(sys.env.get) match {
+      case Seq(Some(user), Some(pass)) =>
+        Seq(Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", user, pass))
+      case _ =>
+        Seq()
+    }
+  },
   pomExtra :=
-    <url>https://github.com/lihaoyi/Ammonite</url>
+    <url>https://github.com/alexarchambault/ammonium</url>
       <licenses>
         <license>
           <name>MIT license</name>
@@ -66,14 +80,14 @@ val sharedSettings = Seq(
         </license>
       </licenses>
       <scm>
-        <url>git://github.com/lihaoyi/Ammonite.git</url>
-        <connection>scm:git://github.com/lihaoyi/Ammonite.git</connection>
+        <url>git://github.com/alexarchambault/ammonium.git</url>
+        <connection>scm:git://github.com/alexarchambault/ammonium.git</connection>
       </scm>
       <developers>
         <developer>
-          <id>lihaoyi</id>
-          <name>Li Haoyi</name>
-          <url>https://github.com/lihaoyi</url>
+          <id>alexarchambault</id>
+          <name>Alexandre Archambault</name>
+          <url>https://github.com/alexarchambault</url>
         </developer>
       </developers>
 )
