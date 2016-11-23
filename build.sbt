@@ -120,6 +120,7 @@ lazy val amm = project
   .settings(
     macroSettings,
     sharedSettings,
+    packAutoSettings,
     crossVersion := CrossVersion.full,
     test in assembly := {},
     name := "ammonite",
