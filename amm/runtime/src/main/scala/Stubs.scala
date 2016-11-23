@@ -23,6 +23,13 @@ package $ivy{
 }
 
 /**
+  * Package that gets filled with ivy artifacts the user loads
+  */
+package $lib{
+  object $
+}
+
+/**
   * Package that gets filled with any web scripts people load from http URLs
   */
 package $url{

@@ -112,8 +112,10 @@ class Interpreter(val printer: Printer,
     Seq("exec") -> ImportHook.Exec,
     Seq("url") -> ImportHook.Http,
     Seq("ivy") -> ImportHook.Ivy,
+    Seq("lib") -> ImportHook.Ivy,
     Seq("cp") -> ImportHook.Classpath,
     Seq("plugin", "ivy") -> ImportHook.PluginIvy,
+    Seq("plugin", "lib") -> ImportHook.PluginIvy,
     Seq("plugin", "cp") -> ImportHook.PluginClasspath
   ))
 
