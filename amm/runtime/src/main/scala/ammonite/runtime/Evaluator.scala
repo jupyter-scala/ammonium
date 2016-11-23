@@ -99,7 +99,12 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
         val names = classFiles.map(_._1)
         val res = Class.forName(fullName, true, frames.head.classloader)
         res
-      }, e => "Failed to load compiled class " + e)
+      }, { e: Throwable =>
+
+        val desc = Ex.unapplySeq(e).get.map(t => s"$t\n" + t.getStackTrace.map("  " + _).mkString("\n")).mkString("\n")
+
+        s"Failed to load compiled class $fullName\n" + desc
+      })
     }
 
 

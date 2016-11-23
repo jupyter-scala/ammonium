@@ -111,6 +111,8 @@ object ImportHook{
                   fullPrefix :+ Name("wrapper"), ImportData.TermType
                 ))
 
+                if (sys.env.contains("DEBUG")) println(s"Source import data:\n${importData.mkString("\n")}\n")
+
                 Result.Source(
                   Util.normalizeNewlines(read(filePath)),
                   wrapper,

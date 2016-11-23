@@ -209,7 +209,9 @@ object AmmonitePlugin{
         case Seq(_, _) => ImportData.TermType
       }
 
-      ImportData(Name(fromName), Name(toName), importString, importType)
+      val data = ImportData(Name(fromName), Name(toName), importString, importType)
+      if (sys.env.contains("DEBUG")) println(s"New import data: $data")
+      data
     }
 
     // Send the recorded imports through a callback back to the Ammonite REPL.

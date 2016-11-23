@@ -93,6 +93,8 @@ class SpecialClassLoader(specialLocalClasses: Set[String], parent: ClassLoader, 
       .map(_.replace('/', '.'))
       .flatMap(newFileDict.get)
 
+    if (sys.env.contains("DEBUG")) println(s"getResource($name): ${bOpt.nonEmpty} (${newFileDict.keys.toVector.sorted})")
+
     bOpt match {
       case Some(b) =>
         val path = Files.createTempFile("ammonite-special-loader", ".class")
@@ -142,10 +144,12 @@ class SpecialClassLoader(specialLocalClasses: Set[String], parent: ClassLoader, 
       import ammonite.ops._
       val resource = this.getResourceAsStream(name.replace('.', '/') + ".class")
       if (resource != null){
+        if (sys.env.contains("DEBUG")) println(s"Found resource for $name")
         val bytes = read.bytes(resource)
 
         defineClass(name, bytes, 0, bytes.length)
       }else{
+        if (sys.env.contains("DEBUG")) println(s"Resource for $name not found")
         super.findClass(name)
       }
 
