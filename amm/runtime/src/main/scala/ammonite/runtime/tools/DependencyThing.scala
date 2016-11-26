@@ -163,6 +163,18 @@ object Resolvers {
      "https://repo1.maven.org/maven2/",
      MavenPattern,
      m2 = true
+   ),
+   Resolver.Http(
+     "sonatype-releases",
+     "https://oss.sonatype.org/content/repositories/releases/",
+     MavenPattern,
+     m2 = true
+   ),
+   Resolver.Http(
+     "sonatype-snapshots",
+     "https://oss.sonatype.org/content/repositories/snapshots/",
+     MavenPattern,
+     m2 = true
    )
  )
 }
