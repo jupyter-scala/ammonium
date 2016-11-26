@@ -6,6 +6,7 @@ SCALA_VERSION=2.11.8
 
 # Runs ammonium / ammonite with only the ammonite-repl seen by the user
 exec coursier launch \
+  -r sonatype:releases -r sonatype:snapshots \
   -i ammonite -I ammonite:$ORG:ammonite-repl_$SCALA_VERSION:$VERSION \
   $ORG:ammonite_$SCALA_VERSION:$VERSION \
   -- "$@"
