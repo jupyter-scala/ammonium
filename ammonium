@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION=0.8.1-SNAPSHOT
+VERSION=0.8.0
 ORG=org.jupyter-scala
 SCALA_VERSION=2.11.8
 
