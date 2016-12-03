@@ -2,7 +2,7 @@
 
 *Modified Ammonite, for big data frameworks and use from jupyter-scala*
 
-This repository is a slightly modified [Ammonite](https://github.com/lihaoyi/Ammonite), aiming at being fine with big data frameworks (currently specific uses of Spark, POC for Flink), and to be re-used from [jupyter-scala](https://github.com/alexarchambault/jupyter-scala). Its goal is to stay merge-compatible with the original Ammonite, so that it can profit from its latest fixes and features - and in the hope that the changes of this repository can be incorporated into it at some point.
+This repository is a slightly modified [Ammonite](https://github.com/lihaoyi/Ammonite), aiming at being fine with big data frameworks (currently specific uses of Spark, POC for Flink and Scio), and to be re-used from [jupyter-scala](https://github.com/alexarchambault/jupyter-scala). Its goal is to stay merge-compatible with the original Ammonite, so that it can profit from its latest fixes and features - and in the hope that the changes of this repository can be incorporated into it at some point.
 
 The changes added in this repository fall into the following categories:
 - `tweak`: minor changes to the original Ammonite,
@@ -13,7 +13,7 @@ The changes added in this repository fall into the following categories:
 
 All commits specific to this repository are tagged with one of these categories.
 
-Support for Spark, POC for Flink, are (will be) in the [jupyter-scala](https://github.com/alexarchambault/jupyter-scala) repository.
+Support for Spark, POC for Flink and Scio, are in the [jupyter-scala](https://github.com/alexarchambault/jupyter-scala) repository.
 
 ## Running it
 
