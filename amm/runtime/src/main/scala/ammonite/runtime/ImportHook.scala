@@ -30,6 +30,8 @@ object ImportHook{
   trait InterpreterInterface{
     def wd: Path
     def exclude(coordinates: (String, String)): Unit
+    def addProfile(profile: String): Unit
+    def profiles: Set[String]
     def addedDependencies(plugin: Boolean): Seq[(String, String, String)]
     def exclusions(plugin: Boolean): Seq[(String, String)]
     def loadIvy(
@@ -207,6 +209,13 @@ object ImportHook{
         }
       }
     } yield (Set(), Nil)
+  }
+  object MavenProfile extends BaseIvy(plugin = false){
+    override def name = "$profile"
+    override def resolve(interp: InterpreterInterface, signature: String) = {
+      interp.addProfile(signature)
+      Res.Success((Set(), Nil))
+    }
   }
   object Classpath extends BaseClasspath(plugin = false)
   object PluginClasspath extends BaseClasspath(plugin = true)

@@ -56,6 +56,7 @@ class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verbose
                       version: String,
                       previousCoordinates: Seq[(String, String, String)],
                       exclusions: Seq[(String, String)],
+                      profiles: Set[String],
                       verbosity: Int = 2) = synchronized {
 
     val dep = Dependency(Module(groupId, artifactId), version)
@@ -66,7 +67,8 @@ class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verbose
         dep0.copy(
           exclusions = dep0.exclusions ++ exclusions
         )
-      }.toSet
+      }.toSet,
+      userActivations = if (profiles.isEmpty) None else Some(profiles.map(_ -> true).toMap)
     )
 
     val metadataLogger = new TermDisplay(new PrintWriter(System.out))

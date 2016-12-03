@@ -61,6 +61,7 @@ class Interpreter(val printer: Printer,
   var addedDependencies0 = new mutable.ListBuffer[(String, String, String)]
   var addedJars0 = new mutable.HashSet[File]
   var dependencyExclusions = new mutable.ListBuffer[(String, String)]
+  var profiles0 = new mutable.HashSet[String]
   var addedPluginDependencies = new mutable.ListBuffer[(String, String, String)]
   var addedPluginJars = new mutable.HashSet[File]
 
@@ -114,6 +115,7 @@ class Interpreter(val printer: Printer,
     Seq("url") -> ImportHook.Http,
     Seq("ivy") -> ImportHook.Ivy,
     Seq("exclude") -> ImportHook.IvyExclude,
+    Seq("profile") -> ImportHook.MavenProfile,
     Seq("lib") -> ImportHook.Ivy,
     Seq("cp") -> ImportHook.Classpath,
     Seq("plugin", "ivy") -> ImportHook.PluginIvy,
@@ -613,6 +615,10 @@ class Interpreter(val printer: Printer,
 
   def exclude(coordinates: (String, String)): Unit =
     dependencyExclusions += coordinates
+  def addProfile(profile: String): Unit =
+    profiles0 += profile
+  def profiles: Set[String] =
+    profiles0.toSet
   def addedDependencies(plugin: Boolean): Seq[(String, String, String)] =
     if (plugin) addedPluginDependencies
     else addedDependencies0
@@ -633,6 +639,7 @@ class Interpreter(val printer: Printer,
       version,
       previousCoordinates,
       exclusions,
+      profiles,
       if (verbose) 2 else 1
     ).toSet
   }
@@ -717,6 +724,8 @@ class Interpreter(val printer: Printer,
         }
         reInit()
       }
+
+      def profiles = interp.profiles
 
       object plugin extends DefaultLoadJar {
         def isPlugin = true
