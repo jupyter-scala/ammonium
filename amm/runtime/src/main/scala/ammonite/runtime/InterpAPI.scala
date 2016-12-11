@@ -60,6 +60,8 @@ trait Load extends LoadJar{
 
   def module(path: Path): Unit
 
+  def profiles: Set[String]
+
   def plugin: LoadJar
 
 }

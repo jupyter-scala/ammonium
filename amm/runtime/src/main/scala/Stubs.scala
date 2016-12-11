@@ -37,6 +37,13 @@ package $exclude{
 }
 
 /**
+  * Package that gets filled with Maven profiles the user asks
+  */
+package $profile{
+  object $
+}
+
+/**
   * Package that gets filled with any web scripts people load from http URLs
   */
 package $url{

@@ -93,6 +93,51 @@ object ProjectTests extends TestSuite{
             """)
           }
         }
+        'profiles - {
+
+          def sparkHadoopProfile(profileOpt: Option[String], expectedHadoopVersion: String) = {
+
+            val preamble = profileOpt.fold("") { profile =>
+              s"""
+              @ import $$profile.`$profile`
+
+              """
+            }
+
+            check.session(preamble + s"""
+              @ import $$ivy.`org.apache.spark::spark-core:1.6.3`
+
+              @ val p = new java.util.Properties
+              p: java.util.Properties = {}
+
+              @ p.load(
+              @   Thread.currentThread()
+              @     .getContextClassLoader
+              @     .getResource("common-version-info.properties")
+              @     .openStream()
+              @ )
+
+              @ val hadoopVersion = p.getProperty("version")
+              hadoopVersion: String = "$expectedHadoopVersion"
+            """)
+          }
+
+          // same test as https://github.com/alexarchambault/coursier/tree/e70c32f9ae59fe485c005eb18325223879c27081/plugin/src/sbt-test/sbt-coursier/profiles
+          'none - sparkHadoopProfile(None, "2.2.0")
+          'hadoop26 - sparkHadoopProfile(Some("hadoop-2.6"), "2.6.0")
+
+          'list - {
+            check.session("""
+              @ interp.load.profiles
+              res0: Set[String] = Set()
+
+              @ import $profile.`foo`
+
+              @ interp.load.profiles
+              res2: Set[String] = Set("foo")
+            """)
+          }
+        }
       }
       'code{
         check.session("""
