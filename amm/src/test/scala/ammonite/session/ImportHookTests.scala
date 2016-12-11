@@ -75,7 +75,7 @@ object ImportHookTests extends TestSuite{
             @ import scalatags.Text.all._
             error: not found: value scalatags
 
-            @ import $ivy.`com.lihaoyi::scalatags:0.5.3`
+            @ import $ivy.`com.lihaoyi::scalatags:0.6.2`
 
             @ import scalatags.Text.all._
 
@@ -89,7 +89,7 @@ object ImportHookTests extends TestSuite{
             @ import scalatags.Text.all._
             error: not found: value scalatags
 
-            @ import $$ivy.`com.lihaoyi:scalatags_${DependencyThing.scalaBinaryVersion}:0.5.3`
+            @ import $$ivy.`com.lihaoyi:scalatags_${DependencyThing.scalaBinaryVersion}:0.6.2`
 
             @ import scalatags.Text.all._
 
@@ -120,7 +120,7 @@ object ImportHookTests extends TestSuite{
             @ import scalatags.Text.all._
             error: not found: value scalatags
 
-            @ import $ivy.`com.lihaoyi::scalatags:0.5.3`, scalatags.Text.all._
+            @ import $ivy.`com.lihaoyi::scalatags:0.6.2`, scalatags.Text.all._
 
             @ div("Hello").render
             res1: String = "<div>Hello</div>"

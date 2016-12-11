@@ -1,4 +1,5 @@
-package ammonite.runtime
+package ammonite.interp
+
 
 import scala.tools.nsc.Global
 import scala.tools.nsc.interactive.{ Global => InteractiveGlobal }
@@ -24,4 +25,5 @@ object CompilerCompatibility {
 
   def pluginInit(plugin: Plugin, options: List[String], error: String => Unit): Boolean =
     plugin.init(options, error)
+
 }

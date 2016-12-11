@@ -21,7 +21,7 @@ object ProjectTests extends TestSuite{
           @ import scalatags.Text.all._
           error: not found: value scalatags
 
-          @ import $$ivy.`com.lihaoyi::scalatags:0.5.4`
+          @ import $$ivy.`com.lihaoyi::scalatags:0.6.2`
 
           @ import scalatags.Text.all._
           import scalatags.Text.all._
@@ -34,7 +34,7 @@ object ProjectTests extends TestSuite{
           }
         }
         'akkahttp - {
-            check.session(
+            if (!scala2_12) check.session(
               """
               @ import $ivy.`com.typesafe.akka::akka-http-experimental:1.0-M3`
 
@@ -72,11 +72,11 @@ object ProjectTests extends TestSuite{
         'resolvers - {
           retry(2){
             // ivy flakyness...
-            check.session("""
+            if (!scala2_12) check.session("""
               @ import $ivy.`com.ambiata::mundane:1.2.1-20141230225616-50fc792`
               error: IvyResolutionException
 
-              @ import ammonite._, Resolvers._
+              @ import Resolvers._
 
               @ val oss = Resolver.Http(
               @   "ambiata-oss",
@@ -152,7 +152,7 @@ object ProjectTests extends TestSuite{
     'shapeless {
       // Shapeless 2.1.0 isn't published for scala 2.10
       if (!scala2_10) check.session("""
-        @ import $ivy.`com.chuusai::shapeless:2.2.5`, shapeless._
+        @ import $ivy.`com.chuusai::shapeless:2.3.2`, shapeless._
 
         @ (1 :: "lol" :: List(1, 2, 3) :: HNil)
         res1: Int :: String :: List[Int] :: HNil = 1 :: lol :: List(1, 2, 3) :: HNil
@@ -169,7 +169,7 @@ object ProjectTests extends TestSuite{
 
     'scalaz{
       check.session("""
-        @ import $ivy.`org.scalaz::scalaz-core:7.1.1`, scalaz._, Scalaz._
+        @ import $ivy.`org.scalaz::scalaz-core:7.2.7`, scalaz._, Scalaz._
 
         @ (Option(1) |@| Option(2))(_ + _)
         res1: Option[Int] = Some(3)
@@ -189,7 +189,7 @@ object ProjectTests extends TestSuite{
       """)
     }
     'resources{
-      check.session("""
+      if (!scala2_12) check.session("""
         @ import ammonite.ops._
 
         @ val path = resource/'org/'apache/'jackrabbit/'oak/'plugins/'blob/"blobstore.properties"
@@ -223,7 +223,7 @@ object ProjectTests extends TestSuite{
 
     'finagle{
       // Prevent regressions when wildcard-importing things called `macro` or `_`
-      check.session("""
+      if (!scala2_12) check.session("""
         @ import $ivy.`com.twitter::finagle-httpx:6.26.0`
 
         @ import com.twitter.finagle._, com.twitter.util._
@@ -268,7 +268,8 @@ object ProjectTests extends TestSuite{
     }
     'spire{
       // Prevent regressions when wildcard-importing things called `macro` or `_`
-      if (!scala2_10) //buggy in 2.10
+      //buggy in 2.10, spire not yet published for 2.12
+      if (scala2_11)
         check.session(s"""
           @ import $$ivy.`org.spire-math::spire:0.11.0`
 
@@ -298,7 +299,7 @@ object ProjectTests extends TestSuite{
           @ Interval(0, 10)
           res9: Interval[Int] = [0, 10]
         """)
-      else
+      else if (scala2_10)
         check.session(s"""
           @ import $$ivy.`org.spire-math::spire:0.11.0`
 
@@ -335,7 +336,15 @@ object ProjectTests extends TestSuite{
       //      res9: spire.math.Rational = 2/3
 
     }
+    'pegdown{
+      check.session(
+        s"""
+           @ import $$ivy.`org.pegdown:pegdown:1.6.0`
 
+           @ org.pegdown.ast.SimpleNode.Type.HRule
+           res1: org.pegdown.ast.SimpleNode.Type = HRule
+         """)
+    }
   }
 }
 
