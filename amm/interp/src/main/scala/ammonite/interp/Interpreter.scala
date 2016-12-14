@@ -55,7 +55,7 @@ class Interpreter(val printer: Printer,
 
   val mainThread = Thread.currentThread()
 
-  val dynamicClasspath = new VirtualDirectory("(memory)", None)
+  val dynamicClasspath = new VirtualDirectory("http://ammonite-memory-placeholder", None)
   var compiler: Compiler = null
   var pressy: Pressy = _
 
