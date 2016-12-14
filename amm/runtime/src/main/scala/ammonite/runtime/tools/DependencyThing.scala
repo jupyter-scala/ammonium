@@ -73,7 +73,13 @@ class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verbose
 
     val metadataLogger = new TermDisplay(new PrintWriter(System.out))
 
-    val fetch = Fetch.from(resolvers().map(_()), Cache.fetch(logger = Some(metadataLogger)))
+    val fetch = Fetch.from(
+      resolvers().map(_()),
+      Cache.fetch(cachePolicy = CachePolicy.default.head, logger = Some(metadataLogger)),
+      CachePolicy.default.tail.map(p =>
+        Cache.fetch(cachePolicy = p, logger = Some(metadataLogger))
+      ): _*
+    )
 
     metadataLogger.init()
     val res =
@@ -94,7 +100,10 @@ class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verbose
     val a =
       try {
         Task.gatherUnordered(res.dependencyArtifacts.map(_._2).filter(_.`type` == "jar").map { artifact =>
-          Cache.file(artifact)
+          def fetch(p: CachePolicy) =
+            Cache.file(artifact, logger = Some(artifactLogger), cachePolicy = p)
+
+          (fetch(CachePolicy.default.head) /: CachePolicy.default.tail)(_ orElse fetch(_))
             .run
             .map(artifact -> _)
         }).unsafePerformSync
@@ -195,7 +204,7 @@ object Resolver{
       val testRepoDir = new java.io.File(sys.props("user.home") + root).toURI.toString
 
       if (m2)
-        MavenRepository(testRepoDir, changing = Some(true))
+        MavenRepository(testRepoDir, changing = None)
       else
         IvyRepository.parse(testRepoDir + pattern).getOrElse {
           throw new Exception(s"Error parsing Ivy pattern $testRepoDir$pattern")
@@ -205,7 +214,7 @@ object Resolver{
   case class Http(name: String, root: String, pattern: String, m2: Boolean) extends Resolver{
     def apply() =
       if (m2)
-        MavenRepository(root, changing = Some(true))
+        MavenRepository(root, changing = None)
       else
         IvyRepository.parse((root + pattern).replace("[ivyPattern]", Resolvers.IvyPattern)).getOrElse {
           throw new Exception(s"Error parsing Ivy pattern $root$pattern")
