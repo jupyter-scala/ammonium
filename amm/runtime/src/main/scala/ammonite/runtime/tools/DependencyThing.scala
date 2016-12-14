@@ -83,7 +83,7 @@ class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verbose
 
     metadataLogger.init()
     val res =
-      try start.process.run(fetch).unsafePerformSync
+      try start.process.run(fetch, maxIterations = 200).unsafePerformSync
       finally metadataLogger.stop()
 
     if (!res.isDone || res.errors.nonEmpty || res.conflicts.nonEmpty)
