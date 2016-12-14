@@ -279,7 +279,7 @@ class Interpreter(val printer: Printer,
                    printer: Printer,
                    fileName: String): Res[(Util.ClassFiles, Imports)] = for {
     compiled <- Res.Success{
-      if (sys.env.contains("DEBUG")) println(s"Compiling\n${processed.code}\n")
+      if (sys.env.contains("DEBUG") || sys.props.contains("DEBUG")) println(s"Compiling\n${processed.code}\n")
       compiler.compile(processed.code.getBytes, printer, processed.prefixCharLength, fileName)
     }
     _ = _compilationCount += 1
