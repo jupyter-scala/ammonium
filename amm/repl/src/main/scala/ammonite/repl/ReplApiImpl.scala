@@ -1,5 +1,6 @@
 package ammonite.repl
 
+import ammonite.interp.Interpreter
 import ammonite.runtime._
 import ammonite.util._
 

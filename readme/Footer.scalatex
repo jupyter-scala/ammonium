@@ -44,7 +44,7 @@
       @li
         Ammonite's terminal module is being used as a base for the
         @lnk("Dotty REPL", "https://github.com/lampepfl/dotty/pull/1233"),
-        which is the
+        which is the finishing school for new Scala concepts.
       @li
         Michael Pilquist used Ammonite for his
         @lnk("Introduction to Functional Streams for Scala",
@@ -962,8 +962,6 @@
     @sect{Unstable Changlog}
       @ul
         @li
-          Converted the @code{Iterator}-based functions in
-          @sect.ref{Ammonite-Ops} to instead use
-          @lnk("geny.Generator", "https://github.com/lihaoyi/geny")s instead.
-          This should avoid all the problems with leaving file handles open if
-          you aren't careful with fully-consuming your iterators
+          Cross-published for Scala 2.12; if you want to use Ammonite with
+          Scala 2.12, whether in an SBT project or standalone, use the latest 
+          unstable version as shown above.

@@ -1,4 +1,4 @@
-package ammonite.runtime
+package ammonite.interp
 
 import scala.tools.nsc.Global
 import scala.tools.nsc.interactive.{ Global => InteractiveGlobal }
@@ -24,4 +24,5 @@ object CompilerCompatibility {
     plugin.processOptions(options, error)
     true
   }
+
 }

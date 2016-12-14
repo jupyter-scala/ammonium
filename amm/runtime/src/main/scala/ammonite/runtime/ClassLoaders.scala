@@ -157,7 +157,15 @@ class SpecialClassLoader(specialLocalClasses: Set[String], parent: ClassLoader, 
   }
   def add(url: URL) = {
     classpathSignature0 = classpathSignature0 ++ Seq(jarSignature(url))
-    addURL(url)
+    this.addURL(url)
+  }
+
+  override def close() = {
+    // DO NOTHING LOLZ
+
+    // Works around
+    // https://github.com/scala/scala/commit/6181525f60588228ce99ab3ef2593ecfcfd35066
+    // Which for some reason started mysteriously closing these classloaders in 2.12
   }
 
   private def jarSignature(url: URL) = {
