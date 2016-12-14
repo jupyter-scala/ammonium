@@ -44,6 +44,13 @@ package $profile{
 }
 
 /**
+  * Package that gets filled with repositories the user asks
+  */
+package $repo{
+  object $
+}
+
+/**
   * Package that gets filled with any web scripts people load from http URLs
   */
 package $url{

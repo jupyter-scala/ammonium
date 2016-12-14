@@ -8,6 +8,7 @@ import scala.collection.mutable
 import scala.tools.nsc.Settings
 import ammonite.ops._
 import ammonite.runtime._
+import ammonite.runtime.tools.Resolver
 import fastparse.all._
 
 import annotation.tailrec
@@ -54,7 +55,7 @@ class Interpreter(val printer: Printer,
 
   val mainThread = Thread.currentThread()
 
-  val dynamicClasspath = new VirtualDirectory("(memory)", None)
+  val dynamicClasspath = new VirtualDirectory("http://ammonite-memory-placeholder", None)
   var compiler: Compiler = null
   var pressy: Pressy = _
 
@@ -76,12 +77,18 @@ class Interpreter(val printer: Printer,
       init()
   }
 
+  def initialSettings = {
+    val settings = new Settings()
+    settings.nowarnings.value = true
+    settings
+  }
+
   def init() = {
     // Note we not only make a copy of `settings` to pass to the compiler,
     // we also make a *separate* copy to pass to the presentation compiler.
     // Otherwise activating autocomplete makes the presentation compiler mangle
     // the shared settings and makes the main compiler sad
-    val settings = Option(compiler).fold(new Settings)(_.compiler.settings.copy)
+    val settings = Option(compiler).fold(initialSettings)(_.compiler.settings.copy)
     val classpath = Classpath.classpath(eval.frames.last.classloader.getParent) ++ eval.frames.head.classpath
     compiler = Compiler(
       classpath,
@@ -116,6 +123,7 @@ class Interpreter(val printer: Printer,
     Seq("exec") -> ImportHook.Exec,
     Seq("url") -> ImportHook.Http,
     Seq("ivy") -> ImportHook.Ivy,
+    Seq("repo") -> ImportHook.Repository,
     Seq("exclude") -> ImportHook.IvyExclude,
     Seq("profile") -> ImportHook.MavenProfile,
     Seq("lib") -> ImportHook.Ivy,
@@ -277,7 +285,7 @@ class Interpreter(val printer: Printer,
                    printer: Printer,
                    fileName: String): Res[(Util.ClassFiles, Imports)] = for {
     compiled <- Res.Success{
-      if (sys.env.contains("DEBUG")) println(s"Compiling\n${processed.code}\n")
+      if (sys.env.contains("DEBUG") || sys.props.contains("DEBUG")) println(s"Compiling\n${processed.code}\n")
       compiler.compile(processed.code.getBytes, printer, processed.prefixCharLength, fileName)
     }
     _ = _compilationCount += 1
@@ -619,6 +627,17 @@ class Interpreter(val printer: Printer,
     dependencyExclusions += coordinates
   def addProfile(profile: String): Unit =
     profiles0 += profile
+  def addRepository(repository: String): Unit = {
+
+    val repo = Resolver.Http(
+      "",
+      repository.stripPrefix("ivy:"),
+      "",
+      m2 = !repository.startsWith("ivy:")
+    )
+
+    interpApi.resolvers() = interpApi.resolvers() :+ repo
+  }
   def profiles: Set[String] =
     profiles0.toSet
   def addedDependencies(plugin: Boolean): Seq[(String, String, String)] =

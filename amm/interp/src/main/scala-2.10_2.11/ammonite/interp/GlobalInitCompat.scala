@@ -79,7 +79,7 @@ object GlobalInitCompat {
                      warningLogger: => String => Unit,
                      infoLogger: => String => Unit,
                      settings: Settings) = {
-    val vd = new io.VirtualDirectory("(memory)", None)
+    val vd = new io.VirtualDirectory("http://ammonite-memory-placeholder", None)
     val settingsX = settings
     val jCtx = new JavaContext()
     val (dirDeps, jarDeps) = classpath.partition(_.isDirectory)
@@ -104,7 +104,6 @@ object GlobalInitCompat {
 
     settings.outputDirs.setSingleOutput(vd)
 
-    settings.nowarnings.value = true
     val reporter = new AbstractReporter {
       def displayPrompt(): Unit = ???
 

@@ -210,7 +210,7 @@ object AmmonitePlugin{
       }
 
       val data = ImportData(Name(fromName), Name(toName), importString, importType)
-      if (sys.env.contains("DEBUG")) println(s"New import data: $data")
+      if (sys.env.contains("DEBUG") || sys.props.contains("DEBUG")) println(s"New import data: $data")
       data
     }
 

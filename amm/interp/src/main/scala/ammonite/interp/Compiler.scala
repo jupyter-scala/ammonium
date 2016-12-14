@@ -221,11 +221,11 @@ object Compiler{
         shutdownPressy()
 
         val files = for(x <- outputFiles if x.name.endsWith(".class")) yield {
-          val segments = x.path.split("/").toList.tail
+          val segments = x.path.stripPrefix("http://ammonite-memory-placeholder/").split("/").toList
           val output = Evaluator.writeDeep(dynamicClasspath, segments, "")
           output.write(x.toByteArray)
           output.close()
-          (x.path.stripPrefix("(memory)/").stripSuffix(".class").replace('/', '.'), x.toByteArray)
+          (x.path.stripPrefix("http://ammonite-memory-placeholder/").stripSuffix(".class").replace('/', '.'), x.toByteArray)
         }
 
         val imports = lastImports.toList
