@@ -31,6 +31,7 @@ object ImportHook{
     def wd: Path
     def exclude(coordinates: (String, String)): Unit
     def addProfile(profile: String): Unit
+    def addRepository(repository: String): Unit
     def profiles: Set[String]
     def addedDependencies(plugin: Boolean): Seq[(String, String, String)]
     def exclusions(plugin: Boolean): Seq[(String, String)]
@@ -214,6 +215,13 @@ object ImportHook{
     override def name = "$profile"
     override def resolve(interp: InterpreterInterface, signature: String) = {
       interp.addProfile(signature)
+      Res.Success((Set(), Nil))
+    }
+  }
+  object Repository extends BaseIvy(plugin = false){
+    override def name = "$repo"
+    override def resolve(interp: InterpreterInterface, signature: String) = {
+      interp.addRepository(signature)
       Res.Success((Set(), Nil))
     }
   }

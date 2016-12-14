@@ -70,7 +70,7 @@ object ProjectTests extends TestSuite{
              """)
         }
         'resolvers - {
-          retry(2){
+          'api - retry(2){
             // ivy flakyness...
             if (!scala2_12) check.session("""
               @ import $ivy.`com.ambiata::mundane:1.2.1-20141230225616-50fc792`
@@ -90,6 +90,17 @@ object ProjectTests extends TestSuite{
               @ import $ivy.`com.ambiata::mundane:1.2.1-20141230225616-50fc792`
 
               @ import com.ambiata.mundane._
+            """)
+          }
+          'import - {
+            if (!scala2_12) check.session("""
+              @ import $ivy.`com.ambiata::mundane:1.2.1-20141230225616-50fc792`
+              error: IvyResolutionException
+
+              @ import $repo.`ivy:https://ambiata-oss.s3-ap-southeast-2.amazonaws.com/[ivyPattern]`; import $ivy.`com.ambiata::mundane:1.2.1-20141230225616-50fc792`
+
+              @ import com.ambiata.mundane._
+              import com.ambiata.mundane._
             """)
           }
         }

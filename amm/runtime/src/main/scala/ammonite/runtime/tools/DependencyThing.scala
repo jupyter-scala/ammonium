@@ -207,7 +207,7 @@ object Resolver{
       if (m2)
         MavenRepository(root, changing = Some(true))
       else
-        IvyRepository.parse(root + pattern).getOrElse {
+        IvyRepository.parse((root + pattern).replace("[ivyPattern]", Resolvers.IvyPattern)).getOrElse {
           throw new Exception(s"Error parsing Ivy pattern $root$pattern")
         }
   }

@@ -8,6 +8,7 @@ import scala.collection.mutable
 import scala.tools.nsc.Settings
 import ammonite.ops._
 import ammonite.runtime._
+import ammonite.runtime.tools.Resolver
 import fastparse.all._
 
 import annotation.tailrec
@@ -116,6 +117,7 @@ class Interpreter(val printer: Printer,
     Seq("exec") -> ImportHook.Exec,
     Seq("url") -> ImportHook.Http,
     Seq("ivy") -> ImportHook.Ivy,
+    Seq("repo") -> ImportHook.Repository,
     Seq("exclude") -> ImportHook.IvyExclude,
     Seq("profile") -> ImportHook.MavenProfile,
     Seq("lib") -> ImportHook.Ivy,
@@ -619,6 +621,17 @@ class Interpreter(val printer: Printer,
     dependencyExclusions += coordinates
   def addProfile(profile: String): Unit =
     profiles0 += profile
+  def addRepository(repository: String): Unit = {
+
+    val repo = Resolver.Http(
+      "",
+      repository.stripPrefix("ivy:"),
+      "",
+      m2 = !repository.startsWith("ivy:")
+    )
+
+    interpApi.resolvers() = interpApi.resolvers() :+ repo
+  }
   def profiles: Set[String] =
     profiles0.toSet
   def addedDependencies(plugin: Boolean): Seq[(String, String, String)] =
