@@ -77,12 +77,18 @@ class Interpreter(val printer: Printer,
       init()
   }
 
+  def initialSettings = {
+    val settings = new Settings()
+    settings.nowarnings.value = true
+    settings
+  }
+
   def init() = {
     // Note we not only make a copy of `settings` to pass to the compiler,
     // we also make a *separate* copy to pass to the presentation compiler.
     // Otherwise activating autocomplete makes the presentation compiler mangle
     // the shared settings and makes the main compiler sad
-    val settings = Option(compiler).fold(new Settings)(_.compiler.settings.copy)
+    val settings = Option(compiler).fold(initialSettings)(_.compiler.settings.copy)
     val classpath = Classpath.classpath(eval.frames.last.classloader.getParent) ++ eval.frames.head.classpath
     compiler = Compiler(
       classpath,
