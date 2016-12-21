@@ -239,6 +239,8 @@ object ImportTests extends TestSuite{
         val prefix6 = if (scala2_10) "$sess.Paulp6." else ""
         'paulp - {
 
+          val singletonSuffix = if (scala2_12) "" else ".type"
+
           check.session(s"""
           @ import ammonite.testcode.paulp1._, ammonite.testcode.paulp2._
 
@@ -270,7 +272,7 @@ object ImportTests extends TestSuite{
           @ import Paulp4.Paulp, Paulp5.Paulp // cross import, shadow both
 
           @ Paulp
-          res10: ${prefix4}Paulp.type = Paulp4
+          res10: ${prefix4}Paulp$singletonSuffix = Paulp4
 
           @ new Paulp
           res11: ${prefix5}Paulp = Paulp5
@@ -279,7 +281,7 @@ object ImportTests extends TestSuite{
 
           @ new Paulp; Paulp
           res13_0: ${prefix1}Paulp = paulp1.Paulp1
-          res13_1: ${prefix4}Paulp.type = Paulp4
+          res13_1: ${prefix4}Paulp$singletonSuffix = Paulp4
 
           @ import ammonite.testcode.paulp2._ // one at a time...
 
@@ -297,7 +299,7 @@ object ImportTests extends TestSuite{
           @ import Paulp4._
 
           @ Paulp
-          res20: ${prefix4}Paulp.type = Paulp4
+          res20: ${prefix4}Paulp$singletonSuffix = Paulp4
 
           @ Paulp: Paulp // Improper shadowing! This is a known issue but hard to fix
           error: not found: type Paulp

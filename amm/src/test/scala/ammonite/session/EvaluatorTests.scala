@@ -130,6 +130,9 @@ object EvaluatorTests extends TestSuite{
     }
 
     'classes{
+
+      val singletonSuffix = if (scala2_12) "" else ".type"
+
       check.session(s"""
         @ class C{override def toString() = "Ceee"}
         defined class C
@@ -141,7 +144,7 @@ object EvaluatorTests extends TestSuite{
         defined object CO
 
         @ CO
-        res3: ${sessionPrefix}CO.type = CO
+        res3: ${sessionPrefix}CO$singletonSuffix = CO
 
         @ case class CC()
         defined class CC
@@ -150,13 +153,13 @@ object EvaluatorTests extends TestSuite{
         res5: ${sessionPrefix}CC = CC()
 
         @ CO
-        res6: ${sessionPrefix}CO.type = CO
+        res6: ${sessionPrefix}CO$singletonSuffix = CO
 
         @ case class CO()
         defined class CO
 
         @ CO
-        res8: ${sessionPrefix}CO.type = CO
+        res8: ${sessionPrefix}CO$singletonSuffix = CO
 
         @ CO()
         res9: ${sessionPrefix}CO = CO()
