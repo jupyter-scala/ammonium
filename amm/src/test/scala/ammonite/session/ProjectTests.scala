@@ -115,7 +115,8 @@ object ProjectTests extends TestSuite{
               """
             }
 
-            check.session(preamble + s"""
+            // spark not available in 2.12
+            if (!scala2_12) check.session(preamble + s"""
               @ import $$ivy.`org.apache.spark::spark-core:1.6.3`
 
               @ val p = new java.util.Properties
