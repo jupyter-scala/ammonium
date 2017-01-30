@@ -7,7 +7,7 @@ object SerializationTests extends TestSuite{
   val tests = TestSuite{
     println("SerializationTests")
     val check = new TestRepl()
-    
+
     'dummy {
       'foo - {
         // User values from the REPL shouldn't be recomputed upon deserialization. The test below checks that the value
