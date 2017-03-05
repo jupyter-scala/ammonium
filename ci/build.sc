@@ -14,7 +14,7 @@ val allVersions = Seq(
   "2.12.0", "2.12.1"
 )
 
-val latestVersions = Set("2.10.5", "2.11.8", "2.12.1")
+val latestVersions = Set("2.10.6", "2.11.8", "2.12.1")
 
 val buildVersion =
   if (sys.env("TRAVIS_TAG") == "") s"COMMIT-${getGitHash()}"
@@ -23,19 +23,27 @@ val buildVersion =
 
 def getGitHash() = %%("git", "rev-parse", "--short", "HEAD").out.trim
 
+def binVersion(v: String) = v.take(v.lastIndexOf("."))
 
 def updateConstants(version: String = buildVersion,
                     unstableVersion: String = "<fill-me-in-in-Constants.scala>",
                     curlUrl: String = "<fill-me-in-in-Constants.scala>",
-                    unstableCurlUrl: String = "<fill-me-in-in-Constants.scala>") = {
+                    unstableCurlUrl: String = "<fill-me-in-in-Constants.scala>",
+                    oldCurlUrls: Seq[(String, String)] = Nil,
+                    oldUnstableCurlUrls: Seq[(String, String)] = Nil) = {
   val versionTxt = s"""
     package ammonite
     object Constants{
-      val scalaVersion = "2.12.1"
       val version = "$version"
       val unstableVersion = "$unstableVersion"
       val curlUrl = "$curlUrl"
       val unstableCurlUrl = "$unstableCurlUrl"
+      val oldCurlUrls = Seq[(String, String)](
+        ${oldCurlUrls.map{case (name, value) => s""" "$name" -> "$value" """}.mkString(",\n")}
+      )
+      val oldUnstableCurlUrls = Seq[(String, String)](
+        ${oldUnstableCurlUrls.map{case (name, value) => s""" "$name" -> "$value" """}.mkString(",\n")}
+      )
     }
   """
   println("Writing Constants.scala")
@@ -80,16 +88,24 @@ def publishDocs() = {
 
   val latestTaggedVersion = %%('git, 'describe, "--abbrev=0", "--tags").out.trim
 
-  val (stableKey, unstableKey) =
+  val (stableKey, unstableKey, oldStableKeys, oldUnstableKeys) =
     if (travisTag != ""){
       (
-        s"$latestTaggedVersion/$latestTaggedVersion",
-        s"$latestTaggedVersion/$latestTaggedVersion"
+        s"$latestTaggedVersion/2.12-$latestTaggedVersion",
+        s"$latestTaggedVersion/2.12-$latestTaggedVersion",
+        for(v <- Seq("2.10", "2.11"))
+        yield s"$latestTaggedVersion/$v-$latestTaggedVersion",
+        for(v <- Seq("2.10", "2.11"))
+        yield s"$latestTaggedVersion/$v-$latestTaggedVersion"
       )
     }else{
       (
-        s"$latestTaggedVersion/$latestTaggedVersion",
-        s"snapshot-commit-uploads/$gitHash"
+        s"$latestTaggedVersion/2.12-$latestTaggedVersion",
+        s"snapshot-commit-uploads/2.12-$gitHash",
+        for(v <- Seq("2.10", "2.11"))
+        yield s"$latestTaggedVersion/$v-$latestTaggedVersion",
+        for(v <- Seq("2.10", "2.11"))
+        yield s"snapshot-commit-uploads/$v-$gitHash"
       )
     }
   println("(stableKey, unstableKey)")
@@ -98,9 +114,12 @@ def publishDocs() = {
     latestTaggedVersion,
     buildVersion,
     upload.shorten(s"https://github.com/lihaoyi/Ammonite/releases/download/$stableKey"),
-    upload.shorten(s"https://github.com/lihaoyi/Ammonite/releases/download/$unstableKey")
+    upload.shorten(s"https://github.com/lihaoyi/Ammonite/releases/download/$unstableKey"),
+    for(k <- oldStableKeys)
+    yield (k, upload.shorten(s"https://github.com/lihaoyi/Ammonite/releases/download/$k")),
+    for(k <- oldUnstableKeys)
+    yield (k, upload.shorten(s"https://github.com/lihaoyi/Ammonite/releases/download/$k"))
   )
-
 
   %sbt "readme/compile"
   %sbt "readme/run"
@@ -110,15 +129,13 @@ def publishDocs() = {
 @main
 def executable() = {
   if (isMasterCommit){
-    println("MASTER COMMIT: Publishing Executable")
-    //Prepare executable
     updateConstants()
-    %sbt("++2.12.1", "amm/test:assembly")
-
     val travisTag = sys.env("TRAVIS_TAG")
     val gitHash = getGitHash()
-    val shortUrl = if (travisTag != ""){
-      import upickle.Js
+
+    println("MASTER COMMIT: Creating a release")
+    import upickle.Js
+    if (travisTag != ""){
       scalaj.http.Http("https://api.github.com/repos/lihaoyi/Ammonite/releases")
         .postData(
           upickle.json.write(
@@ -131,22 +148,31 @@ def executable() = {
         )
         .header("Authorization", "token " + sys.env("AMMONITE_BOT_AUTH_TOKEN"))
         .asString
+    }
 
-      val short = upload(
-        cwd/'amm/'target/"scala-2.12"/'amm,
-        travisTag,
-        travisTag,
-        sys.env("AMMONITE_BOT_AUTH_TOKEN")
-      )
-      short
-    }else{
-      val short = upload(
-        cwd/'amm/'target/"scala-2.12"/'amm,
-        "snapshot-commit-uploads",
-        gitHash,
-        sys.env("AMMONITE_BOT_AUTH_TOKEN")
-      )
-      short
+    for (version <- latestVersions) {
+
+      println("MASTER COMMIT: Publishing Executable for Scala " + version)
+      //Prepare executable
+      %sbt("++" + version, "amm/test:assembly")
+      val bv = binVersion(version)
+      val shortUrl = if (travisTag != ""){
+        val short = upload(
+          cwd/'amm/'target/s"scala-$bv"/'amm,
+          travisTag,
+          s"$bv-$travisTag",
+          sys.env("AMMONITE_BOT_AUTH_TOKEN")
+        )
+        short
+      }else{
+        val short = upload(
+          cwd/'amm/'target/s"scala-$bv"/'amm,
+          "snapshot-commit-uploads",
+          s"$bv-$gitHash",
+          sys.env("AMMONITE_BOT_AUTH_TOKEN")
+        )
+        short
+      }
     }
   }else{
     println("MISC COMMIT: generating executable but not publishing")

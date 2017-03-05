@@ -1,8 +1,10 @@
 package ammonite.runtime
 
-import java.net.{URL, URLClassLoader}
+import java.io.ByteArrayInputStream
+import java.net.{URL, URLClassLoader, URLConnection, URLStreamHandler}
 import java.nio.ByteBuffer
 import java.nio.file.Files
+import java.util.{Collections, Enumeration}
 
 import acyclic.file
 import ammonite.ops._
@@ -85,26 +87,6 @@ class SpecialClassLoader(specialLocalClasses: Set[String], parent: ClassLoader, 
   extends URLClassLoader(Array(), parent){
 
 
-
-  override def getResource(name: String): URL = {
-
-    val bOpt = Some(name)
-      .collect { case n if n.endsWith(".class") => n.stripSuffix(".class") }
-      .map(_.replace('/', '.'))
-      .flatMap(newFileDict.get)
-
-    if (sys.env.contains("DEBUG") || sys.props.contains("DEBUG")) println(s"getResource($name): ${bOpt.nonEmpty} (${newFileDict.keys.toVector.sorted})")
-
-    bOpt match {
-      case Some(b) =>
-        val path = Files.createTempFile("ammonite-special-loader", ".class")
-        Files.write(path, b)
-        path.toFile.deleteOnExit()
-        path.toUri.toURL
-      case None =>
-        super.getResource(name)
-    }
-  }
 
   def cloneClassLoader(): SpecialClassLoader = {
     val clone = parent match {
@@ -191,4 +173,25 @@ class SpecialClassLoader(specialLocalClasses: Set[String], parent: ClassLoader, 
       case _ => Nil
     })
   }
+
+  override def findResource(name: String) =
+    getURLFromFileDict(name).getOrElse(super.findResource(name))
+
+  override def findResources(name: String) = getURLFromFileDict(name) match {
+    case Some(u) => Collections.enumeration(Collections.singleton(u))
+    case None    => super.findResources(name)
+  }
+
+  private def getURLFromFileDict(name: String) = {
+    val className = name.stripSuffix(".class").replace('/', '.')
+    newFileDict.get(className) map { x =>
+      new URL(null, s"memory:${name}", new URLStreamHandler {
+        override def openConnection(url: URL): URLConnection = new URLConnection(url) {
+          override def connect() = ()
+          override def getInputStream = new ByteArrayInputStream(x)
+        }
+      })
+    }
+  }
+
 }
