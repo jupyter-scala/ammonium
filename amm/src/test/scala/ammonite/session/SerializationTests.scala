@@ -10,6 +10,11 @@ object SerializationTests extends TestSuite{
 
     'dummy {
       'foo - {
+        // User values from the REPL shouldn't be recomputed upon deserialization. The test below checks that the value
+        // `a`, whose computation is side-effecting, is indeed serialized along `c`, rather than re-computed.
+        // About the issue of singleton values not being serialized (and being recomputed if necessary), see the discussion
+        // in https://groups.google.com/forum/#!topic/scala-internals/h27CFLoJXjE.
+    
         check.session(
           s"""
             @ import java.nio.file._
