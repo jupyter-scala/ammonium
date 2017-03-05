@@ -19,6 +19,23 @@
       @li
         @lnk("Mailing List", "https://groups.google.com/forum/#!forum/ammonite-scala")
 
+  @sect{Older Scala Versions}
+    @p
+      While most people would be using Ammonite for the latest version of Scala,
+      2.12, Ammonite also provides standalone executables for older versions of
+      Scala:
+
+    @for(versionNameLink <- ammonite.Constants.oldCurlUrls)
+      @b
+        Scala @versionNameLink._1
+
+      @hl.sh
+        @readme.Sample.curlCommand(versionNameLink._2)
+
+    @p
+      Ammonite can also be used in old versions of Scala, embedded in an SBT
+      project, without any special modifications.
+
   @sect{Talks}
     @p
       I've also given a number of talks about Ammonite at conferences:
@@ -76,7 +93,7 @@
   @sect{Scaladoc}
     @p
       Here's the Scaladoc for the various projects:
-  
+
     @ul
       @li
         @a("Ammonite-Ops", href:="https://lihaoyi.github.io/Ammonite/api/ops/index.html")
@@ -88,7 +105,7 @@
         @a("Ammonite-Shell", href:="https://lihaoyi.github.io/Ammonite/api/shell/index.html")
       @li
         @a("Ammonite-Sshd", href:="https://lihaoyi.github.io/Ammonite/api/sshd/index.html")
-  
+
     @p
       Although it's best to read the documentation on this page to learn how
       to use these projects, the Scaladoc is still useful as a reference.
@@ -97,6 +114,37 @@
 
 
   @sect{Changelog}
+
+    @sect{0.8.2}
+      @ul
+        @li
+          Automatically publish standalone executable for Scala 2.10 and 2.11,
+          thanks to @lnk("jhnsmth", "https://github.com/jhnsmth")
+        @li
+          Bytecode of classes defined in the REPL is now accessible via
+          @code{getClass.getClassLoader.getResource}, thanks to
+          @lnk("jhnsmth", "https://github.com/jhnsmth")
+        @li
+          Fix crash in working with Hadoop in Ammonite (@issue(535)), thanks to
+          @lnk("Tom Dyas", "https://github.com/tdyas")
+        @li
+          @code{Ctrl-u} and @code{Ctrl-k} now cut to the beginning/end of the
+          current line (@issue(514)), rather than the entire input block, thanks to
+          @lnk("Jordan Gwyn", "https://github.com/emanresusername")
+    @sect{0.8.1}
+      @ul
+        @li
+          Cross-published for Scala 2.12, with the help of
+          @lnk("Roman Tkalenko", "https://github.com/tkroman") who
+          investigated and fixed a gnarly classpath bug @issue(515)
+        @li
+          Handle multi-line shebang lines, thanks to @lnk("Greg Dorrell", "https://github.com/Grogs")
+        @li
+          Fix @code{NullPointerException} on no-save-then-load situation in REPL,
+          thanks to @lnk("Roman Tkalenko", "https://github.com/tkroman")
+        @li
+          Use Console for SSHD stream redirection to avoid inter-thread spillage
+          of stdout, thanks to @lnk("Timothy Dettrick", "https://github.com/tjdett")
     @sect{0.8.0}
       @ul
         @li
@@ -581,8 +629,8 @@
         @li
           Started the @sect.ref{Ammonite Cookbook}, examples of using the
           Ammonite REPL to do useful work.
-  
-  
+
+
     @sect{0.5.2}
       @ul
         @li
@@ -660,8 +708,8 @@
         @li
           Simplify the way shelling to to run files as subprocesses works,
           and align with documentation (@issue(234))
-  
-  
+
+
     @sect{0.4.9}
       @ul
         @li
@@ -757,7 +805,7 @@
           You can now use Ammonite as a @sect.ref{Debugging} tool like Python's
           pdb, placing an interactive breakpoint anywhere within a normal
           Scala application
-  
+
     @sect{0.4.4}
       @ul
         @li
@@ -869,7 +917,7 @@
           Fix pretty-printing of higher-kinded types.
         @li
           Drop support for 2.10.x; ammonite is 2.11.x-only now
-  
+
     @sect{0.3.1}
       @ul
         @li
@@ -885,7 +933,7 @@
         @li
           Operator-named two-param generic types are now printed infix by
           default.
-  
+
     @sect{0.3.0}
       @ul
         @li
@@ -903,13 +951,13 @@
         @li
           Output lines are now truncated past a certain length, which is
           configurable, thanks to @lnk("Laszlo Mero", "https://github.com/laci37")
-  
+
     @sect{0.2.9}
       @ul
         @li
           Lots of improvements to @code{Ctrl-C} and @code{Ctrl-D} handling, to
           make it behave more like other REPLs
-  
+
     @sect{0.2.8}
       @ul
         @li
@@ -947,6 +995,16 @@
       initialCommands in (Test, console) := """ammonite.Main().run()"""
 
     @p
+      Ammonite also provides standalone unstable executables for older versions
+      of Scala:
+
+    @for(versionNameLink <- ammonite.Constants.oldUnstableCurlUrls)
+      @b
+        Scala @versionNameLink._1
+
+      @hl.sh
+        @readme.Sample.curlCommand(versionNameLink._2)
+    @p
       These unstable versions will contain any brand-new features that are
       currently being worked on, with the caveat that they are unstable and
       these features are subject to change or experimentation. They will
@@ -961,7 +1019,3 @@
 
     @sect{Unstable Changlog}
       @ul
-        @li
-          Cross-published for Scala 2.12; if you want to use Ammonite with
-          Scala 2.12, whether in an SBT project or standalone, use the latest 
-          unstable version as shown above.

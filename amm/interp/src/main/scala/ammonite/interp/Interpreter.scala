@@ -401,7 +401,7 @@ class Interpreter(val printer: Printer,
         (source, verboseOutput) match {
           case (ImportHook.Source.File(fName), true) =>
             printer.out("Compiling " + fName.last + "\n")
-          case (ImportHook.Source.URL(url), true) => 
+          case (ImportHook.Source.URL(url), true) =>
             printer.out("Compiling " + url + "\n")
           case _ =>
         }
@@ -677,6 +677,10 @@ class Interpreter(val printer: Printer,
     def cp(jar: Path): Unit = {
       val f = new java.io.File(jar.toString)
       handleClasspath0(Seq(f), Nil)
+      reInit()
+    }
+    def cp(jars: Seq[Path]): Unit = {
+      handleClasspath(jars.map(_.toString).map(new java.io.File(_)), Nil)
       reInit()
     }
     def ivy(coordinates: (String, String, String), verbose: Boolean = true): Unit = {
