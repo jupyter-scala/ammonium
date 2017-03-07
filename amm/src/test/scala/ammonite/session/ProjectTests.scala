@@ -33,6 +33,39 @@ object ProjectTests extends TestSuite{
         """)
           }
         }
+        'hooks - {
+          retry(3) {
+            // ivy or maven central are flaky =/
+            val tq = "\"\"\""
+            check.session(
+              s"""
+          @ import scalatags.Text.all._
+          error: not found: value scalatags
+
+          @ var jarAdded = Seq.empty[java.io.File]
+
+          @ interp.load.onJarAdded { jars =>
+          @   jarAdded = jarAdded ++ jars
+          @ }
+
+          @ val foundBefore = jarAdded.exists(_.getName.startsWith("scalatags_"))
+          foundBefore: Boolean = false
+
+          @ import $$ivy.`com.lihaoyi::scalatags:0.6.2`
+
+          @ import scalatags.Text.all._
+          import scalatags.Text.all._
+
+          @ a("omg", href:="www.google.com").render
+          res5: String = $tq
+          <a href="www.google.com">omg</a>
+          $tq
+
+          @ val foundAfter = jarAdded.exists(_.getName.startsWith("scalatags_"))
+          foundAfter: Boolean = true
+        """)
+          }
+        }
         'akkahttp - {
             if (!scala2_12) check.session(
               """

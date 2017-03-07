@@ -193,7 +193,7 @@ class Interpreter(val printer: Printer,
         case res: ImportHook.Result.ClassPath =>
 
           if (res.plugin) handlePluginClasspath(res.files.map(_.toIO), res.coordinates)
-          else handleEvalClasspath(res.files.map(_.toIO), res.coordinates)
+          else interpApi0.load.doHandleClasspath(res.files.map(_.toIO), res.coordinates)
 
           Res.Success(Imports())
       }
@@ -664,39 +664,6 @@ class Interpreter(val printer: Printer,
       if (verbose) 2 else 1
     ).toSet
   }
-  abstract class DefaultLoadJar extends LoadJar {
-
-    def isPlugin: Boolean
-    def handleClasspath(jars: Seq[File], coords: Seq[(String, String, String)]): Seq[File]
-
-    private def handleClasspath0(jars: Seq[File], coords: Seq[(String, String, String)]): Unit = {
-      callbacks.foreach(_(jars))
-      handleClasspath(jars, coords)
-    }
-
-    def cp(jar: Path): Unit = {
-      val f = new java.io.File(jar.toString)
-      handleClasspath0(Seq(f), Nil)
-      reInit()
-    }
-    def cp(jars: Seq[Path]): Unit = {
-      handleClasspath(jars.map(_.toString).map(new java.io.File(_)), Nil)
-      reInit()
-    }
-    def ivy(coordinates: (String, String, String), verbose: Boolean = true): Unit = {
-      val resolved = loadIvy(coordinates, addedDependencies(isPlugin), exclusions(isPlugin), verbose) -- addedJars(isPlugin)
-      val (groupId, artifactId, version) = coordinates
-
-      handleClasspath0(resolved.toSeq, Seq(coordinates))
-
-      reInit()
-    }
-
-    private var callbacks = Seq.empty[Seq[java.io.File] => Unit]
-    def onJarAdded(cb: Seq[java.io.File] => Unit): Unit = {
-      callbacks = callbacks :+ cb
-    }
-  }
 
   def handleEvalClasspath(jars: Seq[File], coords: Seq[(String, String, String)]) = {
     val newJars = jars.filterNot(addedJars0)
@@ -715,11 +682,14 @@ class Interpreter(val printer: Printer,
     addedPluginDependencies ++= coords
     newJars
   }
-  lazy val interpApi: InterpAPI = new InterpAPI{ outer =>
+  def interpApi: InterpAPI = interpApi0
+  private lazy val interpApi0: Interpreter.InterpAPIWithDefaultLoadJar = new Interpreter.InterpAPIWithDefaultLoadJar{ outer =>
     lazy val resolvers =
       Ref(ammonite.runtime.tools.Resolvers.defaultResolvers)
 
-    object load extends DefaultLoadJar with Load {
+    val load: Interpreter.DefaultLoadJar with Load = new Interpreter.DefaultLoadJar with Load {
+
+      def interpreter = interp
 
       def isPlugin = false
       def handleClasspath(jars: Seq[File], coords: Seq[(String, String, String)]) =
@@ -752,7 +722,8 @@ class Interpreter(val printer: Printer,
 
       def profiles = interp.profiles
 
-      object plugin extends DefaultLoadJar {
+      object plugin extends Interpreter.DefaultLoadJar {
+        def interpreter = interp
         def isPlugin = true
         def handleClasspath(jars: Seq[File], coords: Seq[(String, String, String)]) =
           handlePluginClasspath(jars, coords)
@@ -854,4 +825,44 @@ object Interpreter{
   }
 
   def defaultEvaluator = Evaluator(initClassLoader, 0)
+
+  private abstract class DefaultLoadJar extends LoadJar {
+
+    def interpreter: Interpreter
+
+    def isPlugin: Boolean
+    def handleClasspath(jars: Seq[File], coords: Seq[(String, String, String)]): Seq[File]
+
+    def doHandleClasspath(jars: Seq[File], coords: Seq[(String, String, String)]): Seq[File] = {
+      val newJars = handleClasspath(jars, coords)
+      callbacks.foreach(_(newJars))
+      newJars
+    }
+
+    def cp(jar: Path): Unit = {
+      val f = new java.io.File(jar.toString)
+      doHandleClasspath(Seq(f), Nil)
+      interpreter.reInit()
+    }
+    def cp(jars: Seq[Path]): Unit = {
+      doHandleClasspath(jars.map(_.toString).map(new java.io.File(_)), Nil)
+      interpreter.reInit()
+    }
+    def ivy(coordinates: (String, String, String), verbose: Boolean = true): Unit = {
+      val resolved = interpreter.loadIvy(coordinates, interpreter.addedDependencies(isPlugin), interpreter.exclusions(isPlugin), verbose) -- interpreter.addedJars(isPlugin)
+      val (groupId, artifactId, version) = coordinates
+
+      doHandleClasspath(resolved.toSeq, Seq(coordinates))
+
+      interpreter.reInit()
+    }
+
+    private var callbacks = Seq.empty[Seq[java.io.File] => Unit]
+    def onJarAdded(cb: Seq[java.io.File] => Unit): Unit = {
+      callbacks = callbacks :+ cb
+    }
+  }
+  private trait InterpAPIWithDefaultLoadJar extends InterpAPI {
+    def load: DefaultLoadJar with Load
+  }
 }
