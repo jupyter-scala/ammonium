@@ -163,12 +163,6 @@ object Resolvers {
      "/[organisation]/[module]/[revision]/[type]s/[artifact](-[classifier]).[ext]",
      m2 = false
    ),
-   Resolver.File(
-     "m2",
-     "/.m2/repository",
-     "/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]",
-     m2 = true
-   ),
    Resolver.Http(
      "central",
      "https://repo1.maven.org/maven2/",
