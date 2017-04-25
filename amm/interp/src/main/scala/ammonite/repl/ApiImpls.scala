@@ -65,6 +65,7 @@ class RuntimeApiImpl(val interp: Interpreter,
 
   def imports = Preprocessor.importBlock(eval.frames.head.imports)
   val colors = colors0
+  val beforeExitHooks = interp.beforeExitHooks
 
   implicit def tprintColors = pprint.TPrintColors(
     typeColor = colors().`type`()
