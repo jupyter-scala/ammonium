@@ -97,9 +97,11 @@ class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verbose
 
     artifactLogger.init()
 
+    val types = Set("jar", "bundle")
+
     val a =
       try {
-        Task.gatherUnordered(res.dependencyArtifacts.map(_._2).filter(_.`type` == "jar").map { artifact =>
+        Task.gatherUnordered(res.dependencyArtifacts.map(_._2).filter(a => types(a.`type`)).map { artifact =>
           def fetch(p: CachePolicy) =
             Cache.file(artifact, logger = Some(artifactLogger), cachePolicy = p)
 
