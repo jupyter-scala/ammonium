@@ -4,9 +4,9 @@ import java.io.PrintWriter
 
 import ammonite.util.Printer
 import coursier._
+import coursier.core.{Authentication => CoursierAuthentication}
 import coursier.ivy.IvyRepository
 import coursier.maven.MavenRepository
-
 import scalaz.{-\/, \/-}
 import scalaz.concurrent.Task
 
@@ -180,6 +180,10 @@ object Resolvers {
  )
 }
 
+case class Authentication(user: String, password: String) {
+  override def toString: String = s"Authentication($user, *******)"
+}
+
 /**
   * A thin wrapper around [[Repository]], which wraps them and provides
   * hashability in order to set the cache tags. This lets us invalidate the ivy
@@ -201,13 +205,18 @@ object Resolver{
         }
     }
   }
-  case class Http(name: String, root: String, pattern: String, m2: Boolean) extends Resolver{
-    def apply() =
+  case class Http(name: String, root: String, pattern: String, m2: Boolean,
+                  authentication: Option[Authentication] = None) extends Resolver{
+    def apply() = {
+      val coursierAuthentication = authentication.map(auth => CoursierAuthentication(auth.user, auth.password))
       if (m2)
-        MavenRepository(root, changing = None)
+        MavenRepository(root, changing = None,
+                        authentication = coursierAuthentication)
       else
-        IvyRepository.parse((root + pattern).replace("[ivyPattern]", Resolvers.IvyPattern)).getOrElse {
+        IvyRepository.parse((root + pattern).replace("[ivyPattern]", Resolvers.IvyPattern),
+                            authentication = coursierAuthentication).getOrElse {
           throw new Exception(s"Error parsing Ivy pattern $root$pattern")
         }
+    }
   }
 }
