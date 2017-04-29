@@ -1,8 +1,8 @@
 #!/bin/bash
 
-VERSION=${VERSION:-0.8.2-2}
+VERSION=${VERSION:-0.8.3}
 ORG=org.jupyter-scala
-SCALA_VERSION=2.11.8
+SCALA_VERSION=2.11.11
 
 # Runs ammonium / ammonite with only the ammonite-repl seen by the user
 exec coursier launch \
