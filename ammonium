@@ -1,12 +1,29 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -e
 
 VERSION=${VERSION:-0.8.3}
 ORG=org.jupyter-scala
-SCALA_VERSION=2.11.11
+SCALA_VERSION=2.11.11 # Set to 2.12.2 for scala 2.12
+
+TYPELEVEL_SCALA=false # If true, set SCALA_VERSION above to a both ammonium + TLS available version (e.g. 2.11.8)
+
+EXTRA_OPTS=()
+
+if [ "$TYPELEVEL_SCALA" = true ]; then
+  EXTRA_OPTS+=(
+    -E org.scala-lang:scala-compiler \
+    -E org.scala-lang:scala-library \
+    -E org.scala-lang:scala-reflect \
+    -I ammonite:org.typelevel:scala-compiler:$SCALA_VERSION \
+    -I ammonite:org.typelevel:scala-library:$SCALA_VERSION \
+    -I ammonite:org.typelevel:scala-reflect:$SCALA_VERSION \
+  )
+fi
 
 # Runs ammonium / ammonite with only the ammonite-repl seen by the user
 exec coursier launch \
   -r sonatype:releases -r sonatype:snapshots \
   -i ammonite -I ammonite:$ORG:ammonite-repl_$SCALA_VERSION:$VERSION \
+  ${EXTRA_OPTS[@]} \
   $ORG:ammonite_$SCALA_VERSION:$VERSION \
   -- "$@"
