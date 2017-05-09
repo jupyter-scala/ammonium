@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-VERSION=${VERSION:-0.8.3-1}
+VERSION=${VERSION:-0.8.3-2}
 ORG=org.jupyter-scala
 SCALA_VERSION=2.11.11 # Set to 2.12.2 for scala 2.12
 
