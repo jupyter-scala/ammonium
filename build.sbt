@@ -186,15 +186,30 @@ lazy val ammUtil = project
 lazy val ammRuntime = project
   .in(file("amm/runtime"))
   .dependsOn(ops, ammUtil)
+  .enablePlugins(coursier.ShadingPlugin)
   .settings(
     macroSettings,
     sharedSettings,
     crossVersion := CrossVersion.full,
 
     name := "ammonite-runtime",
+    inConfig(coursier.ShadingPlugin.Shading)(com.typesafe.sbt.pgp.PgpSettings.projectSettings),
+     // ytf does this have to be repeated here?
+     // Can't figure out why configuration get lost without this in particular...
+    coursier.ShadingPlugin.projectSettings,
+    shadingNamespace := "ammonite.shaded",
+    shadeNamespaces ++= Set(
+      "coursier",
+      "scalaz",
+      "org.jsoup"
+    ),
+    publish := publish.in(Shading).value,
+    publishLocal := publishLocal.in(Shading).value,
+    PgpKeys.publishSigned := PgpKeys.publishSigned.in(Shading).value,
+    PgpKeys.publishLocalSigned := PgpKeys.publishLocalSigned.in(Shading).value,
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-      "io.get-coursier" %% "coursier-cache" % "1.0.0-RC2",
+      "io.get-coursier" %% "coursier-cache" % "1.0.0-RC2" % "shaded",
       "org.scalaj" %% "scalaj-http" % "2.3.0"
     )
   )
