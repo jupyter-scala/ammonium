@@ -12,9 +12,11 @@ object Defaults{
     def ammoniteVersion = ammonite.Constants.version
     def scalaVersion = scala.util.Properties.versionNumberString
     def javaVersion = System.getProperty("java.version")
+    val link = "www.patreon.com/lihaoyi"
     Util.normalizeNewlines(
       s"""Welcome to the Ammonite Repl $ammoniteVersion
-          |(Scala $scalaVersion Java $javaVersion)""".stripMargin
+          |(Scala $scalaVersion Java $javaVersion)
+          |If you like Ammonite, please support our development at $link""".stripMargin
     )
   }
   val ignoreUselessImports = """
