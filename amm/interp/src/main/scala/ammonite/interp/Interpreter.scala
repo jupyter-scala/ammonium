@@ -412,11 +412,9 @@ class Interpreter(val printer: Printer,
       tag
     ) match {
       case None =>
-        (source, verboseOutput) match {
-          case (ImportHook.Source.File(fName), true) =>
-            printer.out("Compiling " + fName.last + "\n")
-          case (ImportHook.Source.URL(url), true) =>
-            printer.out("Compiling " + url + "\n")
+        source match {
+          case ImportHook.Source.File(fName) => printer.info("Compiling " + fName.last)
+          case ImportHook.Source.URL(url) => printer.info("Compiling " + url)
           case _ =>
         }
         init()
@@ -663,8 +661,7 @@ class Interpreter(val printer: Printer,
   def loadIvy(
     coordinates: (String, String, String),
     previousCoordinates: Seq[(String, String, String)],
-    exclusions: Seq[(String, String)],
-    verbose: Boolean = true
+    exclusions: Seq[(String, String)]
   ) = {
     val (groupId, artifactId, version) = coordinates
 
@@ -674,8 +671,7 @@ class Interpreter(val printer: Printer,
       version,
       previousCoordinates,
       exclusions,
-      profiles,
-      if (verbose) 2 else 1
+      profiles
     ).toSet
   }
 
@@ -793,20 +789,24 @@ object Interpreter{
     Name(wrapperName.raw + (if (wrapperIndex == 1) "" else "_" + wrapperIndex))
   }
 
-  def initPrinters(output: OutputStream, error: OutputStream, verboseOutput: Boolean) = {
+  def initPrinters(output: OutputStream,
+                   info: OutputStream,
+                   error: OutputStream,
+                   verboseOutput: Boolean) = {
     val colors = Ref[Colors](Colors.Default)
     val printStream = new PrintStream(output, true)
     val errorPrintStream = new PrintStream(error, true)
+    val infoPrintStream = new PrintStream(info, true)
 
-
-    def printlnWithColor(color: fansi.Attrs, s: String) = {
-      Seq(color(s).render, newLine).foreach(errorPrintStream.print)
+    def printlnWithColor(stream: PrintStream, color: fansi.Attrs, s: String) = {
+      stream.println(color(s).render)
     }
+
     val printer = Printer(
       printStream.print,
-      printlnWithColor(colors().warning(), _),
-      printlnWithColor(colors().error(), _),
-      printlnWithColor(fansi.Attrs.Empty, _)
+      printlnWithColor(errorPrintStream, colors().warning(), _),
+      printlnWithColor(errorPrintStream, colors().error(), _),
+      s => if (verboseOutput) printlnWithColor(infoPrintStream, fansi.Attrs.Empty, s)
     )
     (colors, printStream, errorPrintStream, printer)
   }
@@ -864,8 +864,8 @@ object Interpreter{
       doHandleClasspath(jars.map(_.toString).map(new java.io.File(_)), Nil)
       interpreter.reInit()
     }
-    def ivy(coordinates: (String, String, String), verbose: Boolean = true): Unit = {
-      val resolved = interpreter.loadIvy(coordinates, interpreter.addedDependencies(isPlugin), interpreter.exclusions(isPlugin), verbose) -- interpreter.addedJars(isPlugin)
+    def ivy(coordinates: (String, String, String)): Unit = {
+      val resolved = interpreter.loadIvy(coordinates, interpreter.addedDependencies(isPlugin), interpreter.exclusions(isPlugin)) -- interpreter.addedJars(isPlugin)
       val (groupId, artifactId, version) = coordinates
 
       doHandleClasspath(resolved.toSeq, Seq(coordinates))

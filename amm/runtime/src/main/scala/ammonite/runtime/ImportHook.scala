@@ -38,8 +38,7 @@ object ImportHook{
     def loadIvy(
       coordinates: (String, String, String),
       previousCoordinates: Seq[(String, String, String)],
-      exclusions: Seq[(String, String)],
-      verbose: Boolean = true
+      exclusions: Seq[(String, String)]
     ): Set[File]
   }
 
