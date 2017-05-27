@@ -178,10 +178,10 @@ lazy val ammUtil = project
     name := "ammonite-util",
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "upickle" % "0.4.4",
-      "com.lihaoyi" %% "pprint" % "0.4.4"
+      "com.lihaoyi" %% "pprint" % "0.5.1",
+      "com.lihaoyi" %% "fansi" % "0.2.4"
     )
   )
-
 
 lazy val ammRuntime = project
   .in(file("amm/runtime"))
@@ -271,6 +271,7 @@ val integrationTasks = Seq(
   assembly in amm,
   packageBin in (shell, Compile)
 )
+
 lazy val integration = project
   .dependsOn(ops)
   .dependsOn(amm)
@@ -308,7 +309,6 @@ lazy val sshd = project
       )
   )
 
-
 lazy val readme = ScalatexReadme(
   projectId = "readme",
   wd = file(""),
@@ -342,7 +342,6 @@ lazy val readme = ScalatexReadme(
   }).evaluated,
   (unmanagedSources in Compile) += baseDirectory.value/".."/"project"/"Constants.scala"
 )
-
 
 lazy val published = project
   .in(file("target/published"))
