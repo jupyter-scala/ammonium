@@ -29,7 +29,7 @@ trait DependencyConstructor{
  *
  * And transliterated into Scala. I have no idea how or why it works.
  */
-class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verboseOutput: Boolean) {
+class DependencyThing(repositories: () => List[Resolver], printer: Printer, verboseOutput: Boolean) {
 
   def exceptionMessage(conflicts: Seq[String], failed: Seq[String], converged: Boolean) =
     Seq(
@@ -51,18 +51,19 @@ class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verbose
     exceptionMessage(conflicts, failed, converged)
   )
 
-  def resolveArtifact(groupId: String,
-                      artifactId: String,
-                      version: String,
-                      previousCoordinates: Seq[(String, String, String)],
-                      exclusions: Seq[(String, String)],
-                      profiles: Set[String]) = synchronized {
+  def resolveArtifacts(coordinates: Seq[(String, String, String)],
+                       previousCoordinates: Seq[(String, String, String)],
+                       exclusions: Seq[(String, String)],
+                       profiles: Set[String]) = synchronized {
 
-    val dep = Dependency(Module(groupId, artifactId), version)
+    val deps = coordinates.map {
+      case (groupId, artifactId, version) =>
+        Dependency(Module(groupId, artifactId), version)
+    }
     val previousDeps = previousCoordinates.map { case (org, name, ver) => Dependency(Module(org, name), ver) }
 
     val start = Resolution(
-      (previousDeps :+ dep).map { dep0 =>
+      (previousDeps ++ deps).map { dep0 =>
         dep0.copy(
           exclusions = dep0.exclusions ++ exclusions
         )
@@ -73,7 +74,7 @@ class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verbose
     val metadataLogger = new TermDisplay(new PrintWriter(System.out))
 
     val fetch = Fetch.from(
-      resolvers().map(_()),
+      repositories().map(_()),
       Cache.fetch(cachePolicy = CachePolicy.default.head, logger = Some(metadataLogger)),
       CachePolicy.default.tail.map(p =>
         Cache.fetch(cachePolicy = p, logger = Some(metadataLogger))

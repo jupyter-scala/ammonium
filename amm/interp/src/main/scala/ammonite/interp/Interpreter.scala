@@ -126,7 +126,6 @@ class Interpreter(val printer: Printer,
   val importHooks = Ref(Map[Seq[String], ImportHook](
     Seq("file") -> ImportHook.File,
     Seq("exec") -> ImportHook.Exec,
-    Seq("url") -> ImportHook.Http,
     Seq("ivy") -> ImportHook.Ivy,
     Seq("repo") -> ImportHook.Repository,
     Seq("exclude") -> ImportHook.IvyExclude,
@@ -156,7 +155,7 @@ class Interpreter(val printer: Printer,
     val pkgName = Seq(Name("ammonite"), Name("predef"))
 
     processModule(
-      ImportHook.Source.File(wd/s"${wrapperName.raw}.sc"),
+      ImportHook.Source(wd/s"${wrapperName.raw}.sc"),
       sourceCode,
       wrapperName,
       pkgName,
@@ -174,6 +173,7 @@ class Interpreter(val printer: Printer,
 
       case Res.Exception(ex, msg) =>
         throw new RuntimeException("Error during Predef: " + msg, ex)
+      case _ => ???
     }
   }
 
@@ -186,7 +186,9 @@ class Interpreter(val printer: Printer,
     val hookOpt = importHooks().collectFirst{case (k, v) if strippedPrefix.startsWith(k) => (k, v)}
     for{
       (hookPrefix, hook) <- Res(hookOpt, "Import Hook could not be resolved")
-      hooked <- hook.handle(source, tree.copy(prefix = tree.prefix.drop(hookPrefix.length)), this)
+      hooked <- Res(
+        hook.handle(source, tree.copy(prefix = tree.prefix.drop(hookPrefix.length)), this)
+      )
       hookResults <- Res.map(hooked){
         case res: ImportHook.Result.Source =>
           for{
@@ -249,7 +251,7 @@ class Interpreter(val printer: Printer,
       }
 
       (hookImports, normalStmts, _) <- resolveImportHooks(
-        ImportHook.Source.File(wd/"<console>"),
+        ImportHook.Source(wd/"<console>"),
         stmts
       )
 
@@ -407,11 +409,7 @@ class Interpreter(val printer: Printer,
       tag
     ) match {
       case None =>
-        source match {
-          case ImportHook.Source.File(fName) => printer.info("Compiling " + fName.last)
-          case ImportHook.Source.URL(url) => printer.info("Compiling " + url)
-          case _ =>
-        }
+        printer.info("Compiling " + source.path)
         init()
         val res = processModule0(
           source, code, wrapperName, pkgName,
@@ -479,10 +477,7 @@ class Interpreter(val printer: Printer,
             processScriptBlock(
               processed, printer,
               Interpreter.indexWrapperName(wrapperName, wrapperIndex),
-              source match {
-                case ImportHook.Source.File(fname) => fname.toString
-                case _ => wrapperName.raw + ".sc"
-              },
+              source.path.toString,
               pkgName
             )
           ),
@@ -499,7 +494,7 @@ class Interpreter(val printer: Printer,
     init()
     for {
       (processedBlocks, hookImports, _) <- preprocessScript(
-        ImportHook.Source.File(wd/"<console>"),
+        ImportHook.Source(wd/"<console>"),
         code
       )
       (imports, _) <- processCorrectScript(
@@ -603,6 +598,7 @@ class Interpreter(val printer: Printer,
             wrapperIndex + 1,
             compiledData
           )
+          case _ => ???
         }
       }
     }
@@ -625,13 +621,13 @@ class Interpreter(val printer: Printer,
   }
 
   lazy val depThing = new ammonite.runtime.tools.DependencyThing(
-    () => interpApi.resolvers(),
+    () => interpApi.repositories(),
     printer,
     verboseOutput
   )
 
-  def exclude(coordinates: (String, String)): Unit =
-    dependencyExclusions += coordinates
+  def exclude(coordinates: (String, String)*): Unit =
+    dependencyExclusions ++= coordinates
   def addProfile(profile: String): Unit =
     profiles0 += profile
   def addRepository(repository: String): Unit = {
@@ -643,7 +639,7 @@ class Interpreter(val printer: Printer,
       m2 = !repository.startsWith("ivy:")
     )
 
-    interpApi.resolvers() = interpApi.resolvers() :+ repo
+    interpApi.repositories() = interpApi.repositories() :+ repo
   }
   def profiles: Set[String] =
     profiles0.toSet
@@ -654,21 +650,16 @@ class Interpreter(val printer: Printer,
     if (plugin) Nil
     else dependencyExclusions
   def loadIvy(
-    coordinates: (String, String, String),
+    coordinates: Seq[(String, String, String)],
     previousCoordinates: Seq[(String, String, String)],
     exclusions: Seq[(String, String)]
-  ) = {
-    val (groupId, artifactId, version) = coordinates
-
-    depThing.resolveArtifact(
-      groupId,
-      artifactId,
-      version,
+  ) =
+    depThing.resolveArtifacts(
+      coordinates,
       previousCoordinates,
       exclusions,
       profiles
     ).toSet
-  }
 
   def handleEvalClasspath(jars: Seq[File], coords: Seq[(String, String, String)]) = {
     val newJars = jars.filterNot(addedJars0)
@@ -689,8 +680,7 @@ class Interpreter(val printer: Printer,
   }
   def interpApi: InterpAPI = interpApi0
   private lazy val interpApi0: Interpreter.InterpAPIWithDefaultLoadJar = new Interpreter.InterpAPIWithDefaultLoadJar{ outer =>
-    lazy val resolvers =
-      Ref(ammonite.runtime.tools.Resolvers.defaultResolvers)
+    lazy val repositories = Ref(ammonite.runtime.tools.Resolvers.defaultResolvers)
 
     val load: Interpreter.DefaultLoadJar with Load = new Interpreter.DefaultLoadJar with Load {
 
@@ -711,7 +701,7 @@ class Interpreter(val printer: Printer,
       def module(file: Path) = {
         val (pkg, wrapper) = Util.pathToPackageWrapper(file, wd)
         processModule(
-          ImportHook.Source.File(wd/"Main.sc"),
+          ImportHook.Source(wd/"Main.sc"),
           normalizeNewlines(read(file)),
           wrapper,
           pkg,
@@ -859,11 +849,10 @@ object Interpreter{
       doHandleClasspath(jars.map(_.toString).map(new java.io.File(_)), Nil)
       interpreter.reInit()
     }
-    def ivy(coordinates: (String, String, String)): Unit = {
+    def ivy(coordinates: (String, String, String)*): Unit = {
       val resolved = interpreter.loadIvy(coordinates, interpreter.addedDependencies(isPlugin), interpreter.exclusions(isPlugin)) -- interpreter.addedJars(isPlugin)
-      val (groupId, artifactId, version) = coordinates
 
-      doHandleClasspath(resolved.toSeq, Seq(coordinates))
+      doHandleClasspath(resolved.toSeq, coordinates)
 
       interpreter.reInit()
     }
