@@ -123,7 +123,7 @@ object Preprocessor{
       s"""
       $printBridge
             .Internal
-            .print(wrapper.wrapper.$ident, wrapper.wrapper.$ident, "$ident", $customCode)
+            .print(wrapper.wrapper.$ident, "$ident", $customCode)
       """
     }
     def definedStr(definitionLabel: String, name: String) =

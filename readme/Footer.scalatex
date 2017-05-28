@@ -115,6 +115,56 @@
 
   @sect{Changelog}
 
+    @sect{0.8.5}
+      @ul
+        @li
+          Fix classLoader related problem in Multi-stage scripts with @hl.scala("@main")
+          (@issue(591))
+        @li
+          A nicer error message when you try to run a non-existent script (@issue(522))
+        @li
+          @hl.scala{ammonite.ops.Path(s: String)} now resolves @code{~} to the
+          home directory of the current user
+        @li
+          Many improvements to classpath scanning and re-compilation logic (@issue(542))
+          which should greatly reduce the time taken start Ammonite in an SBT project,
+          and avoid many existing problems with stale compilation caches.
+        @li
+          Fix crash when you try to run an empty script
+        @li
+          Miscellaneous info messages now go to stderr rather than stdout, so they
+          don't get mixed into your script output if you pipe into a file (@issue(574))
+        @li
+          We recently launched a @lnk("Patreon page", "https://www.patreon.com/lihaoyi")
+          to raise money to fund future development of Ammonite. If you've enjoyed using
+          Ammonite, and use it day to day, please
+          @lnk("chip in", "https://www.patreon.com/lihaoyi") to support our project!
+
+
+    @sect{0.8.4}
+      @ul
+        @li
+          Make startup banner configurable via a command line flag
+
+    @sect{0.8.3}
+      @ul
+        @li
+          Cross-publish for Scala 2.12.2, 2.11.11
+        @li
+          Bump version of apache-sshd (@issue(545)), by 
+          @lnk("emanresusername", "https://github.com/emanresusername")
+        @li
+          Avoid @code{FileAlreadyExistsException} when compiling scripts in
+          parallel (@issue(567)), by @lnk("armanbilge", "https://github.com/armanbilge")
+        @li
+          Add @code{beforeExitHooks} so you can register cleanup code (@issue(581)), by
+          @lnk("emanresusername", "https://github.com/emanresusername")
+        @li
+          Add a sleep in @code{Shellout.executeStream} to reduce spinning. (@issue(578)), by
+          @lnk("rorygraves", "https://github.com/rorygraves")
+        @li
+          Add an overloaded version of LoadJar.cp that takes a sequence of paths, by
+          @lnk("mallman", "https://github.com/mallman")
     @sect{0.8.2}
       @ul
         @li

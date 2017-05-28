@@ -9,11 +9,10 @@ import scala.collection.{immutable => imm}
 object ProjectTests extends TestSuite{
   val tests = TestSuite{
     println("ProjectTests")
-    val check = new TestRepl()
+    def check = new TestRepl()
     'load {
       'ivy {
         'standalone - {
-          retry(3) {
             // ivy or maven central are flaky =/
             val tq = "\"\"\""
             check.session(
@@ -27,11 +26,8 @@ object ProjectTests extends TestSuite{
           import scalatags.Text.all._
 
           @ a("omg", href:="www.google.com").render
-          res2: String = $tq
-          <a href="www.google.com">omg</a>
-          $tq
+          res2: String = "<a href=\\"www.google.com\\">omg</a>"
         """)
-          }
         }
         'hooks - {
           retry(3) {
@@ -57,9 +53,7 @@ object ProjectTests extends TestSuite{
           import scalatags.Text.all._
 
           @ a("omg", href:="www.google.com").render
-          res5: String = $tq
-          <a href="www.google.com">omg</a>
-          $tq
+          res5: String = "<a href=\\"www.google.com\\">omg</a>"
 
           @ val foundAfter = jarAdded.exists(_.getName.startsWith("scalatags_"))
           foundAfter: Boolean = true
@@ -200,7 +194,7 @@ object ProjectTests extends TestSuite{
         @ import $ivy.`com.chuusai::shapeless:2.3.2`, shapeless._
 
         @ (1 :: "lol" :: List(1, 2, 3) :: HNil)
-        res1: Int :: String :: List[Int] :: HNil = 1 :: lol :: List(1, 2, 3) :: HNil
+        res1: Int :: String :: List[Int] :: HNil = 1 :: "lol" :: List(1, 2, 3) :: HNil
 
         @ res1(1)
         res2: String = "lol"
@@ -259,7 +253,11 @@ object ProjectTests extends TestSuite{
           res1: Int = 1
 
           @ ExprCtx.Parened.parse("1 + 1") // for some reason the tuple isn't pprinted
-          res2: fastparse.core.Parsed[Unit,Char,String] = Failure("(":1:1 ..."1 + 1")
+          res2: fastparse.core.Parsed[Unit,Char,String] = Failure(
+            ElemLiteral('('),
+            0,
+            Extra(1 + 1, [traced - not evaluated])
+          )
 
           @ ExprCtx.Parened.parse("(1 + 1)")
           res3: fastparse.core.Parsed[Unit,Char,String] = Success((), 7)
@@ -342,11 +340,14 @@ object ProjectTests extends TestSuite{
           res8: Double = 0.375
 
           @ Interval(0, 10)
-          res9: Interval[Int] = [0, 10]
+          res9: Interval[Int] = Bounded(0, 10, 0)
+
+          @ mean(Rational(1, 2), Rational(3, 2), Rational(0))
+          res10: Rational = 2/3
         """)
       else if (scala2_10)
         check.session(s"""
-          @ import $$ivy.`org.spire-math::spire:0.11.0`
+          @ import $$ivy.`org.spire-math::spire:0.13.0`
 
           @ import spire.implicits._
 
@@ -372,13 +373,11 @@ object ProjectTests extends TestSuite{
           res8: Double = 0.375
 
           @ Interval(0, 10)
-          res9: spire.math.Interval[Int] = [0, 10]
-        """)
+          res9: spire.math.Interval[Int] = Bounded(0, 10, 0)
 
-      // This fella is misbehaving but I can't figure out why :/
-      //
-      //          @ mean(Rational(1, 2), Rational(3, 2), Rational(0))
-      //      res9: spire.math.Rational = 2/3
+          @ mean(Rational(1, 2), Rational(3, 2), Rational(0))
+          res10: spire.math.Rational = 2/3
+        """)
 
     }
     'pegdown{

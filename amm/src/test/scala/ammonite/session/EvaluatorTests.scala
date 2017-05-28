@@ -168,9 +168,9 @@ object EvaluatorTests extends TestSuite{
 
     'packageImport{
       check.session("""
-        @ import pprint._
+        @ import java.util._
 
-        @ import Config.Defaults._
+        @ import concurrent.atomic._
       """)
     }
 

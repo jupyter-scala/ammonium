@@ -1,4 +1,6 @@
 package ammonite.main
+import java.nio.file.NoSuchFileException
+
 import acyclic.file
 import ammonite.runtime.ImportHook
 import ammonite.main.Router.{ArgSig, EntryPoint}
@@ -18,10 +20,14 @@ object Scripts {
                 args: Seq[String],
                 kwargs: Seq[(String, String)]) = {
     val (pkg, wrapper) = Util.pathToPackageWrapper(path, wd)
+
     for{
+      scriptTxt <- try Res.Success(Util.normalizeNewlines(read(path))) catch{
+        case e: NoSuchFileException => Res.Failure(Some(e), "Script file not found: " + path)
+      }
       (imports, wrapperHashes) <- interp.processModule(
         ImportHook.Source.File(path),
-        Util.normalizeNewlines(read(path)),
+        scriptTxt,
         wrapper,
         pkg,
         autoImport = true,
@@ -37,10 +43,14 @@ object Scripts {
           |  def apply() = ammonite.main.Router.generateRoutes[$$routesOuter.type]($$routesOuter)
           |}
           """.stripMargin
-        )
+        ),
+        hardcoded = true
       )
 
-      routeClsName = wrapperHashes.last._1
+      routeClsName <- wrapperHashes.lastOption match{
+        case Some((wrapperName, wrapperHash)) => Res.Success(wrapperName)
+        case None => Res.Skip
+      }
 
       routesCls =
         interp
@@ -57,32 +67,34 @@ object Scripts {
             .asInstanceOf[() => Seq[Router.EntryPoint]]
             .apply()
 
-      res <- scriptMains match {
-        // If there are no @main methods, there's nothing to do
-        case Seq() => Res.Success(imports)
-        // If there's one @main method, we run it with all args
-        case Seq(main) => runMainMethod(main, args, kwargs).getOrElse(Res.Success(imports))
-        // If there are multiple @main methods, we use the first arg to decide
-        // which method to run, and pass the rest to that main method
-        case mainMethods =>
-          val suffix = formatMainMethods(mainMethods)
-          args match{
-            case Seq() =>
-              Res.Failure(
-                None,
-                s"Need to specify a main method to call when running " + path.last + suffix
-              )
-            case Seq(head, tail @ _*) =>
-              mainMethods.find(_.name == head) match{
-                case None =>
-                  Res.Failure(
-                    None,
-                    s"Unable to find method: " + backtickWrap(head) + suffix
-                  )
-                case Some(main) =>
-                  runMainMethod(main, tail, kwargs).getOrElse(Res.Success(imports))
-              }
-          }
+      res <- interp.withContextClassloader{
+        scriptMains match {
+          // If there are no @main methods, there's nothing to do
+          case Seq() => Res.Success(imports)
+          // If there's one @main method, we run it with all args
+          case Seq(main) => runMainMethod(main, args, kwargs).getOrElse(Res.Success(imports))
+          // If there are multiple @main methods, we use the first arg to decide
+          // which method to run, and pass the rest to that main method
+          case mainMethods =>
+            val suffix = formatMainMethods(mainMethods)
+            args match{
+              case Seq() =>
+                Res.Failure(
+                  None,
+                  s"Need to specify a main method to call when running " + path.last + suffix
+                )
+              case Seq(head, tail @ _*) =>
+                mainMethods.find(_.name == head) match{
+                  case None =>
+                    Res.Failure(
+                      None,
+                      s"Unable to find method: " + backtickWrap(head) + suffix
+                    )
+                  case Some(main) =>
+                    runMainMethod(main, tail, kwargs).getOrElse(Res.Success(imports))
+                }
+            }
+        }
       }
     } yield res
   }

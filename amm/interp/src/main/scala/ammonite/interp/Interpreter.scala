@@ -26,7 +26,7 @@ import scala.reflect.io.VirtualDirectory
  */
 class Interpreter(val printer: Printer,
                   val storage: Storage,
-                  customPredefs: Seq[(Name, String)],
+                  customPredefs: Seq[Interpreter.PredefInfo],
                   // Allows you to set up additional "bridges" between the REPL
                   // world and the outside world, by passing in the full name
                   // of the `APIHolder` object that will hold the bridge and
@@ -116,7 +116,11 @@ class Interpreter(val printer: Printer,
   // import ammonite.runtime.InterpBridge.{value => interp}
   val bridgePredefs =
     for ((name, shortName, bridge) <- bridges)
-    yield Name(s"${shortName}Bridge") -> s"import $name.{value => $shortName}"
+    yield Interpreter.PredefInfo(
+      Name(s"${shortName}Bridge"),
+      s"import $name.{value => $shortName}",
+      true
+    )
 
 
   val importHooks = Ref(Map[Seq[String], ImportHook](
@@ -136,8 +140,8 @@ class Interpreter(val printer: Printer,
   ))
 
   val predefs = bridgePredefs ++ customPredefs ++ Seq(
-    Name("SharedPredef") -> storage.loadSharedPredef,
-    Name("LoadedPredef") -> storage.loadPredef
+    Interpreter.PredefInfo(Name("UserSharedPredef"), storage.loadSharedPredef, false),
+    Interpreter.PredefInfo(Name("UserPredef"), storage.loadPredef, false)
   )
 
   // Use a var and a for-loop instead of a fold, because when running
@@ -145,7 +149,10 @@ class Interpreter(val printer: Printer,
   // on `predefImports`, and we should be able to provide the "current" imports
   // to it even if it's half built
   var predefImports = Imports()
-  for( (wrapperName, sourceCode) <- predefs) {
+  for {
+    Interpreter.PredefInfo(wrapperName, sourceCode, hardcoded) <- predefs
+    if sourceCode.nonEmpty
+  }{
     val pkgName = Seq(Name("ammonite"), Name("predef"))
 
     processModule(
@@ -154,7 +161,8 @@ class Interpreter(val printer: Printer,
       wrapperName,
       pkgName,
       true,
-      ""
+      "",
+      hardcoded
     ) match{
       case Res.Success((imports, wrapperHashes)) =>
         predefImports = predefImports ++ imports
@@ -184,7 +192,7 @@ class Interpreter(val printer: Printer,
           for{
             (moduleImports, _) <- processModule(
               res.source, res.code, res.wrapper, res.pkg,
-              autoImport = false, extraCode = ""
+              autoImport = false, extraCode = "", hardcoded = false
             )
           } yield {
             if (!res.exec) res.imports
@@ -240,18 +248,13 @@ class Interpreter(val printer: Printer,
         Res.Exception(ex, "Something unexpected went wrong =(")
       }
 
-      (hookImports, hookedStmts, _) <- resolveImportHooks(
+      (hookImports, normalStmts, _) <- resolveImportHooks(
         ImportHook.Source.File(wd/"<console>"),
         stmts
       )
-      unwrappedStmts = hookedStmts.flatMap{x =>
-        Parsers.unwrapBlock(x) match {
-          case Some(contents) => Parsers.split(contents).get.get.value
-          case None => Seq(x)
-        }
-      }
+
       processed <- preprocess.transform(
-        unwrappedStmts,
+        normalStmts,
         eval.getCurrentLine,
         "",
         Seq(Name("$sess")),
@@ -389,21 +392,24 @@ class Interpreter(val printer: Printer,
                     wrapperName: Name,
                     pkgName: Seq[Name],
                     autoImport: Boolean,
-                    extraCode: String): Res[(Imports, Seq[(String, String)])] = {
+                    extraCode: String,
+                    hardcoded: Boolean): Res[(Imports, Seq[(String, String)])] = {
+
     val tag = Interpreter.cacheTag(
-      code, Nil, eval.frames.head.classloader.classpathHash
+      code, Nil,
+      if (hardcoded) Array.empty[Byte]
+      else eval.frames.head.classloader.classpathHash
     )
+
     storage.classFilesListLoad(
       pkgName.map(_.backticked).mkString("."),
       wrapperName.backticked,
       tag
     ) match {
       case None =>
-        (source, verboseOutput) match {
-          case (ImportHook.Source.File(fName), true) =>
-            printer.out("Compiling " + fName.last + "\n")
-          case (ImportHook.Source.URL(url), true) =>
-            printer.out("Compiling " + url + "\n")
+        source match {
+          case ImportHook.Source.File(fName) => printer.info("Compiling " + fName.last)
+          case ImportHook.Source.URL(url) => printer.info("Compiling " + url)
           case _ =>
         }
         init()
@@ -650,8 +656,7 @@ class Interpreter(val printer: Printer,
   def loadIvy(
     coordinates: (String, String, String),
     previousCoordinates: Seq[(String, String, String)],
-    exclusions: Seq[(String, String)],
-    verbose: Boolean = true
+    exclusions: Seq[(String, String)]
   ) = {
     val (groupId, artifactId, version) = coordinates
 
@@ -661,8 +666,7 @@ class Interpreter(val printer: Printer,
       version,
       previousCoordinates,
       exclusions,
-      profiles,
-      if (verbose) 2 else 1
+      profiles
     ).toSet
   }
 
@@ -712,7 +716,8 @@ class Interpreter(val printer: Printer,
           wrapper,
           pkg,
           true,
-          ""
+          "",
+          hardcoded = false
         ) match{
           case Res.Failure(ex, s) => throw new CompilationError(s)
           case Res.Exception(t, s) => throw t
@@ -744,6 +749,7 @@ object Interpreter{
   val SheBang = "#!"
   val SheBangEndPattern = Pattern.compile(s"""((?m)^!#.*)$newLine""")
 
+  case class PredefInfo(name: Name, code: String, hardcoded: Boolean)
 
   /**
     * This gives our cache tags for compile caching. The cache tags are a hash
@@ -778,20 +784,24 @@ object Interpreter{
     Name(wrapperName.raw + (if (wrapperIndex == 1) "" else "_" + wrapperIndex))
   }
 
-  def initPrinters(output: OutputStream, error: OutputStream, verboseOutput: Boolean) = {
+  def initPrinters(output: OutputStream,
+                   info: OutputStream,
+                   error: OutputStream,
+                   verboseOutput: Boolean) = {
     val colors = Ref[Colors](Colors.Default)
     val printStream = new PrintStream(output, true)
     val errorPrintStream = new PrintStream(error, true)
+    val infoPrintStream = new PrintStream(info, true)
 
-
-    def printlnWithColor(color: fansi.Attrs, s: String) = {
-      Seq(color(s).render, newLine).foreach(errorPrintStream.print)
+    def printlnWithColor(stream: PrintStream, color: fansi.Attrs, s: String) = {
+      stream.println(color(s).render)
     }
+
     val printer = Printer(
       printStream.print,
-      printlnWithColor(colors().warning(), _),
-      printlnWithColor(colors().error(), _),
-      printlnWithColor(fansi.Attrs.Empty, _)
+      printlnWithColor(errorPrintStream, colors().warning(), _),
+      printlnWithColor(errorPrintStream, colors().error(), _),
+      s => if (verboseOutput) printlnWithColor(infoPrintStream, fansi.Attrs.Empty, s)
     )
     (colors, printStream, errorPrintStream, printer)
   }
@@ -849,8 +859,8 @@ object Interpreter{
       doHandleClasspath(jars.map(_.toString).map(new java.io.File(_)), Nil)
       interpreter.reInit()
     }
-    def ivy(coordinates: (String, String, String), verbose: Boolean = true): Unit = {
-      val resolved = interpreter.loadIvy(coordinates, interpreter.addedDependencies(isPlugin), interpreter.exclusions(isPlugin), verbose) -- interpreter.addedJars(isPlugin)
+    def ivy(coordinates: (String, String, String)): Unit = {
+      val resolved = interpreter.loadIvy(coordinates, interpreter.addedDependencies(isPlugin), interpreter.exclusions(isPlugin)) -- interpreter.addedJars(isPlugin)
       val (groupId, artifactId, version) = coordinates
 
       doHandleClasspath(resolved.toSeq, Seq(coordinates))

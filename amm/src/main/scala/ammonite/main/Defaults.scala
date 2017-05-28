@@ -12,9 +12,11 @@ object Defaults{
     def ammoniteVersion = ammonite.Constants.version
     def scalaVersion = scala.util.Properties.versionNumberString
     def javaVersion = System.getProperty("java.version")
+    val link = "www.patreon.com/lihaoyi"
     Util.normalizeNewlines(
       s"""Welcome to the Ammonite Repl $ammoniteVersion
-          |(Scala $scalaVersion Java $javaVersion)""".stripMargin
+          |(Scala $scalaVersion Java $javaVersion)
+          |If you like Ammonite, please support our development at $link""".stripMargin
     )
   }
   val ignoreUselessImports = """
@@ -54,7 +56,14 @@ object Defaults{
     |import ammonite.runtime.tools._
     |import ammonite.repl.tools._
     |import ammonite.runtime.tools.DependencyConstructor.{ArtifactIdExt, GroupIdExt}
-    |import ammonite.repl.ReplBridge.value.{exit, codeColors, tprintColors, show, typeOf}
+    |import ammonite.repl.ReplBridge.value.{
+    |  exit,
+    |  codeColorsImplicit,
+    |  tprintColorsImplicit,
+    |  pprinterImplicit,
+    |  show,
+    |  typeOf
+    |}
     |import ammonite.main.Router.{doc, main}
     |import ammonite.main.Scripts.pathScoptRead
     |""".stripMargin

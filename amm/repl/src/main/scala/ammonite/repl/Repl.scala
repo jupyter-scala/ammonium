@@ -13,9 +13,11 @@ import scala.annotation.tailrec
 
 class Repl(input: InputStream,
            output: OutputStream,
+           info: OutputStream,
            error: OutputStream,
            storage: Storage,
-           predef: String,
+           defaultPredef: String,
+           mainPredef: String,
            wd: ammonite.ops.Path,
            welcomeBanner: Option[String],
            replArgs: Seq[Bind[_]] = Nil) {
@@ -27,7 +29,7 @@ class Repl(input: InputStream,
   var history = new History(Vector())
 
   val (colors, printStream, errorPrintStream, printer) =
-    Interpreter.initPrinters(output, error, true)
+    Interpreter.initPrinters(output, info, error, true)
 
 
 
@@ -42,9 +44,9 @@ class Repl(input: InputStream,
     printer,
     storage,
     Seq(
-      Name("HardcodedPredef") -> Repl.pprintPredef,
-      Name("ArgsPredef") -> argString,
-      Name("predef") -> predef
+      Interpreter.PredefInfo(Name("DefaultPredef"), defaultPredef, true),
+      Interpreter.PredefInfo(Name("ArgsPredef"), argString, false),
+      Interpreter.PredefInfo(Name("MainPredef"), mainPredef, false)
     ),
     i => {
       val replApi = new ReplApiImpl(
@@ -126,8 +128,7 @@ class Repl(input: InputStream,
 }
 
 object Repl{
-  val pprintPredef =
-    "import ammonite.repl.ReplBridge.value.{pprintConfig, derefPPrint}"
+
 
   def highlightFrame(f: StackTraceElement,
                      error: fansi.Attrs,

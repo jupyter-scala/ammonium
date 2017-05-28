@@ -227,22 +227,35 @@ object AdvancedTests extends TestSuite{
         ...
       """)
     }
-    // 'private{
-    //   check.session("""
-    //     @ private val x = 1; val y = x + 1
-    //     x: Int = 1
-    //     y: Int = 2
-    //
-    //     @ y
-    //     res1: Int = 2
-    //
-    //     @ x
-    //     error: not found: value x
-    //   """)
-    // }
+    /* - issues with this and class-wrapping
+    'private{
+      check.session("""
+        @ private val x = 1; val y = x + 1
+        x: Int = 1
+        y: Int = 2
+
+        @ y
+        res1: Int = 2
+
+        @ x
+        error: not found: value x
+
+        @ {
+        @ private[this] val a = 3
+        @ val b = a * 4
+        @ }
+
+        @ a
+        error: not found: value a
+
+        @ b
+        
+      """)
+    }
+    */
     'compilerPlugin - retry(3){
       if (!scala2_12) check.session("""
-        @ // Make sure plugins from eval class loader are not loaded
+        @ // Compiler plugins imported without `.$plugin` are not loaded
 
         @ import $ivy.`org.spire-math::kind-projector:0.6.3`
 
@@ -252,7 +265,7 @@ object AdvancedTests extends TestSuite{
         @ type TC0EitherStr = TC0[Either[String, ?]]
         error: not found: type ?
 
-        @ // This one must be loaded
+        @ // You need to use `import $ivy.$plugin`
 
         @ import $plugin.$ivy.`org.spire-math::kind-projector:0.6.3`
 
@@ -262,7 +275,7 @@ object AdvancedTests extends TestSuite{
         @ type TCEitherStr = TC[Either[String, ?]]
         defined type TCEitherStr
 
-        @ // Useless - does not add plugins, and ignored by eval class loader
+        @ // Importing plugins doesn't affect the run-time classpath
 
         @ import $plugin.$ivy.`com.lihaoyi::scalatags:0.6.2`
 

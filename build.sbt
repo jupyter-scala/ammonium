@@ -97,7 +97,7 @@ val sharedSettings = Seq(
 lazy val ops = project
   .settings(
     sharedSettings,
-    libraryDependencies += "com.lihaoyi" %% "geny" % "0.1.1",
+    libraryDependencies += "com.lihaoyi" %% "geny" % "0.1.2",
     name := "ammonite-ops"
   )
 
@@ -178,10 +178,10 @@ lazy val ammUtil = project
     name := "ammonite-util",
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "upickle" % "0.4.4",
-      "com.lihaoyi" %% "pprint" % "0.4.4"
+      "com.lihaoyi" %% "pprint" % "0.5.1",
+      "com.lihaoyi" %% "fansi" % "0.2.4"
     )
   )
-
 
 lazy val ammRuntime = project
   .in(file("amm/runtime"))
@@ -226,7 +226,7 @@ lazy val ammInterp = project
     name := "ammonite-compiler",
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "com.lihaoyi" %% "scalaparse" % "0.4.2"
+      "com.lihaoyi" %% "scalaparse" % "0.4.3"
     ),
     unmanagedSourceDirectories in Compile ++= {
       if (Set("2.10", "2.11").contains(scalaBinaryVersion.value))
@@ -271,6 +271,7 @@ val integrationTasks = Seq(
   assembly in amm,
   packageBin in (shell, Compile)
 )
+
 lazy val integration = project
   .dependsOn(ops)
   .dependsOn(amm)
@@ -308,7 +309,6 @@ lazy val sshd = project
       )
   )
 
-
 lazy val readme = ScalatexReadme(
   projectId = "readme",
   wd = file(""),
@@ -342,7 +342,6 @@ lazy val readme = ScalatexReadme(
   }).evaluated,
   (unmanagedSources in Compile) += baseDirectory.value/".."/"project"/"Constants.scala"
 )
-
 
 lazy val published = project
   .in(file("target/published"))

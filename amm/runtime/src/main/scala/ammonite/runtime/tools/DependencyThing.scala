@@ -56,8 +56,7 @@ class DependencyThing(resolvers: () => List[Resolver], printer: Printer, verbose
                       version: String,
                       previousCoordinates: Seq[(String, String, String)],
                       exclusions: Seq[(String, String)],
-                      profiles: Set[String],
-                      verbosity: Int = 2) = synchronized {
+                      profiles: Set[String]) = synchronized {
 
     val dep = Dependency(Module(groupId, artifactId), version)
     val previousDeps = previousCoordinates.map { case (org, name, ver) => Dependency(Module(org, name), ver) }
