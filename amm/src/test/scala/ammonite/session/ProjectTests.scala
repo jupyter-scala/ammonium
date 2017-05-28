@@ -9,7 +9,7 @@ import scala.collection.{immutable => imm}
 object ProjectTests extends TestSuite{
   val tests = TestSuite{
     println("ProjectTests")
-    val check = new TestRepl()
+    def check = new TestRepl()
     'load {
       'ivy {
         'standalone - {
@@ -53,9 +53,7 @@ object ProjectTests extends TestSuite{
           import scalatags.Text.all._
 
           @ a("omg", href:="www.google.com").render
-          res5: String = $tq
-          <a href="www.google.com">omg</a>
-          $tq
+          res5: String = "<a href=\\"www.google.com\\">omg</a>"
 
           @ val foundAfter = jarAdded.exists(_.getName.startsWith("scalatags_"))
           foundAfter: Boolean = true
