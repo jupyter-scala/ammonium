@@ -171,7 +171,7 @@ class SpecialClassLoader(specialLocalClasses: Set[String], parent: ClassLoader, 
 
   private def jarSignature(url: URL) = {
     val path = Path(java.nio.file.Paths.get(url.toURI()).toFile(), root)
-    path -> path.mtime.toMillis
+    path -> (if (exists(path))path.mtime.toMillis else 0)
   }
 
   private[this] var classpathSignature0 = parentSignature
