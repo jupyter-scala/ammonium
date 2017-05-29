@@ -164,7 +164,8 @@ lazy val amm = project
       case x =>
         val oldStrategy = (assemblyMergeStrategy in assembly).value
         oldStrategy(x)
-     }
+    },
+    parallelExecution in Test := false
   )
 
 lazy val ammUtil = project
