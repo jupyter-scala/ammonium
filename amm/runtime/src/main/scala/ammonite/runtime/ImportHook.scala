@@ -15,9 +15,17 @@ import ammonite.util._
   * files from the web.
   */
 trait ImportHook{
-  def handle(source: ImportHook.Source,
+  /**
+    * Handle a parsed import that this import hook was registered to be interested in
+    *
+    * Note that `source` is optional; not every piece of code has a source. Most *user*
+    * code does, e.g. a repl session is based in their CWD, a script has a path, but
+    * some things like hardcoded builtin predefs don't
+    */
+  def handle(source: Option[Path],
              tree: ImportTree,
-             interp: ImportHook.InterpreterInterface): Either[String, Seq[ImportHook.Result]]
+             interp: ImportHook.InterpreterInterface)
+            : Either[String, Seq[ImportHook.Result]]
 }
 
 object ImportHook{
@@ -51,17 +59,13 @@ object ImportHook{
     case class Source(code: String,
                       wrapper: Name,
                       pkg: Seq[Name],
-                      source: ImportHook.Source,
+                      source: Path,
                       imports: Imports,
                       exec: Boolean) extends Result
     case class ClassPath(files: Seq[Path], coordinates: Seq[(String, String, String)], plugin: Boolean) extends Result
   }
 
-  /**
-    * Where a script can "come from". Used to resolve relative $file imports
-    * relative to the importing script.
-    */
-  case class Source(path: Path)
+  
   object File extends SourceHook(false)
   object Exec extends SourceHook(true)
 
@@ -90,39 +94,45 @@ object ImportHook{
   }
   class SourceHook(exec: Boolean) extends ImportHook {
     // import $file.foo.Bar, to import the file `foo/Bar.sc`
-    def handle(source: ImportHook.Source, tree: ImportTree, interp: InterpreterInterface) = {
+    def handle(source: Option[Path], 
+               tree: ImportTree, 
+               interp: InterpreterInterface) = {
 
-      val currentScriptPath = source.path
+      source match{
+        case None => Left("Cannot resolve $file import in code without source")
+        case Some(currentScriptPath) =>
 
-      val (relativeModules, files, missing) = resolveFiles(
-        tree, currentScriptPath, Seq(".sc")
-      )
+          val (relativeModules, files, missing) = resolveFiles(
+            tree, currentScriptPath, Seq(".sc")
+          )
 
-      if (missing.nonEmpty) Left("Cannot resolve $file import: " + missing.mkString(", "))
-      else {
-        Right(
-          for(((relativeModule, rename), filePath) <- relativeModules.zip(files)) yield {
-            val (pkg, wrapper) = Util.pathToPackageWrapper(filePath, interp.wd)
-            val fullPrefix = pkg ++ Seq(wrapper)
+          if (missing.nonEmpty) Left("Cannot resolve $file import: " + missing.mkString(", "))
+          else {
+            Right(
+              for(((relativeModule, rename), filePath) <- relativeModules.zip(files)) yield {
+                val (pkg, wrapper) = Util.pathToPackageWrapper(filePath, interp.wd)
+                val fullPrefix = pkg ++ Seq(wrapper)
 
-            val importData = Seq(ImportData(
-              Name("wrapper"), Name(rename.getOrElse(relativeModule.last)),
-              fullPrefix :+ Name("wrapper"), ImportData.TermType
-            ))
+                val importData = Seq(ImportData(
+                  Name("wrapper"), Name(rename.getOrElse(relativeModule.last)),
+                  fullPrefix :+ Name("wrapper"), ImportData.TermType
+                ))
 
-            if (sys.env.contains("DEBUG") || sys.props.contains("DEBUG")) println(s"Source import data:\n${importData.mkString("\n")}\n")
+                if (sys.env.contains("DEBUG") || sys.props.contains("DEBUG")) println(s"Source import data:\n${importData.mkString("\n")}\n")
 
-            Result.Source(
-              Util.normalizeNewlines(read(filePath)),
-              wrapper,
-              pkg,
-              ImportHook.Source(filePath),
-              Imports(importData),
-              exec
+                Result.Source(
+                  Util.normalizeNewlines(read(filePath)),
+                  wrapper,
+                  pkg,
+                  filePath,
+                  Imports(importData),
+                  exec
+                )
+              }
             )
           }
-        )
       }
+
     }
   }
 
@@ -160,13 +170,17 @@ object ImportHook{
     }
 
 
-  def handle(source: ImportHook.Source, tree: ImportTree, interp: InterpreterInterface) = for{
-    // import $ivy.`com.lihaoyi:scalatags_2.11:0.5.4`
-      parts <- splitImportTree(tree).right
-      t <- resolve(interp, parts).right
-    } yield {
-      val (files, coords) = t
-      Seq(Result.ClassPath(files.toSeq.map(Path(_)), coords, plugin))
+    def handle(source: Option[Path], 
+               tree: ImportTree, 
+               interp: InterpreterInterface) = {
+      // Avoid for comprehension, which doesn't work in Scala 2.10/2.11
+      splitImportTree(tree) match{
+        case Right(signatures) => resolve(interp, signatures) match{
+          case Right((files, coords)) =>
+            Right(Seq(Result.ClassPath(files.toSeq.map(Path(_)), coords, plugin)))
+          case Left(l) => Left(l)
+        }
+      }
     }
   }
   class BaseExcludeIvy(plugin: Boolean) extends BaseIvy(plugin){
@@ -211,17 +225,23 @@ object ImportHook{
   object Classpath extends BaseClasspath(plugin = false)
   object PluginClasspath extends BaseClasspath(plugin = true)
   class BaseClasspath(plugin: Boolean) extends ImportHook{
-    def handle(source: ImportHook.Source, tree: ImportTree, interp: InterpreterInterface) = {
-      val currentScriptPath = source.path
-      val (relativeModules, files, missing) = resolveFiles(
-        tree, currentScriptPath, Seq(".jar", "")
-      )
+    def handle(source: Option[Path], 
+               tree: ImportTree, 
+               interp: InterpreterInterface) = {
+      source match{
+        case None => Left("Cannot resolve $cp import in code without source")
+        case Some(currentScriptPath) =>
+          val (relativeModules, files, missing) = resolveFiles(
+            tree, currentScriptPath, Seq(".jar", "")
+          )
 
-      if (missing.nonEmpty) Left("Cannot resolve $cp import: " + missing.mkString(", "))
-      else Right(
-        for(((relativeModule, rename), filePath) <- relativeModules.zip(files))
-        yield Result.ClassPath(Seq(filePath), Nil, plugin)
-      )
+          if (missing.nonEmpty) Left("Cannot resolve $cp import: " + missing.mkString(", "))
+          else Right(
+            for(((relativeModule, rename), filePath) <- relativeModules.zip(files))
+              yield Result.ClassPath(Seq(filePath), Nil, plugin)
+          )
+      }
+
     }
   }
 }
