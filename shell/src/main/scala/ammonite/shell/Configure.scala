@@ -15,7 +15,7 @@ object Configure {
   }
   def apply(repl: ReplAPI, wd: => ammonite.ops.Path) = {
     if (scala.util.Properties.isWin) {
-      repl.frontEnd() = ammonite.repl.FrontEnd.JLineWindows
+      repl.frontEnd() = ammonite.repl.FrontEnds.JLineWindows
       repl.colors() = ammonite.util.Colors.BlackWhite
     } else {
       repl.frontEnd() = ammonite.repl.AmmoniteFrontEnd(

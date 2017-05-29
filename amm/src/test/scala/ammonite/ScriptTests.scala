@@ -338,6 +338,16 @@ object ScriptTests extends TestSuite{
           """)
         }
       }
+      // commented-out for now, until dependency parsing can accept classifiers
+      /*'loadIvyAdvanced{
+        check.session(s"""
+        @ import ammonite.ops._
+
+        @ interp.load.module($printedScriptPath/"loadIvyAdvanced.sc")
+
+        @ serializer
+        """)
+      }*/
     }
   }
 }

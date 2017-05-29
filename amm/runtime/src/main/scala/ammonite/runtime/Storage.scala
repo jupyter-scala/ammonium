@@ -36,6 +36,7 @@ trait Storage{
 }
 
 object Storage{
+  type IvyMap = Map[(String, Seq[coursier.Dependency]), Set[String]]
   private def loadIfTagMatches(loadedTag: String,
                                cacheTag: String,
                                classFilesList: Seq[ScriptOutput.BlockMetadata],
