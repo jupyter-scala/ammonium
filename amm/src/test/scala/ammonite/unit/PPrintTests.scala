@@ -1,13 +1,16 @@
-package ammonite.shell
+package ammonite.unit
 
 import ammonite.ops._
+import ammonite.repl.FrontEndUtils
 import utest._
-import ammonite.repl.PPrints._
+
 object PPrintTests extends TestSuite{
   def check(lhs: String, rhs: String) = {
     assert(lhs == rhs)
   }
-  val pprinter = pprint.PPrinter.BlackWhite
+  val pprinter = pprint.PPrinter.BlackWhite.copy(
+    additionalHandlers = ammonite.repl.PPrints.replPPrintHandlers(FrontEndUtils.width)
+  )
   val tests = TestSuite{
 
     'paths{
