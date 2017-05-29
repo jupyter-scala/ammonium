@@ -185,10 +185,6 @@ object Main{
         .foreach(x => codeToExecute = Some(x))
         .text("Pass in code to be run immediately in the REPL")
 
-      opt[Unit]('x', "execute")
-        .text(
-          "Shim for backwards compatibility - will be removed"
-        )
       arg[String]("<args>...")
         .optional()
         .unbounded()
@@ -287,6 +283,9 @@ object Main{
       }
 
     }
+
+    // Exit explicitly to kill any daemon threads that are running
+    System.exit(0)
   }
 
   def maybeDefaultPredef(enabled: Boolean, predef: String) =

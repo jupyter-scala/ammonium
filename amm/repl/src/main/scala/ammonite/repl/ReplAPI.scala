@@ -4,7 +4,6 @@ import ammonite.runtime.APIHolder
 import ammonite.util.Ref
 
 trait ReplAPI extends RuntimeAPI {
-
   /**
     * Read/writable prompt for the shell. Use this to change the
     * REPL prompt at any time!

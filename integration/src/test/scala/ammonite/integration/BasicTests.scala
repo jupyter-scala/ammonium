@@ -129,19 +129,11 @@ object BasicTests extends TestSuite{
       val evaled = exec('basic / "Resources.sc")
       assert(evaled.out.string.contains("1745"))
     }
-    'testSilentIvy{
-      val evaled1 = exec('basic/"scalaTags.sc")
-      // check ivy is printing all the logs
-      assert(evaled1.err.string.contains("resolving dependencies"))
-      val evaled2 = exec('basic/"scalaTags.sc", "-s")
-      // make sure ivy is not printing logs as expected from `-s` flag
-      assert(!evaled2.err.string.contains("resolving dependencies"))
-    }
     'testSilentScriptRunning{
       val evaled1 = exec('basic/"Hello.sc")
       // check Compiling Script is being printed
 
-      assert(evaled1.err.string.contains("Compiling Hello.sc"))
+      assert(evaled1.err.string.contains("Compiling"))
       val evaled2 = exec('basic/"Hello.sc", "-s")
       // make sure with `-s` flag script running is silent
       assert(!evaled2.err.string.contains("Compiling"))
@@ -158,7 +150,8 @@ object BasicTests extends TestSuite{
         exec('basic/"wrongIvyCordinates.sc")
       }.result.err.string
 
-      assert(errorMsg.contains("IvyThing$IvyResolutionException"))
+
+      assert(errorMsg.contains("failed to resolve dependencies"))
     }
     'testIvySnapshotNoCache{
 

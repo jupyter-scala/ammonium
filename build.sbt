@@ -164,7 +164,8 @@ lazy val amm = project
       case x =>
         val oldStrategy = (assemblyMergeStrategy in assembly).value
         oldStrategy(x)
-     }
+    },
+    parallelExecution in Test := false
   )
 
 lazy val ammUtil = project
@@ -209,7 +210,7 @@ lazy val ammRuntime = project
     PgpKeys.publishLocalSigned := PgpKeys.publishLocalSigned.in(Shading).value,
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-      "io.get-coursier" %% "coursier-cache" % "1.0.0-RC2" % "shaded",
+      "io.get-coursier" %% "coursier-cache" % "1.0.0-RC3" % "shaded",
       "org.scalaj" %% "scalaj-http" % "2.3.0"
     )
   )

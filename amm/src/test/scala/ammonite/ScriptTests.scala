@@ -327,6 +327,17 @@ object ScriptTests extends TestSuite{
         error: not found: value wrappedValue
         """)
       }
+      'resolverWithinScript{
+        'pass - {
+          if (!scala2_12) check.session(s"""
+            @ import ammonite.ops._
+
+            @ interp.load.module($printedScriptPath/"Resolvers.sc")
+
+
+          """)
+        }
+      }
     }
   }
 }

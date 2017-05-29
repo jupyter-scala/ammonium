@@ -25,7 +25,7 @@ trait InterpAPI {
   /**
    * resolvers to use when loading jars
    */
-  def resolvers: Ref[List[Resolver]]
+  def repositories: Ref[List[Resolver]]
 
 }
 
@@ -43,7 +43,7 @@ trait LoadJar {
   /**
    * Load a library from its maven/ivy coordinates
    */
-  def ivy(coordinates: (String, String, String)): Unit
+  def ivy(coordinates: (String, String, String)*): Unit
 
   def onJarAdded(cb: Seq[java.io.File] => Unit): Unit
 }
