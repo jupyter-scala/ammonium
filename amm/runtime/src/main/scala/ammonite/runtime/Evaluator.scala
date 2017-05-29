@@ -5,7 +5,7 @@ import java.lang.reflect.InvocationTargetException
 
 import acyclic.file
 import ammonite._
-import util.Util.{ClassFiles, newLine}
+import util.Util.{ClassFiles, ScriptOutput, VersionedWrapperId, newLine}
 import ammonite.util._
 
 import scala.reflect.io.VirtualDirectory
@@ -41,13 +41,6 @@ trait Evaluator{
   def frames: List[Frame]
 
   def frames_=(newValue: List[Frame]): Unit
-
-  def evalCachedClassFiles(cachedData: Seq[ClassFiles],
-                           pkg: String,
-                           wrapper: String,
-                           dynamicClasspath: VirtualDirectory,
-                           classFilesList: Seq[String]): Res[Seq[_]]
-
 }
 
 class EvaluatorImpl(currentClassloader: ClassLoader,
@@ -113,24 +106,6 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
     }
 
 
-    type InvEx = InvocationTargetException
-    type InitEx = ExceptionInInitializerError
-
-    val userCodeExceptionHandler: PartialFunction[Throwable, Res.Failing] = {
-      // Exit
-      case Ex(_: InvEx, _: InitEx, ReplExit(value))  => Res.Exit(value)
-
-      // Interrupted during pretty-printing
-      case Ex(e: ThreadDeath)                 =>  Evaluator.interrupted(e)
-
-      // Interrupted during evaluation
-      case Ex(_: InvEx, e: ThreadDeath)       =>  Evaluator.interrupted(e)
-
-      case Ex(_: InvEx, _: InitEx, userEx@_*) => Res.Exception(userEx(0), "")
-      case Ex(_: InvEx, userEx@_*)            => Res.Exception(userEx(0), "")
-      case Ex(userEx@_*)                      => Res.Exception(userEx(0), "")
-    }
-
     def process(printer: Printer, isExec: Boolean, value: AnyRef): Any =
       value.asInstanceOf[Iterator[String]].foreach(printer.out)
 
@@ -143,7 +118,7 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
       for {
         cls <- loadClass("$sess." + indexedWrapperName.backticked, classFiles)
         _ = currentLine += 1
-        _ <- Catching{userCodeExceptionHandler}
+        _ <- Catching{Evaluator.userCodeExceptionHandler}
       } yield {
         // Exhaust the printer iterator now, before exiting the `Catching`
         // block, so any exceptions thrown get properly caught and handled
@@ -161,25 +136,11 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
                            pkgName: Seq[Name],
                            tag: String) = {
       for {
-        _ <- Catching{userCodeExceptionHandler}
+        _ <- Catching{Evaluator.userCodeExceptionHandler}
       } yield {
         evalMain(cls)
         val res = evaluationResult(pkgName :+ wrapperName, newImports, tag, null)
         res
-      }
-    }
-
-    def evalCachedClassFiles(cachedData: Seq[ClassFiles],
-                             pkg: String,
-                             wrapper: String,
-                             dynamicClasspath: VirtualDirectory,
-                             classFilesList: Seq[String]): Res[Seq[_]] = {
-      Res.map(cachedData.zipWithIndex) {
-        case (clsFiles, index) =>
-          Evaluator.addToClasspath(clsFiles, dynamicClasspath)
-          val cls = eval.loadClass(classFilesList(index), clsFiles)
-          try cls.map(eval.evalMain(_))
-          catch userCodeExceptionHandler
       }
     }
 
@@ -221,6 +182,24 @@ object Evaluator{
   def interrupted(e: Throwable) = {
     Thread.interrupted()
     Res.Failure(Some(e), newLine + "Interrupted!")
+  }
+
+  type InvEx = InvocationTargetException
+  type InitEx = ExceptionInInitializerError
+
+  val userCodeExceptionHandler: PartialFunction[Throwable, Res.Failing] = {
+    // Exit
+    case Ex(_: InvEx, _: InitEx, ReplExit(value))  => Res.Exit(value)
+
+    // Interrupted during pretty-printing
+    case Ex(e: ThreadDeath)                 =>  Evaluator.interrupted(e)
+
+    // Interrupted during evaluation
+    case Ex(_: InvEx, e: ThreadDeath)       =>  Evaluator.interrupted(e)
+
+    case Ex(_: InvEx, _: InitEx, userEx@_*) => Res.Exception(userEx(0), "")
+    case Ex(_: InvEx, userEx@_*)            => Res.Exception(userEx(0), "")
+    case Ex(userEx@_*)                      => Res.Exception(userEx(0), "")
   }
 
   def apply(currentClassloader: ClassLoader,
