@@ -93,11 +93,16 @@ class RuntimeApiImpl(val interp: Interpreter,
 
   override def show(t: Any,
                     width: Integer = null,
-                    height: Integer = 0,
+                    height: Integer = 999999,
                     indent: Integer = null) = {
 
-
-    pprinter().tokenize(t, width, indent)
+    pprinter()
+      .tokenize(
+        t,
+        Option(width: Int).getOrElse(pprinter().defaultWidth),
+        height,
+        Option(indent: Int).getOrElse(pprinter().defaultIndent)
+      )
       .map(_.render)
       .foreach(printer.out)
     printer.out(newLine)
