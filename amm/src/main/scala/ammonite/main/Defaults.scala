@@ -56,7 +56,10 @@ object Defaults{
     |import ammonite.runtime.tools._
     |import ammonite.repl.tools._
     |import ammonite.runtime.tools.DependencyConstructor.{ArtifactIdExt, GroupIdExt}
-    |import ammonite.repl.ReplBridge.value.{
+    |""".stripMargin
+
+  val replPredef = """
+    |  import ammonite.repl.ReplBridge.value.{
     |  exit,
     |  codeColorsImplicit,
     |  tprintColorsImplicit,
@@ -64,11 +67,7 @@ object Defaults{
     |  show,
     |  typeOf
     |}
-    |import ammonite.main.Router.{doc, main}
-    |import ammonite.main.Scripts.pathScoptRead
-    |""".stripMargin
-
-
+  """.stripMargin
   def ammoniteHome = ammonite.ops.Path(System.getProperty("user.home"))/".ammonite"
 
 }

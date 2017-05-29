@@ -150,7 +150,8 @@ object ImportHook{
       }
       val errors = splitted.collect{case Left(error) => error}
       val successes = splitted.collect{case Right(v) => v}
-      if (errors.nonEmpty) Left("Invalid $ivy imports: " + errors.map("\n\t" + _).mkString)
+      if (errors.nonEmpty)
+        Left("Invalid $ivy imports: " + errors.map(Util.newLine + "  " + _).mkString)
       else
         try Right((interp.loadIvy(successes, interp.addedDependencies(plugin), interp.exclusions(plugin)), successes))
         catch {

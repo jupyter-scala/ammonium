@@ -701,6 +701,8 @@ class Interpreter(val printer: Printer,
   private lazy val interpApi0: Interpreter.InterpAPIWithDefaultLoadJar = new Interpreter.InterpAPIWithDefaultLoadJar{ outer =>
     lazy val repositories = Ref(ammonite.runtime.tools.Resolvers.defaultResolvers)
 
+    val beforeExitHooks = interp.beforeExitHooks
+
     val load: Interpreter.DefaultLoadJar with Load = new Interpreter.DefaultLoadJar with Load {
 
       def interpreter = interp
@@ -715,7 +717,7 @@ class Interpreter(val printer: Printer,
         case _ =>
       }
 
-      def exec(file: Path): Unit = apply(normalizeNewlines(read(file)))
+      def exec(file: Path): Unit = apply(normalizeNewlines(read(file)), silent = true)
 
       def module(file: Path) = {
         val (pkg, wrapper) = Util.pathToPackageWrapper(file, wd)
