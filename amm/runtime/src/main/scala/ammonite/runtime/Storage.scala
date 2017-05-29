@@ -133,7 +133,7 @@ object Storage{
 
     def compileCacheSave(path: String, tag: String, data: CompileCache): Unit = {
       val (classFiles, imports) = data
-      val tagCacheDir = compileCacheDir/encode(path)/tag
+      val tagCacheDir = compileCacheDir/path.split('.').map(encode)/tag
 
       if(!exists(tagCacheDir)){
         mkdir(tagCacheDir)
@@ -151,7 +151,7 @@ object Storage{
                            perBlockMetadata: Seq[ScriptOutput.BlockMetadata],
                            imports: Imports,
                            tag: String): Unit = {
-      val dir = encode(pkg) + "." + encode(wrapper)
+      val dir = (pkg.split('.') ++ wrapper.split('.')).map(encode)
       val codeCacheDir = cacheDir/'scriptCaches/dir/tag
       if (!exists(codeCacheDir)){
         mkdir(codeCacheDir)
@@ -183,7 +183,7 @@ object Storage{
                            wrapper: String,
                            cacheTag: String): Option[ScriptOutput] = {
 
-      val dir = encode(pkg) + "." + encode(wrapper)
+      val dir = (pkg.split('.') ++ wrapper.split('.')).map(encode)
       val codeCacheDir = cacheDir/'scriptCaches/dir/cacheTag
       if(!exists(codeCacheDir)) None
       else {
@@ -206,7 +206,7 @@ object Storage{
     }
 
     def compileCacheLoad(path: String, tag: String): Option[CompileCache] = {
-      val tagCacheDir = compileCacheDir/encode(path)/tag
+      val tagCacheDir = compileCacheDir/path.split('.').map(encode)/tag
       if(!exists(tagCacheDir)) None
       else for{
         (loadedTag, metadata) <- readJson[(String, Imports)](tagCacheDir/metadataFile)

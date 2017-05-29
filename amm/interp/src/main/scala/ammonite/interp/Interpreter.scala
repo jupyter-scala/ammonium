@@ -446,7 +446,6 @@ class Interpreter(val printer: Printer,
        }
       case Some(compiledScriptData) =>
 
-
         withContextClassloader(
           evalCachedClassFiles(
             source,
