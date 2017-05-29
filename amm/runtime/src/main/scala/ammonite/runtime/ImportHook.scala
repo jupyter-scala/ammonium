@@ -59,7 +59,7 @@ object ImportHook{
   object Result{
     case class Source(code: String,
                       blockInfo: CodeSource,
-                      imports: Imports,
+                      hookImports: Imports,
                       exec: Boolean) extends Result
     case class ClassPath(files: Seq[Path], coordinates: Seq[(String, String, String)], plugin: Boolean) extends Result
   }
