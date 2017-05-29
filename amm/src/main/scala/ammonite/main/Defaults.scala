@@ -1,6 +1,6 @@
 
 package ammonite.main
-import acyclic.file
+
 import ammonite.util.Util
 
 /**
@@ -59,6 +59,8 @@ object Defaults{
     |""".stripMargin
 
   val replPredef = """
+    |import ammonite.main.Router.{doc, main}
+    |import ammonite.main.Scripts.pathScoptRead
     |  import ammonite.repl.ReplBridge.value.{
     |  exit,
     |  codeColorsImplicit,

@@ -58,6 +58,7 @@ class Interpreter(val printer: Printer,
 
   val dynamicClasspath = new VirtualDirectory("http://ammonite-memory-placeholder", None)
   var compiler: Compiler = null
+  val onCompilerInit = mutable.Buffer.empty[scala.tools.nsc.Global => Unit]
   var pressy: Pressy = _
   val beforeExitHooks = mutable.Buffer.empty[Any ⇒ Any]
 
@@ -100,6 +101,9 @@ class Interpreter(val printer: Printer,
       () => pressy.shutdownPressy(),
       settings
     )
+
+    onCompilerInit.foreach(_(compiler.compiler))
+
     pressy = Pressy(
       classpath,
       dynamicClasspath,
@@ -109,7 +113,7 @@ class Interpreter(val printer: Printer,
     )
   }
 
-  val bridges = extraBridges(this) :+ ("ammonite.runtime.InterpBridge", "interp", interpApi)
+  val bridges = extraBridges(this) :+ ("ammonite.interp.InterpBridge", "interp", interpApi)
   for ((name, shortName, bridge) <- bridges ){
     APIHolder.initBridge(evalClassloader, name, bridge)
   }
@@ -505,7 +509,8 @@ class Interpreter(val printer: Printer,
             processed,
             printer,
             s"Exec.sc",
-            indexedWrapperName
+            indexedWrapperName,
+            isExec = true
           )
         },
         autoImport = true,
@@ -684,7 +689,12 @@ class Interpreter(val printer: Printer,
   private lazy val interpApi0: Interpreter.InterpAPIWithDefaultLoadJar = new Interpreter.InterpAPIWithDefaultLoadJar{ outer =>
     lazy val repositories = Ref(ammonite.runtime.tools.Resolvers.defaultResolvers)
 
-    val beforeExitHooks = interp.beforeExitHooks
+    def configureCompiler(callback: scala.tools.nsc.Global => Unit) = {
+      interp.onCompilerInit.append(callback)
+      if (compiler != null){
+        callback(compiler.compiler)
+      }
+    }
 
     val load: Interpreter.DefaultLoadJar with Load = new Interpreter.DefaultLoadJar with Load {
 

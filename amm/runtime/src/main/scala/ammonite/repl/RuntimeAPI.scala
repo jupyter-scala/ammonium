@@ -11,7 +11,8 @@ import ammonite.util.Util.newLine
 import scala.collection.mutable
 import scala.reflect.runtime.universe._
 import acyclic.file
-import ammonite.runtime.{APIHolder, Frame, History, ReplExit}
+import ammonite.runtime.Evaluator.AmmoniteExit
+import ammonite.runtime.{APIHolder, Frame, History}
 
 import scala.util.control.ControlThrowable
 import acyclic.file
@@ -19,19 +20,20 @@ import acyclic.file
 
 
 trait RuntimeAPI {
+
   /**
-   * Exit the Ammonite REPL. You can also use Ctrl-D to exit
-   */
-  def exit = throw ReplExit(())
+    * Exit the Ammonite REPL. You can also use Ctrl-D to exit
+    */
+  def exit = throw AmmoniteExit(())
   /**
-   * Exit the Ammonite REPL. You can also use Ctrl-D to exit
-   */
-  def exit(value: Any) = throw ReplExit(value)
+    * Exit the Ammonite REPL. You can also use Ctrl-D to exit
+    */
+  def exit(value: Any) = throw AmmoniteExit(value)
   /**
     * Functions that will be chained and called on the
     * exitValue before the repl exits
     */
-  val beforeExitHooks: mutable.Buffer[Any ⇒ Any]
+  val beforeExitHooks: mutable.Buffer[Any => Any]
 
   def onExit(cb: Any => Unit): Unit
 

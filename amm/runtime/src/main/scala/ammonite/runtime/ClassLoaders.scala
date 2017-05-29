@@ -6,7 +6,7 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.{Collections, Enumeration}
 
-import acyclic.file
+
 import ammonite.ops._
 import ammonite.util.{Imports, Util}
 
