@@ -15,7 +15,7 @@ import scala.collection.mutable
  */
 class TestRepl {
   var allOutput = ""
-  def predef = ""
+  def predef: (String, Option[ammonite.ops.Path]) = ("", None)
 
   val tempDir = ammonite.ops.Path(
     java.nio.file.Files.createTempDirectory("ammonite-tester")
@@ -38,8 +38,13 @@ class TestRepl {
       storage = new Storage.Folder(tempDir),
       wd = ammonite.ops.pwd,
       customPredefs = Seq(
-        Interpreter.PredefInfo(Name("defaultPredef"), ammonite.main.Defaults.predefString, true),
-        Interpreter.PredefInfo(Name("testPredef"), predef, false)
+        Interpreter.PredefInfo(
+          Name("defaultPredef"),
+          ammonite.main.Defaults.replPredef + ammonite.main.Defaults.predefString,
+          true,
+          None
+        ),
+        Interpreter.PredefInfo(Name("testPredef"), predef._1, false, predef._2)
       ),
       extraBridges = { i =>
         val replApi = new ReplApiImpl(

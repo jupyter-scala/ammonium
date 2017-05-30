@@ -3,13 +3,14 @@ package ammonite.runtime
 import java.io.OutputStream
 import java.lang.reflect.InvocationTargetException
 
-import acyclic.file
+
 import ammonite._
 import util.Util.{ClassFiles, ScriptOutput, VersionedWrapperId, newLine}
 import ammonite.util._
 
 import scala.reflect.io.VirtualDirectory
 import scala.util.Try
+import scala.util.control.ControlThrowable
 
 /**
  * Evaluates already-compiled Bytecode.
@@ -80,8 +81,8 @@ class EvaluatorImpl(currentClassloader: ClassLoader,
     def specialLocalClasses = Set(
       "ammonite.repl.ReplBridge",
       "ammonite.repl.ReplBridge$",
-      "ammonite.runtime.InterpBridge",
-      "ammonite.runtime.InterpBridge$"
+      "ammonite.interp.InterpBridge",
+      "ammonite.interp.InterpBridge$"
     )
 
     def loadClass(fullName: String, classFiles: ClassFiles): Res[Class[_]] = {
@@ -184,23 +185,29 @@ object Evaluator{
     Res.Failure(Some(e), newLine + "Interrupted!")
   }
 
+  /**
+    * Thrown to exit the REPL cleanly
+    */
+  case class AmmoniteExit(value: Any) extends ControlThrowable
   type InvEx = InvocationTargetException
   type InitEx = ExceptionInInitializerError
 
   val userCodeExceptionHandler: PartialFunction[Throwable, Res.Failing] = {
     // Exit
-    case Ex(_: InvEx, _: InitEx, ReplExit(value))  => Res.Exit(value)
+    case Ex(_: InvEx, _: InitEx, AmmoniteExit(value))  => Res.Exit(value)
 
     // Interrupted during pretty-printing
-    case Ex(e: ThreadDeath)                 =>  Evaluator.interrupted(e)
+    case Ex(e: ThreadDeath)                 =>  interrupted(e)
 
     // Interrupted during evaluation
-    case Ex(_: InvEx, e: ThreadDeath)       =>  Evaluator.interrupted(e)
+    case Ex(_: InvEx, e: ThreadDeath)       =>  interrupted(e)
 
     case Ex(_: InvEx, _: InitEx, userEx@_*) => Res.Exception(userEx(0), "")
     case Ex(_: InvEx, userEx@_*)            => Res.Exception(userEx(0), "")
     case Ex(userEx@_*)                      => Res.Exception(userEx(0), "")
   }
+
+
 
   def apply(currentClassloader: ClassLoader,
             startingLine: Int): Evaluator = new EvaluatorImpl(currentClassloader, startingLine)

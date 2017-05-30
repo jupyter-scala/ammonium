@@ -6,7 +6,7 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.{Collections, Enumeration}
 
-import acyclic.file
+
 import ammonite.ops._
 import ammonite.util.{Imports, Util}
 
@@ -193,8 +193,9 @@ class SpecialClassLoader(specialLocalClasses: Set[String], parent: ClassLoader, 
     })
   }
 
-  override def findResource(name: String) =
+  override def findResource(name: String) = {
     getURLFromFileDict(name).getOrElse(super.findResource(name))
+  }
 
   override def findResources(name: String) = getURLFromFileDict(name) match {
     case Some(u) => Collections.enumeration(Collections.singleton(u))

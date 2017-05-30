@@ -84,20 +84,22 @@ class RuntimeApiImpl(val interp: Interpreter,
       defaultWidth = width,
       colorLiteral = colors().literal(),
       colorApplyPrefix = colors().prefix(),
-      additionalHandlers = {
-        case t: History => pprint.Tree.Lazy(ctx => Iterator(t.mkString("\n")))
-        case t: GrepResult => pprint.Tree.Lazy(ctx => Iterator(GrepResult.grepResultRepr(t, ctx)))
-      }
+      additionalHandlers = PPrints.replPPrintHandlers(width)
     )
   )
 
   override def show(t: Any,
                     width: Integer = null,
-                    height: Integer = 0,
+                    height: Integer = 9999999,
                     indent: Integer = null) = {
 
-
-    pprinter().tokenize(t, width, indent)
+    pprinter()
+      .tokenize(
+        t,
+        width = if (width == null) pprinter().defaultWidth else width,
+        height = if (height == null) pprinter().defaultHeight else height,
+        indent = if (indent == null) pprinter().defaultIndent else indent
+      )
       .map(_.render)
       .foreach(printer.out)
     printer.out(newLine)

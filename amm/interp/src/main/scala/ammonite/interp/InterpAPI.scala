@@ -1,19 +1,17 @@
-package ammonite.runtime
+package ammonite.interp
 
 import ammonite.ops._
 import ammonite.runtime.tools.Resolver
 import ammonite.util.Ref
-import acyclic.file
+
+import ammonite.runtime.APIHolder
+import ammonite.runtime.Evaluator.AmmoniteExit
+
+import scala.collection.mutable
 import scala.util.control.ControlThrowable
 
 
 object InterpBridge extends APIHolder[InterpAPI]
-
-/**
- * Thrown to exit the REPL cleanly
- */
-case class ReplExit(value: Any) extends ControlThrowable
-
 
 trait InterpAPI {
 
@@ -27,6 +25,12 @@ trait InterpAPI {
    */
   def repositories: Ref[List[Resolver]]
 
+  /**
+    * Configures the current compiler, or if the compiler hasn't been initialized
+    * yet, registers the configuration callback and applies it to the compiler
+    * when it ends up being initialized later
+    */
+  def configureCompiler(c: scala.tools.nsc.Global => Unit): Unit
 }
 
 

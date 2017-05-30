@@ -58,6 +58,7 @@ class Interpreter(val printer: Printer,
 
   val dynamicClasspath = new VirtualDirectory("http://ammonite-memory-placeholder", None)
   var compiler: Compiler = null
+  val onCompilerInit = mutable.Buffer.empty[scala.tools.nsc.Global => Unit]
   var pressy: Pressy = _
   val beforeExitHooks = mutable.Buffer.empty[Any ⇒ Any]
 
@@ -100,6 +101,9 @@ class Interpreter(val printer: Printer,
       () => pressy.shutdownPressy(),
       settings
     )
+
+    onCompilerInit.foreach(_(compiler.compiler))
+
     pressy = Pressy(
       classpath,
       dynamicClasspath,
@@ -109,7 +113,7 @@ class Interpreter(val printer: Printer,
     )
   }
 
-  val bridges = extraBridges(this) :+ ("ammonite.runtime.InterpBridge", "interp", interpApi)
+  val bridges = extraBridges(this) :+ ("ammonite.interp.InterpBridge", "interp", interpApi)
   for ((name, shortName, bridge) <- bridges ){
     APIHolder.initBridge(evalClassloader, name, bridge)
   }
@@ -120,7 +124,8 @@ class Interpreter(val printer: Printer,
     yield Interpreter.PredefInfo(
       Name(s"${shortName}Bridge"),
       s"import $name.{value => $shortName}",
-      true
+      true,
+      None
     )
 
 
@@ -139,10 +144,24 @@ class Interpreter(val printer: Printer,
     Seq("plugin", "cp") -> ImportHook.PluginClasspath
   ))
 
-  val predefs = bridgePredefs ++ customPredefs ++ Seq(
-    Interpreter.PredefInfo(Name("UserSharedPredef"), storage.loadSharedPredef, false),
-    Interpreter.PredefInfo(Name("UserPredef"), storage.loadPredef, false)
-  )
+  val predefs = {
+    val (sharedPredefContent, sharedPredefPath) = storage.loadSharedPredef
+    val (predefContent, predefPath) = storage.loadPredef
+    bridgePredefs ++ customPredefs ++ Seq(
+      Interpreter.PredefInfo(
+        Name("UserSharedPredef"),
+        sharedPredefContent,
+        false,
+        sharedPredefPath
+      ),
+      Interpreter.PredefInfo(
+        Name("UserPredef"),
+        predefContent,
+        false,
+        predefPath
+      )
+    )
+  }
 
   // Use a var and a for-loop instead of a fold, because when running
   // `processModule0` user code may end up calling `processModule` which depends
@@ -150,22 +169,19 @@ class Interpreter(val printer: Printer,
   // to it even if it's half built
   var predefImports = Imports()
   for {
-    Interpreter.PredefInfo(wrapperName, sourceCode, hardcoded) <- predefs
-    if sourceCode.nonEmpty
+    predefInfo <- predefs
+    if predefInfo.code.nonEmpty
   }{
     val pkgName = Seq(Name("ammonite"), Name("predef"))
 
     processModule(
-      ImportHook.Source(wd/s"${wrapperName.raw}.sc"),
-      sourceCode,
-      wrapperName,
-      pkgName,
+      predefInfo.code,
+      CodeSource(predefInfo.name, pkgName, predefInfo.path),
       true,
       "",
-      hardcoded
+      predefInfo.hardcoded
     ) match{
-      case Res.Success(processed) =>
-        predefImports = predefImports ++ processed.finalImports
+      case Res.Success(processed) => predefImports = predefImports ++ processed.finalImports
       case Res.Failure(ex, msg) =>
         ex match{
           case Some(e) => throw new RuntimeException("Error during Predef: " + msg, e)
@@ -182,7 +198,7 @@ class Interpreter(val printer: Printer,
 
 
 
-  def resolveSingleImportHook(source: ImportHook.Source, tree: ImportTree) = {
+  def resolveSingleImportHook(source: Option[Path], tree: ImportTree) = {
     val strippedPrefix = tree.prefix.takeWhile(_(0) == '$').map(_.stripPrefix("$"))
     val hookOpt = importHooks().collectFirst{case (k, v) if strippedPrefix.startsWith(k) => (k, v)}
     for{
@@ -194,13 +210,18 @@ class Interpreter(val printer: Printer,
         case res: ImportHook.Result.Source =>
           for{
             processed <- processModule(
-              res.source, res.code, res.wrapper, res.pkg,
+              res.code, res.blockInfo,
               autoImport = false, extraCode = "", hardcoded = false
             )
           } yield {
-            if (!res.exec) res.imports
-            else processed.finalImports ++ res.imports
-
+            // For $file imports, we do not propagate any imports from the imported scripted
+            // to the enclosing session. Instead, the imported script wrapper object is
+            // brought into scope and you're meant to use the methods defined on that.
+            //
+            // Only $exec imports merge the scope of the imported script into your enclosing
+            // scope, but those are comparatively rare.
+            if (!res.exec) res.hookImports
+            else processed.finalImports ++ res.hookImports
           }
         case res: ImportHook.Result.ClassPath =>
 
@@ -215,7 +236,7 @@ class Interpreter(val printer: Printer,
     }
   }
 
-  def resolveImportHooks(source: ImportHook.Source,
+  def resolveImportHooks(source: Option[Path],
                          stmts: Seq[String]): Res[(Imports, Seq[String], Seq[ImportTree])] = {
       val hookedStmts = mutable.Buffer.empty[String]
       val importTrees = mutable.Buffer.empty[ImportTree]
@@ -249,7 +270,7 @@ class Interpreter(val printer: Printer,
       }
 
       (hookImports, normalStmts, _) <- resolveImportHooks(
-        ImportHook.Source(wd/"<console>"),
+        Some(wd/"<console>"),
         stmts
       )
 
@@ -333,28 +354,27 @@ class Interpreter(val printer: Printer,
 
   def processScriptBlock(processed: Preprocessor.Output,
                          printer: Printer,
-                         wrapperName: Name,
-                         fileName: String,
-                         pkgName: Seq[Name]) = {
+                         blockInfo: CodeSource) = {
     for {
       (cls, newImports, tag) <- cachedCompileBlock(
         processed,
         printer,
-        wrapperName,
-        fileName,
-        pkgName,
+        blockInfo,
         "scala.Iterator[String]()"
       )
-      res <- eval.processScriptBlock(cls, newImports, wrapperName, pkgName, tag)
+      res <- eval.processScriptBlock(
+        cls,
+        newImports,
+        blockInfo.wrapperName,
+        blockInfo.pkgName,
+        tag
+      )
     } yield res
   }
 
 
-
-  def evalCachedClassFiles(source: ImportHook.Source,
+  def evalCachedClassFiles(source: Option[Path],
                            cachedData: Seq[ClassFiles],
-                           pkg: String,
-                           wrapper: String,
                            dynamicClasspath: VirtualDirectory,
                            classFilesList: Seq[ScriptOutput.BlockMetadata]): Res[Seq[_]] = {
     Res.map(cachedData.zipWithIndex) {
@@ -368,46 +388,43 @@ class Interpreter(val printer: Printer,
     }
   }
 
+
   def cachedCompileBlock(processed: Preprocessor.Output,
                          printer: Printer,
-                         wrapperName: Name,
-                         fileName: String,
-                         pkgName: Seq[Name],
+                         blockInfo: CodeSource,
                          printCode: String): Res[(Class[_], Imports, String)] = {
 
 
-      val fullyQualifiedName = (pkgName :+ wrapperName).map(_.encoded).mkString(".")
+    val fullyQualifiedName = blockInfo.jvmPathPrefix
 
-      val tag = Interpreter.cacheTag(
-        processed.code, Nil, eval.frames.head.classloader.classpathHash
-      )
-      val compiled = storage.compileCacheLoad(fullyQualifiedName, tag) match {
-        case Some((classFiles, newImports)) =>
+    val tag = Interpreter.cacheTag(
+      processed.code, Nil, eval.frames.head.classloader.classpathHash
+    )
+    val compiled = storage.compileCacheLoad(fullyQualifiedName, tag) match {
+      case Some((classFiles, newImports)) =>
 
-          Evaluator.addToClasspath(classFiles, dynamicClasspath)
-          Res.Success((classFiles, newImports))
-        case _ =>
-          val noneCalc = for {
-            (classFiles, newImports) <- compileClass(
-              processed, printer, fileName
-            )
-            _ = storage.compileCacheSave(fullyQualifiedName, tag, (classFiles, newImports))
-          } yield {
-            (classFiles, newImports)
-          }
+        Evaluator.addToClasspath(classFiles, dynamicClasspath)
+        Res.Success((classFiles, newImports))
+      case _ =>
+        val noneCalc = for {
+          (classFiles, newImports) <- compileClass(
+            processed, printer, blockInfo.printablePath
+          )
+        } yield {
+          storage.compileCacheSave(fullyQualifiedName, tag, (classFiles, newImports))
+          (classFiles, newImports)
+        }
 
-          noneCalc
-      }
-      for {
-        (classFiles, newImports) <- compiled
-        cls <- eval.loadClass(fullyQualifiedName, classFiles)
-      } yield (cls, newImports, tag)
+        noneCalc
     }
+    for {
+      (classFiles, newImports) <- compiled
+      cls <- eval.loadClass(fullyQualifiedName, classFiles)
+    } yield (cls, newImports, tag)
+  }
 
-  def processModule(source: ImportHook.Source,
-                    code: String,
-                    wrapperName: Name,
-                    pkgName: Seq[Name],
+  def processModule(code: String,
+                    blockInfo: CodeSource,
                     autoImport: Boolean,
                     extraCode: String,
                     hardcoded: Boolean): Res[ScriptOutput.Metadata] = {
@@ -418,41 +435,46 @@ class Interpreter(val printer: Printer,
       else eval.frames.head.classloader.classpathHash
     )
 
-    storage.classFilesListLoad(
-      pkgName.map(_.backticked).mkString("."),
-      wrapperName.backticked,
-      tag
-    ) match {
+    storage.classFilesListLoad(blockInfo.filePathPrefix, tag) match {
       case None =>
-        printer.info("Compiling " + source.path)
+        printer.info("Compiling " + blockInfo.printablePath)
         init()
-        val res = processModule0(
-          source, code, wrapperName, pkgName,
-          predefImports, autoImport, extraCode
-        )
-        res match{
-         case Res.Success(data) =>
-           reInit()
+        for{
+          blocks <- Preprocessor.splitScript(Interpreter.skipSheBangLine(code))
+          data <- processCorrectScript(
+            blocks,
+            predefImports,
+            blockInfo,
+            (processed, indexedWrapperName) =>
+              withContextClassloader(
+                processScriptBlock(
+                  processed,
+                  printer,
+                  blockInfo.copy(wrapperName = indexedWrapperName)
+                )
+              ),
+            autoImport,
+            silent = true,
+            extraCode
+          )
+        } yield {
+          reInit()
 
-           storage.classFilesListSave(
-             pkgName.map(_.backticked).mkString("."),
-             wrapperName.backticked,
-             data.blockInfo,
-             data.finalImports,
-             tag
-           )
-           Res.Success(data)
-         case r: Res.Failing => r
-       }
+          storage.classFilesListSave(
+            blockInfo.filePathPrefix,
+            data.blockInfo,
+            data.finalImports,
+            tag
+          )
+          data
+        }
+
       case Some(compiledScriptData) =>
-
 
         withContextClassloader(
           evalCachedClassFiles(
-            source,
+            blockInfo.source,
             compiledScriptData.classFiles,
-            pkgName.map(_.backticked).mkString("."),
-            wrapperName.backticked,
             dynamicClasspath,
             compiledScriptData.processed.blockInfo
           ) match {
@@ -466,45 +488,6 @@ class Interpreter(val printer: Printer,
   }
 
 
-  def preprocessScript(source: ImportHook.Source, code: String) = for{
-    blocks <- Preprocessor.splitScript(Interpreter.skipSheBangLine(code))
-    hooked <- Res.map(blocks){case (prelude, stmts) => resolveImportHooks(source, stmts) }
-    (hookImports, hookBlocks, importTrees) = hooked.unzip3
-  } yield (blocks.map(_._1).zip(hookBlocks), Imports(hookImports.flatMap(_.value)), importTrees)
-
-  def processModule0(source: ImportHook.Source,
-                     code: String,
-                     wrapperName: Name,
-                     pkgName: Seq[Name],
-                     startingImports: Imports,
-                     autoImport: Boolean,
-                     extraCode: String): Res[ScriptOutput.Metadata] = {
-    for{
-      blocks <- Preprocessor.splitScript(Interpreter.skipSheBangLine(code))
-      res <- processCorrectScript(
-        blocks,
-        startingImports,
-        pkgName,
-        wrapperName,
-        (processed, wrapperIndex, indexedWrapperName) =>
-          withContextClassloader(
-            processScriptBlock(
-              processed, printer,
-              Interpreter.indexWrapperName(wrapperName, wrapperIndex),
-              source.path.toString,
-              pkgName
-            )
-          ),
-        autoImport,
-        silent = true,
-        extraCode,
-        source
-      )
-    } yield res
-  }
-
-
-
   def processExec(code: String, silent: Boolean): Res[Imports] = {
     init()
     for {
@@ -512,21 +495,19 @@ class Interpreter(val printer: Printer,
       processedData <- processCorrectScript(
         blocks,
         eval.frames.head.imports,
-        Seq(Name("$sess")),
-        Name("cmd" + eval.getCurrentLine),
-        { (processed, wrapperIndex, indexedWrapperName) =>
+        CodeSource(Name("cmd" + eval.getCurrentLine), Seq(Name("$sess")),Some(wd/"<console>")),
+        { (processed, indexedWrapperName) =>
           evaluateLine(
             processed,
             printer,
-            s"Main$wrapperIndex.sc",
+            s"Exec.sc",
             indexedWrapperName,
             isExec = true
           )
         },
         autoImport = true,
         silent = silent,
-        "",
-        ImportHook.Source(wd/"<console>")
+        ""
       )
     } yield processedData.finalImports
   }
@@ -535,13 +516,11 @@ class Interpreter(val printer: Printer,
 
   def processCorrectScript(blocks: Seq[(String, Seq[String])],
                            startingImports: Imports,
-                           pkgName: Seq[Name],
-                           wrapperName: Name,
-                           evaluate: Interpreter.EvaluateCallback,
+                           blockInfo: CodeSource,
+                           evaluate: (Preprocessor.Output, Name) => Res[Evaluated],
                            autoImport: Boolean,
                            silent: Boolean,
-                           extraCode: String,
-                           source: ImportHook.Source): Res[ScriptOutput.Metadata] = {
+                           extraCode: String): Res[ScriptOutput.Metadata] = {
 
     val preprocess = Preprocessor(printBridge, compiler.parse)
     // we store the old value, because we will reassign this in the loop
@@ -554,12 +533,33 @@ class Interpreter(val printer: Printer,
       * because we want to be able to make use of any import generated in the
       * script within its blocks, but at the end we only want to expose the
       * imports generated by the last block to who-ever loaded the script
+      *
+      * @param blocks the compilation block of the script, separated by `@`s.
+      *               Each one is a tuple containing the leading whitespace and
+      *               a sequence of statements in that block
+      *
+      * @param scriptImports the set of imports that apply to the current
+      *                      compilation block, excluding that of the last
+      *                      block that was processed since that is held
+      *                      separately in `lastImports` and treated
+      *                      specially
+      *
+      * @param lastImports the imports created by the last block that was processed;
+      *                    only imports created by that
+      *
+      * @param wrapperIndex a counter providing the index of the current block, so
+      *                     e.g. if `Foo.sc` has multiple blocks they can be named
+      *                     `Foo_1` `Foo_2` etc.
+      *
+      * @param perBlockMetadata an accumulator for the processed metadata of each block
+      *                         that is fed in
       */
     @tailrec def loop(blocks: Seq[(String, Seq[String])],
-                      scriptImports0: Imports,
+                      scriptImports: Imports,
                       lastImports: Imports,
                       wrapperIndex: Int,
-                      perBlockMetadata: List[ScriptOutput.BlockMetadata]): Res[ScriptOutput.Metadata] = {
+                      perBlockMetadata: List[ScriptOutput.BlockMetadata])
+                      : Res[ScriptOutput.Metadata] = {
       if (blocks.isEmpty) {
         // No more blocks
         // if we have imports to pass to the upper layer we do that
@@ -572,18 +572,17 @@ class Interpreter(val printer: Printer,
           nestedScriptImports = nestedScriptImports ++ imports
         }
         // pretty printing results is disabled for scripts
-        val indexedWrapperName = Interpreter.indexWrapperName(wrapperName, wrapperIndex)
+        val indexedWrapperName = Interpreter.indexWrapperName(blockInfo.wrapperName, wrapperIndex)
         val (leadingSpaces, stmts) = blocks.head
         val res = for{
-          (hookImports, hookStmts, hookImportTrees) <- resolveImportHooks(source, stmts)
-          scriptImports = scriptImports0 ++ hookImports
+          (hookImports, hookStmts, hookImportTrees) <- resolveImportHooks(blockInfo.source, stmts)
           processed <- preprocess.transform(
             hookStmts,
             "",
             leadingSpaces,
-            pkgName,
+            blockInfo.pkgName,
             indexedWrapperName,
-            scriptImports,
+            scriptImports ++ hookImports,
             if (silent)
               _ => "scala.Iterator[String]()"
             else
@@ -591,14 +590,12 @@ class Interpreter(val printer: Printer,
             extraCode = extraCode
           )
 
-          ev <- evaluate(processed, wrapperIndex, indexedWrapperName)
-        } yield (ev, scriptImports, hookImportTrees)
+          ev <- evaluate(processed, indexedWrapperName)
+        } yield (ev, hookImports, hookImportTrees)
 
         res match {
-          case r: Res.Failure => r
-          case r: Res.Exception => r
-          case Res.Success((ev, scriptImports, hookImportTrees)) =>
-            val last = ev.imports ++ nestedScriptImports
+          case Res.Success((ev, hookImports, hookImportTrees)) =>
+            val last = hookImports ++ ev.imports ++ nestedScriptImports
             val newCompiledData = ScriptOutput.BlockMetadata(
               VersionedWrapperId(ev.wrapper.map(_.encoded).mkString("."), ev.tag),
               hookImportTrees
@@ -610,13 +607,11 @@ class Interpreter(val printer: Printer,
               wrapperIndex + 1,
               newCompiledData :: perBlockMetadata
             )
-          case Res.Skip => loop(
-            blocks.tail,
-            scriptImports0,
-            lastImports,
-            wrapperIndex + 1,
-            perBlockMetadata
-          )
+
+          case r: Res.Failure => r
+          case r: Res.Exception => r
+          case Res.Skip =>
+            loop(blocks.tail, scriptImports, lastImports, wrapperIndex + 1, perBlockMetadata)
           case _ => ???
         }
       }
@@ -701,6 +696,13 @@ class Interpreter(val printer: Printer,
   private lazy val interpApi0: Interpreter.InterpAPIWithDefaultLoadJar = new Interpreter.InterpAPIWithDefaultLoadJar{ outer =>
     lazy val repositories = Ref(ammonite.runtime.tools.Resolvers.defaultResolvers)
 
+    def configureCompiler(callback: scala.tools.nsc.Global => Unit) = {
+      interp.onCompilerInit.append(callback)
+      if (compiler != null){
+        callback(compiler.compiler)
+      }
+    }
+
     val load: Interpreter.DefaultLoadJar with Load = new Interpreter.DefaultLoadJar with Load {
 
       def interpreter = interp
@@ -715,15 +717,13 @@ class Interpreter(val printer: Printer,
         case _ =>
       }
 
-      def exec(file: Path): Unit = apply(normalizeNewlines(read(file)))
+      def exec(file: Path): Unit = apply(normalizeNewlines(read(file)), silent = true)
 
       def module(file: Path) = {
         val (pkg, wrapper) = Util.pathToPackageWrapper(file, wd)
         processModule(
-          ImportHook.Source(wd/"Main.sc"),
           normalizeNewlines(read(file)),
-          wrapper,
-          pkg,
+          CodeSource(wrapper, pkg, Some(wd/"Main.sc")),
           true,
           "",
           hardcoded = false
@@ -755,10 +755,17 @@ class Interpreter(val printer: Printer,
 }
 
 object Interpreter{
+  
   val SheBang = "#!"
   val SheBangEndPattern = Pattern.compile(s"""((?m)^!#.*)$newLine""")
 
-  case class PredefInfo(name: Name, code: String, hardcoded: Boolean)
+  /**
+    * Information about a particular predef file or snippet. [[hardcoded]]
+    * represents whether or not we cache the snippet forever regardless of
+    * classpath, which is true for many "internal" predefs which only do
+    * imports from Ammonite's own packages and don't rely on external code
+    */
+  case class PredefInfo(name: Name, code: String, hardcoded: Boolean, path: Option[Path])
 
   /**
     * This gives our cache tags for compile caching. The cache tags are a hash
@@ -784,10 +791,6 @@ object Interpreter{
     } else
       code
   }
-
-
-  type EvaluateCallback = (Preprocessor.Output, Int, Name) => Res[Evaluated]
-
 
   def indexWrapperName(wrapperName: Name, wrapperIndex: Int): Name = {
     Name(wrapperName.raw + (if (wrapperIndex == 1) "" else "_" + wrapperIndex))

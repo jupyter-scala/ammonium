@@ -41,6 +41,7 @@ val sharedSettings = Seq(
   },
   testFrameworks := Seq(new TestFramework("utest.runner.Framework")),
   scalacOptions += "-target:jvm-1.7",
+  scalacOptions += "-P:acyclic:force",
   autoCompilerPlugins := true,
   addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.7"),
   ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) },
@@ -153,17 +154,11 @@ lazy val amm = project
     ),
     assemblyJarName in assembly := s"${name.value}-${version.value}-${scalaVersion.value}",
     assembly in Test := {
-      val dest = assembly.value.getParentFile/"amm"
+      val dest = target.value/"amm"
       IO.copyFile(assembly.value, dest)
       import sys.process._
       Seq("chmod", "+x", dest.getAbsolutePath).!
       dest
-    },
-    assemblyMergeStrategy in assembly := {
-      case PathList("META-INF", xs @ _*) if xs.exists(_ contains "jansi") => MergeStrategy.last
-      case x =>
-        val oldStrategy = (assemblyMergeStrategy in assembly).value
-        oldStrategy(x)
     },
     parallelExecution in Test := false
   )
@@ -174,12 +169,10 @@ lazy val ammUtil = project
   .settings(
     macroSettings,
     sharedSettings,
-    crossVersion := CrossVersion.full,
-
     name := "ammonite-util",
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "upickle" % "0.4.4",
-      "com.lihaoyi" %% "pprint" % "0.5.1",
+      "com.lihaoyi" %% "pprint" % "0.5.2",
       "com.lihaoyi" %% "fansi" % "0.2.4"
     )
   )
@@ -191,7 +184,6 @@ lazy val ammRuntime = project
   .settings(
     macroSettings,
     sharedSettings,
-    crossVersion := CrossVersion.full,
 
     name := "ammonite-runtime",
     inConfig(coursier.ShadingPlugin.Shading)(com.typesafe.sbt.pgp.PgpSettings.projectSettings),
@@ -247,7 +239,7 @@ lazy val ammRepl = project
     crossVersion := CrossVersion.full,
     name := "ammonite-repl",
     libraryDependencies ++= Seq(
-      "jline" % "jline" % "2.12",
+      "jline" % "jline" % "2.14.3",
       "com.github.scopt" %% "scopt" % "3.5.0"
     )
   )
@@ -262,6 +254,7 @@ lazy val shell = project
   .settings(
     sharedSettings,
     macroSettings,
+    crossVersion := CrossVersion.full,
     name := "ammonite-shell",
     (test in Test) := (test in Test).dependsOn(packageBin in Compile).value,
     (run in Test) := (run in Test).dependsOn(packageBin in Compile).evaluated,
@@ -344,7 +337,22 @@ lazy val readme = ScalatexReadme(
   (unmanagedSources in Compile) += baseDirectory.value/".."/"project"/"Constants.scala"
 )
 
+// Only modules down-stream of `ammInterp` need to be fully cross-built against
+// minor versions, since `interp` depends on compiler internals. The modules
+// upstream of `ammInterp` can be cross-built normally only against major versions
+// of Scala
+lazy val singleCrossBuilt = project
+  .in(file("target/singleCrossBuilt"))
+  .aggregate(ops, terminal, ammUtil, ammRuntime)
+  .settings(dontPublishSettings)
+
+lazy val fullCrossBuilt = project
+  .in(file("target/fullCrossBuilt"))
+  .aggregate(shell, amm, sshd, ammInterp, ammRepl)
+  .settings(dontPublishSettings)
+
+
 lazy val published = project
   .in(file("target/published"))
-  .aggregate(ops, shell, terminal, amm, sshd, ammUtil, ammRuntime, ammInterp, ammRepl)
+  .aggregate(fullCrossBuilt, singleCrossBuilt)
   .settings(dontPublishSettings)

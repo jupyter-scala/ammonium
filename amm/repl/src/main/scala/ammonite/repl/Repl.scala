@@ -6,7 +6,7 @@ import ammonite.runtime._
 import ammonite.terminal.Filter
 import ammonite.util.Util.newLine
 import ammonite.util._
-import acyclic.file
+
 import ammonite.interp.{Interpreter, Preprocessor}
 
 import scala.annotation.tailrec
@@ -20,7 +20,8 @@ class Repl(input: InputStream,
            mainPredef: String,
            wd: ammonite.ops.Path,
            welcomeBanner: Option[String],
-           replArgs: Seq[Bind[_]] = Nil) {
+           replArgs: Seq[Bind[_]] = Nil,
+           remoteLogger: Option[RemoteLogger]) {
 
   val prompt = Ref("@ ")
 
@@ -44,9 +45,9 @@ class Repl(input: InputStream,
     printer,
     storage,
     Seq(
-      Interpreter.PredefInfo(Name("DefaultPredef"), defaultPredef, true),
-      Interpreter.PredefInfo(Name("ArgsPredef"), argString, false),
-      Interpreter.PredefInfo(Name("MainPredef"), mainPredef, false)
+      Interpreter.PredefInfo(Name("DefaultPredef"), defaultPredef, true, None),
+      Interpreter.PredefInfo(Name("ArgsPredef"), argString, false, None),
+      Interpreter.PredefInfo(Name("MainPredef"), mainPredef, false, Some(wd))
     ),
     i => {
       val replApi = new ReplApiImpl(
@@ -101,6 +102,7 @@ class Repl(input: InputStream,
     interp.init()
     @tailrec def loop(): Any = {
       val actionResult = action()
+      remoteLogger.foreach(_.apply("Action"))
       interp.handleOutput(actionResult)
 
       actionResult match{

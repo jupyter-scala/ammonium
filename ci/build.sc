@@ -14,7 +14,7 @@ val allVersions = Seq(
   "2.12.0", "2.12.1", "2.12.2"
 )
 
-val latestVersions = Set("2.10.6", "2.11.11", "2.12.2")
+val latestMajorVersions = Set("2.10.6", "2.11.11", "2.12.2")
 
 val buildVersion =
   if (sys.env("TRAVIS_TAG") == "") s"COMMIT-${getGitHash()}"
@@ -69,8 +69,12 @@ def publishSigned() = {
   write(cwd/"pubring.asc", sys.env("SONATYPE_PGP_PUB_KEY_CONTENTS").replace("\\n", "\n"))
 
 
+  for (version <- latestMajorVersions) {
+    %sbt("++" + version, "singleCrossBuilt/publishSigned")
+  }
+
   for (version <- allVersions) {
-    %sbt("++" + version, "published/publishSigned")
+    %sbt("++" + version, "fullCrossBuilt/publishSigned")
   }
   %sbt("sonatypeReleaseAll")
 }
@@ -126,57 +130,60 @@ def publishDocs() = {
 
   %("ci/deploy_master_docs.sh")
 }
+
+@main
+def publishExecutable(ammoniteVersion: String,
+                      publishKey: String,
+                      unstable: Boolean) = {
+
+
+  updateConstants(ammoniteVersion)
+
+  println("MASTER COMMIT: Creating a release")
+  import upickle.Js
+  if (!unstable){
+    scalaj.http.Http("https://api.github.com/repos/lihaoyi/Ammonite/releases")
+      .postData(
+        upickle.json.write(
+          Js.Obj(
+            "tag_name" -> Js.Str(ammoniteVersion),
+            "name" -> Js.Str(ammoniteVersion),
+            "body" -> Js.Str("http://www.lihaoyi.com/Ammonite/#" + ammoniteVersion)
+          )
+        )
+      )
+      .header("Authorization", "token " + publishKey)
+      .asString
+  }
+
+  for (version <- latestMajorVersions) {
+    println("MASTER COMMIT: Publishing Executable for Scala " + version)
+    //Prepare executable
+    %sbt("++" + version, "amm/test:assembly")
+    val bv = binVersion(version)
+    val releaseName = if(unstable) "snapshot-commit-uploads" else ammoniteVersion
+    upload(
+      cwd/'amm/'target/'amm,
+      releaseName,
+      s"$bv-$ammoniteVersion",
+      publishKey
+    )
+  }
+}
 @main
 def executable() = {
   if (isMasterCommit){
-    updateConstants()
+
     val travisTag = sys.env("TRAVIS_TAG")
-    val gitHash = getGitHash()
-
-    println("MASTER COMMIT: Creating a release")
-    import upickle.Js
-    if (travisTag != ""){
-      scalaj.http.Http("https://api.github.com/repos/lihaoyi/Ammonite/releases")
-        .postData(
-          upickle.json.write(
-            Js.Obj(
-              "tag_name" -> Js.Str(travisTag),
-              "name" -> Js.Str(travisTag),
-              "body" -> Js.Str("http://www.lihaoyi.com/Ammonite/#" + travisTag)
-            )
-          )
-        )
-        .header("Authorization", "token " + sys.env("AMMONITE_BOT_AUTH_TOKEN"))
-        .asString
-    }
-
-    for (version <- latestVersions) {
-
-      println("MASTER COMMIT: Publishing Executable for Scala " + version)
-      //Prepare executable
-      %sbt("++" + version, "amm/test:assembly")
-      val bv = binVersion(version)
-      val shortUrl = if (travisTag != ""){
-        val short = upload(
-          cwd/'amm/'target/s"scala-$bv"/'amm,
-          travisTag,
-          s"$bv-$travisTag",
-          sys.env("AMMONITE_BOT_AUTH_TOKEN")
-        )
-        short
-      }else{
-        val short = upload(
-          cwd/'amm/'target/s"scala-$bv"/'amm,
-          "snapshot-commit-uploads",
-          s"$bv-$gitHash",
-          sys.env("AMMONITE_BOT_AUTH_TOKEN")
-        )
-        short
-      }
-    }
+    val unstable = travisTag == ""
+    publishExecutable(
+      ammoniteVersion = if(unstable) getGitHash() else travisTag,
+      publishKey = sys.env("AMMONITE_BOT_AUTH_TOKEN"),
+      unstable
+    )
   }else{
     println("MISC COMMIT: generating executable but not publishing")
-    for (version <- latestVersions) {
+    for (version <- latestMajorVersions) {
       %sbt("++" + version, "published/test:compile")
       %sbt("++" + version, "integration/test:compile")
       %sbt("++" + version, "amm/test:assembly")
@@ -207,9 +214,13 @@ def artifacts() = {
     publishSigned()
   }else{
     println("MISC COMMIT: Compiling all Scala code across versions for verification")
+    for (version <- latestMajorVersions) {
+      %sbt("++" + version, "singleCrossBuilt/package")
+      %sbt("++" + version, "singleCrossBuilt/packageSrc")
+    }
     for (version <- allVersions) {
-      %sbt("++" + version, "published/package")
-      %sbt("++" + version, "published/packageSrc")
+      %sbt("++" + version, "fullCrossBuilt/package")
+      %sbt("++" + version, "fullCrossBuilt/packageSrc")
     }
   }
 
